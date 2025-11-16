@@ -1,0 +1,127 @@
+import { NextRequest, NextResponse } from 'next/server';
+import connectDB from '@/lib/db';
+import Job from '@/models/Job';
+import { requireAuth, requireRole } from '@/lib/auth';
+
+// GET - Get a single job
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    requireAuth(request);
+    await connectDB();
+
+    const job = await Job.findById(params.id).populate('recruiter', 'name email');
+    
+    if (!job) {
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({ job }, { status: 200 });
+  } catch (error: any) {
+    if (error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    return NextResponse.json(
+      { error: error.message || 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT - Update a job (recruiters can only update their own jobs)
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const user = requireRole(request, ['recruiter']);
+    await connectDB();
+
+    const job = await Job.findById(params.id);
+    
+    if (!job) {
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+    }
+
+    if (job.recruiter.toString() !== user.userId) {
+      return NextResponse.json(
+        { error: 'You can only edit your own jobs' },
+        { status: 403 }
+      );
+    }
+
+    const { title, description, company, location, salary, type } = await request.json();
+
+    if (title) job.title = title;
+    if (description) job.description = description;
+    if (company) job.company = company;
+    if (location) job.location = location;
+    if (salary !== undefined) job.salary = salary;
+    if (type) job.type = type;
+
+    await job.save();
+
+    const updatedJob = await Job.findById(job._id).populate('recruiter', 'name email');
+
+    return NextResponse.json(
+      { message: 'Job updated successfully', job: updatedJob },
+      { status: 200 }
+    );
+  } catch (error: any) {
+    if (error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error.message === 'Forbidden') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    return NextResponse.json(
+      { error: error.message || 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE - Delete a job (recruiters can only delete their own jobs)
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const user = requireRole(request, ['recruiter']);
+    await connectDB();
+
+    const job = await Job.findById(params.id);
+    
+    if (!job) {
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+    }
+
+    if (job.recruiter.toString() !== user.userId) {
+      return NextResponse.json(
+        { error: 'You can only delete your own jobs' },
+        { status: 403 }
+      );
+    }
+
+    await Job.findByIdAndDelete(params.id);
+
+    return NextResponse.json(
+      { message: 'Job deleted successfully' },
+      { status: 200 }
+    );
+  } catch (error: any) {
+    if (error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error.message === 'Forbidden') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    return NextResponse.json(
+      { error: error.message || 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+

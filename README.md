@@ -1,36 +1,149 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ChickenLoop - Watersports Job Platform
+
+A full-stack job board platform specifically designed for the watersports industry. Built with Next.js, MongoDB, and JWT authentication.
+
+## Features
+
+### User Roles
+
+1. **Job Seeker**
+   - Create, edit, and delete CVs
+   - Browse all available job listings
+   - Cannot see other users' CVs
+
+2. **Recruiter**
+   - Post job listings
+   - View, edit, and delete their own job postings
+   - Cannot create CVs
+
+3. **Admin**
+   - View all users and their data
+   - Edit any user's information
+   - Delete users and their associated data
+
+## Tech Stack
+
+- **Frontend**: Next.js 16 (App Router), React, TypeScript, Tailwind CSS
+- **Backend**: Next.js API Routes
+- **Database**: MongoDB with Mongoose
+- **Authentication**: JWT (JSON Web Tokens)
+- **Password Hashing**: bcryptjs
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18+ installed
+- MongoDB instance running (local or cloud)
+
+### Installation
+
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <repository-url>
+cd cl1
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Set up environment variables:
+Create a `.env.local` file in the root directory:
+```env
+MONGODB_URI=mongodb://localhost:27017/chickenloop
+JWT_SECRET=your-secret-key-change-in-production
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Start the development server:
+```bash
+npm run dev
+```
 
-## Learn More
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-To learn more about Next.js, take a look at the following resources:
+## Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+cl1/
+├── app/
+│   ├── api/              # API routes
+│   │   ├── auth/         # Authentication endpoints
+│   │   ├── jobs/         # Job CRUD operations
+│   │   ├── cv/           # CV CRUD operations
+│   │   └── admin/        # Admin user management
+│   ├── admin/            # Admin dashboard pages
+│   ├── recruiter/        # Recruiter dashboard pages
+│   ├── job-seeker/       # Job seeker dashboard pages
+│   ├── login/            # Login page
+│   ├── register/         # Registration page
+│   └── components/       # Reusable components
+├── lib/                  # Utility functions
+│   ├── api.ts           # API client functions
+│   ├── auth.ts          # Authentication utilities
+│   ├── db.ts            # MongoDB connection
+│   └── jwt.ts           # JWT utilities
+├── models/              # Mongoose models
+│   ├── User.ts
+│   ├── Job.ts
+│   └── CV.ts
+└── contexts/            # React contexts
+    └── AuthContext.tsx
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## API Endpoints
 
-## Deploy on Vercel
+### Authentication
+- `POST /api/auth/register` - Register a new user
+- `POST /api/auth/login` - Login user
+- `POST /api/auth/logout` - Logout user
+- `GET /api/auth/me` - Get current user
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Jobs
+- `GET /api/jobs` - Get all jobs (authenticated users)
+- `GET /api/jobs/my` - Get recruiter's own jobs
+- `GET /api/jobs/[id]` - Get a single job
+- `POST /api/jobs` - Create a job (recruiters only)
+- `PUT /api/jobs/[id]` - Update a job (recruiters, own jobs only)
+- `DELETE /api/jobs/[id]` - Delete a job (recruiters, own jobs only)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### CV
+- `GET /api/cv` - Get current user's CV (job seekers only)
+- `POST /api/cv` - Create CV (job seekers only)
+- `PUT /api/cv` - Update CV (job seekers only)
+- `DELETE /api/cv` - Delete CV (job seekers only)
+
+### Admin
+- `GET /api/admin/users` - Get all users with data (admin only)
+- `GET /api/admin/users/[id]` - Get a single user (admin only)
+- `PUT /api/admin/users/[id]` - Update a user (admin only)
+- `DELETE /api/admin/users/[id]` - Delete a user (admin only)
+
+## Usage
+
+1. **Register**: Create an account as either a job seeker or recruiter
+2. **Job Seekers**: Create your CV and browse available jobs
+3. **Recruiters**: Post job listings and manage them
+4. **Admins**: Manage all users and their data
+
+## Development
+
+Run the development server:
+```bash
+npm run dev
+```
+
+Build for production:
+```bash
+npm run build
+```
+
+Start production server:
+```bash
+npm start
+```
+
+## License
+
+This project is open source and available under the MIT License.
