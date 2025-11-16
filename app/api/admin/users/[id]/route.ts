@@ -9,13 +9,14 @@ import { requireRole } from '@/lib/auth';
 // GET - Get a single user with all their data (admin only)
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     requireRole(request, ['admin']);
     await connectDB();
+    const { id } = await params;
 
-    const user = await User.findById(params.id).select('-password');
+    const user = await User.findById(id).select('-password');
     
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -59,13 +60,14 @@ export async function GET(
 // PUT - Update a user (admin only)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     requireRole(request, ['admin']);
     await connectDB();
+    const { id } = await params;
 
-    const user = await User.findById(params.id);
+    const user = await User.findById(id);
     
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -107,13 +109,14 @@ export async function PUT(
 // DELETE - Delete a user (admin only)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     requireRole(request, ['admin']);
     await connectDB();
+    const { id } = await params;
 
-    const user = await User.findById(params.id);
+    const user = await User.findById(id);
     
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -126,7 +129,7 @@ export async function DELETE(
       await CV.deleteMany({ jobSeeker: user._id });
     }
 
-    await User.findByIdAndDelete(params.id);
+    await User.findByIdAndDelete(id);
 
     return NextResponse.json(
       { message: 'User deleted successfully' },

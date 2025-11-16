@@ -6,13 +6,14 @@ import { requireAuth, requireRole } from '@/lib/auth';
 // GET - Get a single job
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     requireAuth(request);
     await connectDB();
+    const { id } = await params;
 
-    const job = await Job.findById(params.id).populate('recruiter', 'name email');
+    const job = await Job.findById(id).populate('recruiter', 'name email');
     
     if (!job) {
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
@@ -33,13 +34,14 @@ export async function GET(
 // PUT - Update a job (recruiters can only update their own jobs)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = requireRole(request, ['recruiter']);
     await connectDB();
+    const { id } = await params;
 
-    const job = await Job.findById(params.id);
+    const job = await Job.findById(id);
     
     if (!job) {
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
@@ -86,13 +88,14 @@ export async function PUT(
 // DELETE - Delete a job (recruiters can only delete their own jobs)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = requireRole(request, ['recruiter']);
     await connectDB();
+    const { id } = await params;
 
-    const job = await Job.findById(params.id);
+    const job = await Job.findById(id);
     
     if (!job) {
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
@@ -105,7 +108,7 @@ export async function DELETE(
       );
     }
 
-    await Job.findByIdAndDelete(params.id);
+    await Job.findByIdAndDelete(id);
 
     return NextResponse.json(
       { message: 'Job deleted successfully' },
