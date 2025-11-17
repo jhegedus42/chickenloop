@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import connectDB from '@/lib/db';
 import Job from '@/models/Job';
 import Company from '@/models/Company';
@@ -61,7 +62,7 @@ export async function PUT(
     const company = await Company.findOne({ owner: user.userId });
     if (company) {
       job.company = company.name;
-      job.companyId = company._id;
+      job.companyId = company._id as mongoose.Types.ObjectId;
     }
 
     if (title) job.title = title;
