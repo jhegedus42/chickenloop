@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Job from '@/models/Job';
+import Company from '@/models/Company';
 import { requireAuth, requireRole } from '@/lib/auth';
 
 // GET - Get a single job
@@ -54,11 +55,17 @@ export async function PUT(
       );
     }
 
-    const { title, description, company, location, salary, type } = await request.json();
+    const { title, description, location, salary, type } = await request.json();
+
+    // Get recruiter's company to ensure company field is always set
+    const company = await Company.findOne({ owner: user.userId });
+    if (company) {
+      job.company = company.name;
+      job.companyId = company._id;
+    }
 
     if (title) job.title = title;
     if (description) job.description = description;
-    if (company) job.company = company;
     if (location) job.location = location;
     if (salary !== undefined) job.salary = salary;
     if (type) job.type = type;

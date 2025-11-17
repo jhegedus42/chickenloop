@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
 import Navbar from '../../../../components/Navbar';
-import { jobsApi } from '@/lib/api';
+import { jobsApi, companyApi } from '@/lib/api';
 
 export default function EditJobPage() {
   const { user, loading: authLoading } = useAuth();
@@ -14,7 +14,6 @@ export default function EditJobPage() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    company: '',
     location: '',
     salary: '',
     type: 'full-time',
@@ -22,6 +21,7 @@ export default function EditJobPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [company, setCompany] = useState<any>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -33,9 +33,19 @@ export default function EditJobPage() {
 
   useEffect(() => {
     if (user && user.role === 'recruiter' && jobId) {
+      loadCompany();
       loadJob();
     }
   }, [user, jobId]);
+
+  const loadCompany = async () => {
+    try {
+      const data = await companyApi.get();
+      setCompany(data.company);
+    } catch (err: any) {
+      // Company might not exist for old jobs, but we'll still show the job's company
+    }
+  };
 
   const loadJob = async () => {
     try {
@@ -44,7 +54,6 @@ export default function EditJobPage() {
       setFormData({
         title: job.title,
         description: job.description,
-        company: job.company,
         location: job.location,
         salary: job.salary || '',
         type: job.type,
@@ -114,11 +123,11 @@ export default function EditJobPage() {
               <input
                 id="company"
                 type="text"
-                value={formData.company}
-                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={company?.name || ''}
+                disabled
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
               />
+              <p className="text-sm text-gray-500 mt-1">This is your company profile. To change it, edit your company profile.</p>
             </div>
             <div>
               <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">

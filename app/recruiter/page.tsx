@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
-import { jobsApi } from '@/lib/api';
+import { jobsApi, companyApi } from '@/lib/api';
 import Link from 'next/link';
 
 interface Job {
@@ -24,6 +24,7 @@ export default function RecruiterDashboard() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [hasCompany, setHasCompany] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -35,9 +36,23 @@ export default function RecruiterDashboard() {
 
   useEffect(() => {
     if (user && user.role === 'recruiter') {
+      checkCompany();
       loadJobs();
     }
   }, [user]);
+
+  const checkCompany = async () => {
+    try {
+      await companyApi.get();
+      setHasCompany(true);
+    } catch (err: any) {
+      if (err.message.includes('not found')) {
+        setHasCompany(false);
+      } else {
+        setError(err.message || 'Failed to check company status');
+      }
+    }
+  };
 
   const loadJobs = async () => {
     try {
@@ -61,13 +76,36 @@ export default function RecruiterDashboard() {
     }
   };
 
-  if (authLoading || loading) {
+  if (authLoading || loading || hasCompany === null) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50">
         <Navbar />
         <div className="flex items-center justify-center h-screen">
           <div className="text-xl">Loading...</div>
         </div>
+      </div>
+    );
+  }
+
+  // Redirect to company creation if no company exists
+  if (hasCompany === false) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50">
+        <Navbar />
+        <main className="max-w-3xl mx-auto px-4 py-12">
+          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+            <h1 className="text-3xl font-bold mb-4 text-gray-900">Company Profile Required</h1>
+            <p className="text-gray-600 mb-6">
+              Before you can post jobs, you need to create a company profile. This helps job seekers learn more about your organization.
+            </p>
+            <Link
+              href="/recruiter/company/new"
+              className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold"
+            >
+              Create Company Profile
+            </Link>
+          </div>
+        </main>
       </div>
     );
   }

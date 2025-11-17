@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Navbar from '../../../components/Navbar';
-import { jobsApi } from '@/lib/api';
+import { jobsApi, companyApi } from '@/lib/api';
+import Link from 'next/link';
 
 export default function NewJobPage() {
   const { user, loading: authLoading } = useAuth();
@@ -12,21 +13,39 @@ export default function NewJobPage() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    company: '',
     location: '',
     salary: '',
     type: 'full-time',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [company, setCompany] = useState<any>(null);
+  const [companyLoading, setCompanyLoading] = useState(true);
 
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login');
     } else if (user && user.role !== 'recruiter') {
       router.push(`/${user.role === 'admin' ? 'admin' : 'job-seeker'}`);
+    } else if (user && user.role === 'recruiter') {
+      loadCompany();
     }
   }, [user, authLoading, router]);
+
+  const loadCompany = async () => {
+    try {
+      const data = await companyApi.get();
+      setCompany(data.company);
+    } catch (err: any) {
+      if (err.message.includes('not found')) {
+        setCompany(null);
+      } else {
+        setError(err.message || 'Failed to load company');
+      }
+    } finally {
+      setCompanyLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,13 +62,35 @@ export default function NewJobPage() {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || companyLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50">
         <Navbar />
         <div className="flex items-center justify-center h-screen">
           <div className="text-xl">Loading...</div>
         </div>
+      </div>
+    );
+  }
+
+  if (!company) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50">
+        <Navbar />
+        <main className="max-w-3xl mx-auto px-4 py-12">
+          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+            <h1 className="text-3xl font-bold mb-4 text-gray-900">Company Profile Required</h1>
+            <p className="text-gray-600 mb-6">
+              Before you can post jobs, you need to create a company profile.
+            </p>
+            <Link
+              href="/recruiter/company/new"
+              className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold"
+            >
+              Create Company Profile
+            </Link>
+          </div>
+        </main>
       </div>
     );
   }
@@ -76,7 +117,7 @@ export default function NewJobPage() {
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
               />
             </div>
             <div>
@@ -86,11 +127,11 @@ export default function NewJobPage() {
               <input
                 id="company"
                 type="text"
-                value={formData.company}
-                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={company.name}
+                disabled
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
               />
+              <p className="text-sm text-gray-500 mt-1">This is your company profile. To change it, edit your company profile.</p>
             </div>
             <div>
               <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
@@ -102,7 +143,7 @@ export default function NewJobPage() {
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
               />
             </div>
             <div>
@@ -114,7 +155,7 @@ export default function NewJobPage() {
                 value={formData.type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
               >
                 <option value="full-time">Full-time</option>
                 <option value="part-time">Part-time</option>
@@ -132,7 +173,7 @@ export default function NewJobPage() {
                 value={formData.salary}
                 onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
                 placeholder="e.g., $50,000 - $70,000"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
               />
             </div>
             <div>
@@ -145,7 +186,7 @@ export default function NewJobPage() {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 required
                 rows={8}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
               />
             </div>
             <div className="flex gap-4">

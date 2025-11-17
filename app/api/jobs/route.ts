@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Job from '@/models/Job';
+import Company from '@/models/Company';
 import { requireAuth, requireRole } from '@/lib/auth';
 
 // GET - Get all jobs (accessible to all authenticated users)
@@ -29,11 +30,20 @@ export async function POST(request: NextRequest) {
     const user = requireRole(request, ['recruiter']);
     await connectDB();
 
-    const { title, description, company, location, salary, type } = await request.json();
-
-    if (!title || !description || !company || !location || !type) {
+    // Check if recruiter has a company
+    const company = await Company.findOne({ owner: user.userId });
+    if (!company) {
       return NextResponse.json(
-        { error: 'Title, description, company, location, and type are required' },
+        { error: 'You must create a company profile before posting jobs' },
+        { status: 400 }
+      );
+    }
+
+    const { title, description, location, salary, type } = await request.json();
+
+    if (!title || !description || !location || !type) {
+      return NextResponse.json(
+        { error: 'Title, description, location, and type are required' },
         { status: 400 }
       );
     }
@@ -41,7 +51,8 @@ export async function POST(request: NextRequest) {
     const job = await Job.create({
       title,
       description,
-      company,
+      company: company.name,
+      companyId: company._id,
       location,
       salary,
       type,

@@ -78,6 +78,20 @@ export const cvApi = {
     }),
 };
 
+export const companyApi = {
+  get: () => apiRequest('/company'),
+  create: (data: any) =>
+    apiRequest('/company', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  update: (data: any) =>
+    apiRequest('/company', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+};
+
 export const adminApi = {
   getUsers: () => apiRequest('/admin/users'),
   getUser: (id: string) => apiRequest(`/admin/users/${id}`),

@@ -4,6 +4,7 @@ export interface IJob extends Document {
   title: string;
   description: string;
   company: string;
+  companyId?: mongoose.Types.ObjectId;
   location: string;
   salary?: string;
   type: 'full-time' | 'part-time' | 'contract' | 'freelance';
@@ -25,6 +26,10 @@ const JobSchema: Schema = new Schema(
     company: {
       type: String,
       required: true,
+    },
+    companyId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Company',
     },
     location: {
       type: String,
