@@ -45,3 +45,4 @@ const Company: Model<ICompany> = mongoose.models.Company || mongoose.model<IComp
 
 export default Company;
 
+
