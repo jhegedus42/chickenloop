@@ -12,11 +12,25 @@ export default function NewCompanyPage() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    location: '',
+    address: {
+      street: '',
+      city: '',
+      state: '',
+      postalCode: '',
+      country: '',
+    },
+    coordinates: null as { latitude: number; longitude: number } | null,
     website: '',
+    socialMedia: {
+      facebook: '',
+      instagram: '',
+      tiktok: '',
+      youtube: '',
+    },
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -25,6 +39,40 @@ export default function NewCompanyPage() {
       router.push(`/${user.role === 'admin' ? 'admin' : 'job-seeker'}`);
     }
   }, [user, authLoading, router]);
+
+  const handleGeocode = async () => {
+    setGeocoding(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/geocode', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ address: formData.address }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to geocode address');
+      }
+
+      // Update formData with coordinates
+      setFormData({
+        ...formData,
+        coordinates: {
+          latitude: data.latitude,
+          longitude: data.longitude,
+        },
+      });
+    } catch (err: any) {
+      setError(err.message || 'Failed to geocode address');
+    } finally {
+      setGeocoding(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,18 +140,196 @@ export default function NewCompanyPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
               />
             </div>
-            <div>
-              <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
-                Location
-              </label>
-              <input
-                id="location"
-                type="text"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                placeholder="e.g., San Diego, CA"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-              />
+            <div className="border-t pt-4 mt-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Address Details</h3>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="street" className="block text-sm font-medium text-gray-700 mb-1">
+                    Street Address
+                  </label>
+                  <input
+                    id="street"
+                    type="text"
+                    value={formData.address.street}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        address: { ...formData.address, street: e.target.value },
+                      })
+                    }
+                    placeholder="e.g., 123 Main St"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
+                      City
+                    </label>
+                    <input
+                      id="city"
+                      type="text"
+                      value={formData.address.city}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          address: { ...formData.address, city: e.target.value },
+                        })
+                      }
+                      placeholder="e.g., San Diego"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">
+                      State/Province
+                    </label>
+                    <input
+                      id="state"
+                      type="text"
+                      value={formData.address.state}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          address: { ...formData.address, state: e.target.value },
+                        })
+                      }
+                      placeholder="e.g., CA"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700 mb-1">
+                      Postal Code
+                    </label>
+                    <input
+                      id="postalCode"
+                      type="text"
+                      value={formData.address.postalCode}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          address: { ...formData.address, postalCode: e.target.value },
+                        })
+                      }
+                      placeholder="e.g., 92101"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-1">
+                      Country
+                    </label>
+                    <input
+                      id="country"
+                      type="text"
+                      value={formData.address.country}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          address: { ...formData.address, country: e.target.value },
+                        })
+                      }
+                      placeholder="e.g., USA"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <button
+                    type="button"
+                    onClick={handleGeocode}
+                    disabled={geocoding || (!formData.address.street && !formData.address.city)}
+                    className="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-sm"
+                  >
+                    {geocoding ? 'Geocoding...' : 'Get Coordinates (Lat/Lng)'}
+                  </button>
+                  {formData.coordinates && (
+                    <p className="mt-2 text-sm text-gray-600">
+                      Coordinates: {formData.coordinates.latitude.toFixed(6)}, {formData.coordinates.longitude.toFixed(6)}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="border-t pt-4 mt-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Social Media</h3>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="facebook" className="block text-sm font-medium text-gray-700 mb-1">
+                    Facebook URL
+                  </label>
+                  <input
+                    id="facebook"
+                    type="url"
+                    value={formData.socialMedia.facebook}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        socialMedia: { ...formData.socialMedia, facebook: e.target.value },
+                      })
+                    }
+                    placeholder="https://facebook.com/yourpage"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="instagram" className="block text-sm font-medium text-gray-700 mb-1">
+                    Instagram URL
+                  </label>
+                  <input
+                    id="instagram"
+                    type="url"
+                    value={formData.socialMedia.instagram}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        socialMedia: { ...formData.socialMedia, instagram: e.target.value },
+                      })
+                    }
+                    placeholder="https://instagram.com/yourpage"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="tiktok" className="block text-sm font-medium text-gray-700 mb-1">
+                    TikTok URL
+                  </label>
+                  <input
+                    id="tiktok"
+                    type="url"
+                    value={formData.socialMedia.tiktok}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        socialMedia: { ...formData.socialMedia, tiktok: e.target.value },
+                      })
+                    }
+                    placeholder="https://tiktok.com/@yourpage"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="youtube" className="block text-sm font-medium text-gray-700 mb-1">
+                    YouTube URL
+                  </label>
+                  <input
+                    id="youtube"
+                    type="url"
+                    value={formData.socialMedia.youtube}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        socialMedia: { ...formData.socialMedia, youtube: e.target.value },
+                      })
+                    }
+                    placeholder="https://youtube.com/@yourchannel"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  />
+                </div>
+              </div>
             </div>
             <div>
               <label htmlFor="website" className="block text-sm font-medium text-gray-700 mb-1">

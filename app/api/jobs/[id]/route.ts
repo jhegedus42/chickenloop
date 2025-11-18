@@ -3,6 +3,7 @@ import connectDB from '@/lib/db';
 import Job from '@/models/Job';
 import Company from '@/models/Company';
 import { requireAuth, requireRole } from '@/lib/auth';
+import mongoose from 'mongoose';
 
 // GET - Get a single job
 export async function GET(
@@ -61,7 +62,7 @@ export async function PUT(
     const company = await Company.findOne({ owner: user.userId });
     if (company) {
       job.company = company.name;
-      job.companyId = company._id;
+      job.companyId = company._id as mongoose.Types.ObjectId;
     }
 
     if (title) job.title = title;

@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, description, location, website } = await request.json();
+    const { name, description, address, coordinates, website, socialMedia } = await request.json();
 
     if (!name) {
       return NextResponse.json(
@@ -57,8 +57,10 @@ export async function POST(request: NextRequest) {
     const company = await Company.create({
       name,
       description,
-      location,
+      address,
+      coordinates,
       website,
+      socialMedia,
       owner: user.userId,
     });
 
@@ -100,12 +102,14 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const { name, description, location, website } = await request.json();
+    const { name, description, address, coordinates, website, socialMedia } = await request.json();
 
     if (name) company.name = name;
     if (description !== undefined) company.description = description;
-    if (location !== undefined) company.location = location;
+    if (address !== undefined) company.address = address;
+    if (coordinates !== undefined) company.coordinates = coordinates;
     if (website !== undefined) company.website = website;
+    if (socialMedia !== undefined) company.socialMedia = socialMedia;
 
     await company.save();
 

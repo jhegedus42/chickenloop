@@ -25,8 +25,10 @@ export async function GET(
         id: company._id,
         name: company.name,
         description: company.description,
-        location: company.location,
+        address: company.address,
+        coordinates: company.coordinates,
         website: company.website,
+        socialMedia: company.socialMedia,
         owner: company.owner,
         createdAt: company.createdAt,
         updatedAt: company.updatedAt,
@@ -62,12 +64,14 @@ export async function PUT(
       return NextResponse.json({ error: 'Company not found' }, { status: 404 });
     }
 
-    const { name, description, location, website } = await request.json();
+    const { name, description, address, coordinates, website, socialMedia } = await request.json();
 
     if (name) company.name = name;
     if (description !== undefined) company.description = description;
-    if (location !== undefined) company.location = location;
+    if (address !== undefined) company.address = address;
+    if (coordinates !== undefined) company.coordinates = coordinates;
     if (website !== undefined) company.website = website;
+    if (socialMedia !== undefined) company.socialMedia = socialMedia;
 
     await company.save();
 

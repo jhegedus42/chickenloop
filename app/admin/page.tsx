@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import { adminApi } from '@/lib/api';
+import Link from 'next/link';
 
 interface User {
   id: string;
@@ -20,8 +21,24 @@ interface Company {
   id: string;
   name: string;
   description?: string;
-  location?: string;
+  address?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    country?: string;
+  };
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
   website?: string;
+  socialMedia?: {
+    facebook?: string;
+    instagram?: string;
+    tiktok?: string;
+    youtube?: string;
+  };
   owner: any;
   createdAt: string;
   updatedAt: string;
@@ -48,6 +65,7 @@ export default function AdminDashboard() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState<'users' | 'companies' | 'jobs'>('users');
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [editingJob, setEditingJob] = useState<Job | null>(null);
@@ -63,9 +81,23 @@ export default function AdminDashboard() {
   const [companyEditForm, setCompanyEditForm] = useState({
     name: '',
     description: '',
-    location: '',
+    address: {
+      street: '',
+      city: '',
+      state: '',
+      postalCode: '',
+      country: '',
+    },
+    coordinates: null as { latitude: number; longitude: number } | null,
     website: '',
+    socialMedia: {
+      facebook: '',
+      instagram: '',
+      tiktok: '',
+      youtube: '',
+    },
   });
+  const [geocodingCompany, setGeocodingCompany] = useState(false);
   const [jobEditForm, setJobEditForm] = useState({
     title: '',
     description: '',
@@ -167,9 +199,56 @@ export default function AdminDashboard() {
     setCompanyEditForm({
       name: company.name,
       description: company.description || '',
-      location: company.location || '',
+      address: (company as any).address || {
+        street: '',
+        city: '',
+        state: '',
+        postalCode: '',
+        country: '',
+      },
+      coordinates: (company as any).coordinates || null,
       website: company.website || '',
+      socialMedia: (company as any).socialMedia || {
+        facebook: '',
+        instagram: '',
+        tiktok: '',
+        youtube: '',
+      },
     });
+  };
+
+  const handleGeocodeCompany = async () => {
+    setGeocodingCompany(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/geocode', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ address: companyEditForm.address }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to geocode address');
+      }
+
+      // Update form with coordinates
+      setCompanyEditForm({
+        ...companyEditForm,
+        coordinates: {
+          latitude: data.latitude,
+          longitude: data.longitude,
+        },
+      });
+    } catch (err: any) {
+      setError(err.message || 'Failed to geocode address');
+    } finally {
+      setGeocodingCompany(false);
+    }
   };
 
   const handleUpdateCompany = async () => {
@@ -405,9 +484,46 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        <h2 className="text-3xl font-bold text-gray-900 mb-6">Users</h2>
+        {/* Tab Navigation */}
+        <div className="border-b border-gray-200 mb-6">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'users'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Users
+            </button>
+            <button
+              onClick={() => setActiveTab('companies')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'companies'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Companies
+            </button>
+            <button
+              onClick={() => setActiveTab('jobs')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'jobs'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Jobs
+            </button>
+          </nav>
+        </div>
 
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        {/* Users Tab */}
+        {activeTab === 'users' && (
+          <>
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -478,76 +594,18 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {users.length === 0 && (
-          <div className="bg-white rounded-lg shadow-md p-8 text-center">
-            <p className="text-gray-600">No users found.</p>
-          </div>
-        )}
-
-        <h2 className="text-3xl font-bold text-gray-900 mt-12 mb-6">Companies</h2>
-
-        {editingCompany && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full mx-4">
-              <h2 className="text-2xl font-bold mb-4">Edit Company</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
-                  <input
-                    type="text"
-                    value={companyEditForm.name}
-                    onChange={(e) => setCompanyEditForm({ ...companyEditForm, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <textarea
-                    value={companyEditForm.description}
-                    onChange={(e) => setCompanyEditForm({ ...companyEditForm, description: e.target.value })}
-                    rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                  <input
-                    type="text"
-                    value={companyEditForm.location}
-                    onChange={(e) => setCompanyEditForm({ ...companyEditForm, location: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
-                  <input
-                    type="url"
-                    value={companyEditForm.website}
-                    onChange={(e) => setCompanyEditForm({ ...companyEditForm, website: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                  />
-                </div>
-                <div className="flex gap-4">
-                  <button
-                    onClick={handleUpdateCompany}
-                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 font-semibold"
-                  >
-                    Update
-                  </button>
-                  <button
-                    onClick={() => setEditingCompany(null)}
-                    className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 font-semibold"
-                  >
-                    Cancel
-                  </button>
-                </div>
+            {users.length === 0 && (
+              <div className="bg-white rounded-lg shadow-md p-8 text-center">
+                <p className="text-gray-600">No users found.</p>
               </div>
-            </div>
-          </div>
+            )}
+          </>
         )}
 
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        {/* Companies Tab */}
+        {activeTab === 'companies' && (
+          <>
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -573,7 +631,12 @@ export default function AdminDashboard() {
                 {companies.map((company) => (
                   <tr key={company.id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {company.name}
+                      <Link 
+                        href={`/companies/${company.id}`}
+                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        {company.name}
+                      </Link>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {typeof company.owner === 'object' && company.owner ? (
@@ -583,7 +646,9 @@ export default function AdminDashboard() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {company.location || '-'}
+                      {company.address 
+                        ? `${company.address.city || ''}${company.address.city && company.address.state ? ', ' : ''}${company.address.state || ''}${company.address.postalCode ? ` ${company.address.postalCode}` : ''}`.trim() || company.address.street || '-'
+                        : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {company.website ? (
@@ -615,13 +680,18 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {companies.length === 0 && (
-          <div className="bg-white rounded-lg shadow-md p-8 text-center mt-4">
-            <p className="text-gray-600">No companies found.</p>
-          </div>
+            {companies.length === 0 && (
+              <div className="bg-white rounded-lg shadow-md p-8 text-center mt-4">
+                <p className="text-gray-600">No companies found.</p>
+              </div>
+            )}
+          </>
         )}
 
-        {editingJob && (
+        {/* Jobs Tab */}
+        {activeTab === 'jobs' && (
+          <>
+            {editingJob && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg shadow-lg p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
               <h2 className="text-2xl font-bold mb-4">Edit Job</h2>
@@ -707,11 +777,9 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
-        )}
+            )}
 
-        <h2 className="text-3xl font-bold text-gray-900 mt-12 mb-6">Jobs</h2>
-
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -781,9 +849,228 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {jobs.length === 0 && (
-          <div className="bg-white rounded-lg shadow-md p-8 text-center mt-4">
-            <p className="text-gray-600">No jobs found.</p>
+            {jobs.length === 0 && (
+              <div className="bg-white rounded-lg shadow-md p-8 text-center mt-4">
+                <p className="text-gray-600">No jobs found.</p>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Modals - Outside tabs for global access */}
+        {editingCompany && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
+            <div className="bg-white rounded-lg shadow-lg p-8 max-w-2xl w-full mx-4 my-8">
+              <h2 className="text-2xl font-bold mb-4">Edit Company</h2>
+              <div className="space-y-4 max-h-[80vh] overflow-y-auto">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+                  <input
+                    type="text"
+                    value={companyEditForm.name}
+                    onChange={(e) => setCompanyEditForm({ ...companyEditForm, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <textarea
+                    value={companyEditForm.description}
+                    onChange={(e) => setCompanyEditForm({ ...companyEditForm, description: e.target.value })}
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  />
+                </div>
+                <div className="border-t pt-4 mt-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Address Details</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
+                      <input
+                        type="text"
+                        value={companyEditForm.address.street}
+                        onChange={(e) =>
+                          setCompanyEditForm({
+                            ...companyEditForm,
+                            address: { ...companyEditForm.address, street: e.target.value },
+                          })
+                        }
+                        placeholder="e.g., 123 Main St"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                        <input
+                          type="text"
+                          value={companyEditForm.address.city}
+                          onChange={(e) =>
+                            setCompanyEditForm({
+                              ...companyEditForm,
+                              address: { ...companyEditForm.address, city: e.target.value },
+                            })
+                          }
+                          placeholder="e.g., San Diego"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">State/Province</label>
+                        <input
+                          type="text"
+                          value={companyEditForm.address.state}
+                          onChange={(e) =>
+                            setCompanyEditForm({
+                              ...companyEditForm,
+                              address: { ...companyEditForm.address, state: e.target.value },
+                            })
+                          }
+                          placeholder="e.g., CA"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
+                        <input
+                          type="text"
+                          value={companyEditForm.address.postalCode}
+                          onChange={(e) =>
+                            setCompanyEditForm({
+                              ...companyEditForm,
+                              address: { ...companyEditForm.address, postalCode: e.target.value },
+                            })
+                          }
+                          placeholder="e.g., 92101"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                        <input
+                          type="text"
+                          value={companyEditForm.address.country}
+                          onChange={(e) =>
+                            setCompanyEditForm({
+                              ...companyEditForm,
+                              address: { ...companyEditForm.address, country: e.target.value },
+                            })
+                          }
+                          placeholder="e.g., USA"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <button
+                        type="button"
+                        onClick={handleGeocodeCompany}
+                        disabled={geocodingCompany || (!companyEditForm.address.street && !companyEditForm.address.city)}
+                        className="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-sm"
+                      >
+                        {geocodingCompany ? 'Geocoding...' : 'Get Coordinates (Lat/Lng)'}
+                      </button>
+                      {companyEditForm.coordinates && (
+                        <p className="mt-2 text-sm text-gray-600">
+                          Coordinates: {companyEditForm.coordinates.latitude.toFixed(6)}, {companyEditForm.coordinates.longitude.toFixed(6)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="border-t pt-4 mt-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Social Media</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Facebook URL</label>
+                      <input
+                        type="url"
+                        value={companyEditForm.socialMedia.facebook}
+                        onChange={(e) =>
+                          setCompanyEditForm({
+                            ...companyEditForm,
+                            socialMedia: { ...companyEditForm.socialMedia, facebook: e.target.value },
+                          })
+                        }
+                        placeholder="https://facebook.com/yourpage"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Instagram URL</label>
+                      <input
+                        type="url"
+                        value={companyEditForm.socialMedia.instagram}
+                        onChange={(e) =>
+                          setCompanyEditForm({
+                            ...companyEditForm,
+                            socialMedia: { ...companyEditForm.socialMedia, instagram: e.target.value },
+                          })
+                        }
+                        placeholder="https://instagram.com/yourpage"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">TikTok URL</label>
+                      <input
+                        type="url"
+                        value={companyEditForm.socialMedia.tiktok}
+                        onChange={(e) =>
+                          setCompanyEditForm({
+                            ...companyEditForm,
+                            socialMedia: { ...companyEditForm.socialMedia, tiktok: e.target.value },
+                          })
+                        }
+                        placeholder="https://tiktok.com/@yourpage"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">YouTube URL</label>
+                      <input
+                        type="url"
+                        value={companyEditForm.socialMedia.youtube}
+                        onChange={(e) =>
+                          setCompanyEditForm({
+                            ...companyEditForm,
+                            socialMedia: { ...companyEditForm.socialMedia, youtube: e.target.value },
+                          })
+                        }
+                        placeholder="https://youtube.com/@yourchannel"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                  <input
+                    type="url"
+                    value={companyEditForm.website}
+                    onChange={(e) => setCompanyEditForm({ ...companyEditForm, website: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  />
+                </div>
+                <div className="flex gap-4">
+                  <button
+                    onClick={handleUpdateCompany}
+                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 font-semibold"
+                  >
+                    Update
+                  </button>
+                  <button
+                    onClick={() => setEditingCompany(null)}
+                    className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 font-semibold"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </main>
