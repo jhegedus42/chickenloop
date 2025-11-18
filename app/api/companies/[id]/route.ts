@@ -17,6 +17,22 @@ export async function GET(
       return NextResponse.json({ error: 'Company not found' }, { status: 404 });
     }
 
+    // Clean up social media: convert empty strings to undefined
+    let cleanedSocialMedia = company.socialMedia;
+    if (cleanedSocialMedia) {
+      cleanedSocialMedia = {
+        facebook: cleanedSocialMedia.facebook?.trim() || undefined,
+        instagram: cleanedSocialMedia.instagram?.trim() || undefined,
+        tiktok: cleanedSocialMedia.tiktok?.trim() || undefined,
+        youtube: cleanedSocialMedia.youtube?.trim() || undefined,
+      };
+      // If all fields are undefined, set to undefined
+      if (!cleanedSocialMedia.facebook && !cleanedSocialMedia.instagram && 
+          !cleanedSocialMedia.tiktok && !cleanedSocialMedia.youtube) {
+        cleanedSocialMedia = undefined;
+      }
+    }
+
     return NextResponse.json({
       company: {
         id: company._id,
@@ -25,7 +41,7 @@ export async function GET(
         address: company.address,
         coordinates: company.coordinates,
         website: company.website,
-        socialMedia: company.socialMedia,
+        socialMedia: cleanedSocialMedia,
         owner: company.owner,
         createdAt: company.createdAt,
         updatedAt: company.updatedAt,

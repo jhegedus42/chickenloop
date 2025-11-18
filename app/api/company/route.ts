@@ -54,13 +54,45 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Clean up empty strings in nested objects
+    let cleanedAddress = address;
+    if (address) {
+      cleanedAddress = {
+        street: address.street?.trim() || undefined,
+        city: address.city?.trim() || undefined,
+        state: address.state?.trim() || undefined,
+        postalCode: address.postalCode?.trim() || undefined,
+        country: address.country?.trim() || undefined,
+      };
+      // If all fields are undefined, set to undefined
+      if (!cleanedAddress.street && !cleanedAddress.city && !cleanedAddress.state && 
+          !cleanedAddress.postalCode && !cleanedAddress.country) {
+        cleanedAddress = undefined;
+      }
+    }
+
+    let cleanedSocialMedia = socialMedia;
+    if (socialMedia) {
+      cleanedSocialMedia = {
+        facebook: socialMedia.facebook?.trim() || undefined,
+        instagram: socialMedia.instagram?.trim() || undefined,
+        tiktok: socialMedia.tiktok?.trim() || undefined,
+        youtube: socialMedia.youtube?.trim() || undefined,
+      };
+      // If all fields are undefined, set to undefined
+      if (!cleanedSocialMedia.facebook && !cleanedSocialMedia.instagram && 
+          !cleanedSocialMedia.tiktok && !cleanedSocialMedia.youtube) {
+        cleanedSocialMedia = undefined;
+      }
+    }
+
     const company = await Company.create({
       name,
       description,
-      address,
-      coordinates,
-      website,
-      socialMedia,
+      address: cleanedAddress,
+      coordinates: coordinates || undefined,
+      website: website?.trim() || undefined,
+      socialMedia: cleanedSocialMedia,
       owner: user.userId,
     });
 
@@ -106,10 +138,34 @@ export async function PUT(request: NextRequest) {
 
     if (name) company.name = name;
     if (description !== undefined) company.description = description;
-    if (address !== undefined) company.address = address;
-    if (coordinates !== undefined) company.coordinates = coordinates;
     if (website !== undefined) company.website = website;
-    if (socialMedia !== undefined) company.socialMedia = socialMedia;
+    
+    // Update nested objects properly - normalize empty strings to undefined
+    if (address !== undefined) {
+      if (!company.address) company.address = {};
+      if (address.street !== undefined) company.address.street = address.street?.trim() || undefined;
+      if (address.city !== undefined) company.address.city = address.city?.trim() || undefined;
+      if (address.state !== undefined) company.address.state = address.state?.trim() || undefined;
+      if (address.postalCode !== undefined) company.address.postalCode = address.postalCode?.trim() || undefined;
+      if (address.country !== undefined) company.address.country = address.country?.trim() || undefined;
+      company.markModified('address');
+    }
+    
+    if (coordinates !== undefined && coordinates !== null) {
+      if (!company.coordinates) company.coordinates = { latitude: 0, longitude: 0 };
+      if (coordinates.latitude !== undefined && coordinates.latitude !== null) company.coordinates.latitude = coordinates.latitude;
+      if (coordinates.longitude !== undefined && coordinates.longitude !== null) company.coordinates.longitude = coordinates.longitude;
+      company.markModified('coordinates');
+    }
+    
+    if (socialMedia !== undefined) {
+      if (!company.socialMedia) company.socialMedia = {};
+      if (socialMedia.facebook !== undefined) company.socialMedia.facebook = socialMedia.facebook?.trim() || undefined;
+      if (socialMedia.instagram !== undefined) company.socialMedia.instagram = socialMedia.instagram?.trim() || undefined;
+      if (socialMedia.tiktok !== undefined) company.socialMedia.tiktok = socialMedia.tiktok?.trim() || undefined;
+      if (socialMedia.youtube !== undefined) company.socialMedia.youtube = socialMedia.youtube?.trim() || undefined;
+      company.markModified('socialMedia');
+    }
 
     await company.save();
 

@@ -196,23 +196,25 @@ export default function AdminDashboard() {
 
   const handleEditCompany = (company: Company) => {
     setEditingCompany(company);
+    const existingAddress = (company as any).address || {};
+    const existingSocialMedia = (company as any).socialMedia || {};
     setCompanyEditForm({
       name: company.name,
       description: company.description || '',
-      address: (company as any).address || {
-        street: '',
-        city: '',
-        state: '',
-        postalCode: '',
-        country: '',
+      address: {
+        street: existingAddress.street || '',
+        city: existingAddress.city || '',
+        state: existingAddress.state || '',
+        postalCode: existingAddress.postalCode || '',
+        country: existingAddress.country || '',
       },
       coordinates: (company as any).coordinates || null,
       website: company.website || '',
-      socialMedia: (company as any).socialMedia || {
-        facebook: '',
-        instagram: '',
-        tiktok: '',
-        youtube: '',
+      socialMedia: {
+        facebook: existingSocialMedia.facebook || '',
+        instagram: existingSocialMedia.instagram || '',
+        tiktok: existingSocialMedia.tiktok || '',
+        youtube: existingSocialMedia.youtube || '',
       },
     });
   };

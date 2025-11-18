@@ -68,10 +68,34 @@ export async function PUT(
 
     if (name) company.name = name;
     if (description !== undefined) company.description = description;
-    if (address !== undefined) company.address = address;
-    if (coordinates !== undefined) company.coordinates = coordinates;
     if (website !== undefined) company.website = website;
-    if (socialMedia !== undefined) company.socialMedia = socialMedia;
+    
+    // Update nested objects properly - normalize empty strings to undefined
+    if (address !== undefined) {
+      if (!company.address) company.address = {};
+      if (address.street !== undefined) company.address.street = address.street?.trim() || undefined;
+      if (address.city !== undefined) company.address.city = address.city?.trim() || undefined;
+      if (address.state !== undefined) company.address.state = address.state?.trim() || undefined;
+      if (address.postalCode !== undefined) company.address.postalCode = address.postalCode?.trim() || undefined;
+      if (address.country !== undefined) company.address.country = address.country?.trim() || undefined;
+      company.markModified('address');
+    }
+    
+    if (coordinates !== undefined && coordinates !== null) {
+      if (!company.coordinates) company.coordinates = { latitude: 0, longitude: 0 };
+      if (coordinates.latitude !== undefined && coordinates.latitude !== null) company.coordinates.latitude = coordinates.latitude;
+      if (coordinates.longitude !== undefined && coordinates.longitude !== null) company.coordinates.longitude = coordinates.longitude;
+      company.markModified('coordinates');
+    }
+    
+    if (socialMedia !== undefined) {
+      if (!company.socialMedia) company.socialMedia = {};
+      if (socialMedia.facebook !== undefined) company.socialMedia.facebook = socialMedia.facebook?.trim() || undefined;
+      if (socialMedia.instagram !== undefined) company.socialMedia.instagram = socialMedia.instagram?.trim() || undefined;
+      if (socialMedia.tiktok !== undefined) company.socialMedia.tiktok = socialMedia.tiktok?.trim() || undefined;
+      if (socialMedia.youtube !== undefined) company.socialMedia.youtube = socialMedia.youtube?.trim() || undefined;
+      company.markModified('socialMedia');
+    }
 
     await company.save();
 
