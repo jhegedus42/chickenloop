@@ -843,7 +843,12 @@ export default function AdminDashboard() {
                 {jobs.map((job) => (
                   <tr key={job.id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {job.title}
+                      <Link
+                        href={`/jobs/${job.id}`}
+                        className="text-blue-600 hover:text-blue-900 hover:underline"
+                      >
+                        {job.title}
+                      </Link>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {job.company}
