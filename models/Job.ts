@@ -8,6 +8,7 @@ export interface IJob extends Document {
   location: string;
   salary?: string;
   type: 'full-time' | 'part-time' | 'contract' | 'freelance';
+  pictures?: string[]; // Array of image paths (max 3)
   recruiter: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -47,6 +48,15 @@ const JobSchema: Schema = new Schema(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
+    },
+    pictures: {
+      type: [String],
+      validate: {
+        validator: function(v: string[]) {
+          return v.length <= 3;
+        },
+        message: 'A job can have at most 3 pictures',
+      },
     },
   },
   {

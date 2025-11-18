@@ -14,6 +14,7 @@ interface Job {
   location: string;
   salary?: string;
   type: string;
+  pictures?: string[];
   recruiter: {
     name: string;
     email: string;
@@ -95,6 +96,20 @@ export default function JobsPage() {
                       )}
                     </div>
                     <p className="text-gray-700 mb-4 whitespace-pre-wrap">{job.description}</p>
+                    {job.pictures && job.pictures.length > 0 && (
+                      <div className="mb-4">
+                        <div className="grid grid-cols-3 gap-2">
+                          {job.pictures.map((picture, index) => (
+                            <img
+                              key={index}
+                              src={picture}
+                              alt={`${job.title} - Image ${index + 1}`}
+                              className="w-full h-32 object-cover rounded-lg border border-gray-300"
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <div className="text-sm text-gray-500">
                       <p>Posted by: {job.recruiter.name} ({job.recruiter.email})</p>
                       <p>Posted: {new Date(job.createdAt).toLocaleDateString()}</p>

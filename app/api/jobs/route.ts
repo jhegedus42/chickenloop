@@ -39,11 +39,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { title, description, location, salary, type } = await request.json();
+    const { title, description, location, salary, type, pictures } = await request.json();
 
     if (!title || !description || !location || !type) {
       return NextResponse.json(
         { error: 'Title, description, location, and type are required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate pictures array (max 3)
+    if (pictures && Array.isArray(pictures) && pictures.length > 3) {
+      return NextResponse.json(
+        { error: 'Maximum 3 pictures allowed' },
         { status: 400 }
       );
     }
@@ -56,6 +64,7 @@ export async function POST(request: NextRequest) {
       location,
       salary,
       type,
+      pictures: pictures || [],
       recruiter: user.userId,
     });
 

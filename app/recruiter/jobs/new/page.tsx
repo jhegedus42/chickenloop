@@ -21,6 +21,9 @@ export default function NewJobPage() {
   const [loading, setLoading] = useState(false);
   const [company, setCompany] = useState<any>(null);
   const [companyLoading, setCompanyLoading] = useState(true);
+  const [selectedPictures, setSelectedPictures] = useState<File[]>([]);
+  const [picturePreviews, setPicturePreviews] = useState<string[]>([]);
+  const [uploadingPictures, setUploadingPictures] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -47,13 +50,95 @@ export default function NewJobPage() {
     }
   };
 
+  const handlePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    
+    if (files.length + selectedPictures.length > 3) {
+      setError('Maximum 3 pictures allowed');
+      return;
+    }
+
+    // Validate file types and sizes
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+
+    for (const file of files) {
+      if (!validTypes.includes(file.type)) {
+        setError(`Invalid file type: ${file.name}. Only images (JPEG, PNG, WEBP, GIF) are allowed.`);
+        return;
+      }
+      if (file.size > maxSize) {
+        setError(`File ${file.name} is too large. Maximum size is 5MB.`);
+        return;
+      }
+    }
+
+    const newPictures = [...selectedPictures, ...files];
+    setSelectedPictures(newPictures);
+    setError('');
+
+    // Create preview URLs
+    const newPreviews = files.map(file => URL.createObjectURL(file));
+    setPicturePreviews([...picturePreviews, ...newPreviews]);
+  };
+
+  const removePicture = (index: number) => {
+    const newPictures = selectedPictures.filter((_, i) => i !== index);
+    const newPreviews = picturePreviews.filter((_, i) => i !== index);
+    
+    // Revoke the URL to free memory
+    URL.revokeObjectURL(picturePreviews[index]);
+    
+    setSelectedPictures(newPictures);
+    setPicturePreviews(newPreviews);
+  };
+
+  const uploadPictures = async (): Promise<string[]> => {
+    if (selectedPictures.length === 0) return [];
+
+    setUploadingPictures(true);
+    try {
+      const uploadFormData = new FormData();
+      selectedPictures.forEach((file) => {
+        uploadFormData.append('pictures', file);
+      });
+
+      const response = await fetch('/api/jobs/upload', {
+        method: 'POST',
+        body: uploadFormData,
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to upload pictures');
+      }
+
+      return data.paths || [];
+    } finally {
+      setUploadingPictures(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      await jobsApi.create(formData);
+      // Upload pictures first
+      const picturePaths = await uploadPictures();
+
+      // Create job with picture paths
+      await jobsApi.create({
+        ...formData,
+        pictures: picturePaths,
+      });
+
+      // Clean up preview URLs
+      picturePreviews.forEach(url => URL.revokeObjectURL(url));
+
       router.push('/recruiter');
     } catch (err: any) {
       setError(err.message || 'Failed to create job');
@@ -188,6 +273,44 @@ export default function NewJobPage() {
                 rows={8}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
               />
+            </div>
+            <div>
+              <label htmlFor="pictures" className="block text-sm font-medium text-gray-700 mb-1">
+                Pictures (Optional - up to 3)
+              </label>
+              <input
+                id="pictures"
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                multiple
+                onChange={handlePictureChange}
+                disabled={selectedPictures.length >= 3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+              <p className="text-sm text-gray-500 mt-1">
+                Maximum 3 pictures, 5MB each. Supported formats: JPEG, PNG, WEBP, GIF
+              </p>
+              {selectedPictures.length > 0 && (
+                <div className="mt-4 grid grid-cols-3 gap-4">
+                  {picturePreviews.map((preview, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={preview}
+                        alt={`Preview ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-lg border border-gray-300"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removePicture(index)}
+                        className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-sm font-bold"
+                        aria-label="Remove picture"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="flex gap-4">
               <button

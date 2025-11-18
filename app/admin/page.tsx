@@ -52,6 +52,7 @@ interface Job {
   location: string;
   salary?: string;
   type: string;
+  pictures?: string[];
   recruiter: any;
   createdAt: string;
   updatedAt: string;
@@ -105,6 +106,7 @@ export default function AdminDashboard() {
     location: '',
     salary: '',
     type: 'full-time',
+    pictures: [] as string[],
   });
 
   useEffect(() => {
@@ -320,6 +322,7 @@ export default function AdminDashboard() {
       location: job.location,
       salary: job.salary || '',
       type: job.type,
+      pictures: job.pictures || [],
     });
   };
 
@@ -762,6 +765,36 @@ export default function AdminDashboard() {
                     required
                   />
                 </div>
+                {jobEditForm.pictures && jobEditForm.pictures.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Pictures</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {jobEditForm.pictures.map((picture, index) => (
+                        <div key={index} className="relative">
+                          <img
+                            src={picture}
+                            alt={`Job Image ${index + 1}`}
+                            className="w-full h-24 object-cover rounded-lg border border-gray-300"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newPictures = jobEditForm.pictures.filter((_, i) => i !== index);
+                              setJobEditForm({ ...jobEditForm, pictures: newPictures });
+                            }}
+                            className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold opacity-75 hover:opacity-100"
+                            aria-label="Remove picture"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Note: To add new pictures, use the recruiter job edit page.
+                    </p>
+                  </div>
+                )}
                 <div className="flex gap-4">
                   <button
                     onClick={handleUpdateJob}

@@ -22,6 +22,10 @@ export default function EditJobPage() {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [company, setCompany] = useState<any>(null);
+  const [existingPictures, setExistingPictures] = useState<string[]>([]);
+  const [selectedPictures, setSelectedPictures] = useState<File[]>([]);
+  const [picturePreviews, setPicturePreviews] = useState<string[]>([]);
+  const [uploadingPictures, setUploadingPictures] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -58,10 +62,89 @@ export default function EditJobPage() {
         salary: job.salary || '',
         type: job.type,
       });
+      setExistingPictures((job as any).pictures || []);
     } catch (err: any) {
       setError(err.message || 'Failed to load job');
     } finally {
       setFetching(false);
+    }
+  };
+
+  const handlePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const totalPictures = existingPictures.length + selectedPictures.length + files.length;
+    
+    if (totalPictures > 3) {
+      setError('Maximum 3 pictures allowed (including existing ones)');
+      return;
+    }
+
+    // Validate file types and sizes
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+
+    for (const file of files) {
+      if (!validTypes.includes(file.type)) {
+        setError(`Invalid file type: ${file.name}. Only images (JPEG, PNG, WEBP, GIF) are allowed.`);
+        return;
+      }
+      if (file.size > maxSize) {
+        setError(`File ${file.name} is too large. Maximum size is 5MB.`);
+        return;
+      }
+    }
+
+    const newPictures = [...selectedPictures, ...files];
+    setSelectedPictures(newPictures);
+    setError('');
+
+    // Create preview URLs
+    const newPreviews = files.map(file => URL.createObjectURL(file));
+    setPicturePreviews([...picturePreviews, ...newPreviews]);
+  };
+
+  const removeExistingPicture = (index: number) => {
+    const newPictures = existingPictures.filter((_, i) => i !== index);
+    setExistingPictures(newPictures);
+  };
+
+  const removeNewPicture = (index: number) => {
+    const newPictures = selectedPictures.filter((_, i) => i !== index);
+    const newPreviews = picturePreviews.filter((_, i) => i !== index);
+    
+    // Revoke the URL to free memory
+    URL.revokeObjectURL(picturePreviews[index]);
+    
+    setSelectedPictures(newPictures);
+    setPicturePreviews(newPreviews);
+  };
+
+  const uploadPictures = async (): Promise<string[]> => {
+    if (selectedPictures.length === 0) return existingPictures;
+
+    setUploadingPictures(true);
+    try {
+      const uploadFormData = new FormData();
+      selectedPictures.forEach((file) => {
+        uploadFormData.append('pictures', file);
+      });
+
+      const response = await fetch('/api/jobs/upload', {
+        method: 'POST',
+        body: uploadFormData,
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to upload pictures');
+      }
+
+      // Merge existing pictures with newly uploaded ones
+      return [...existingPictures, ...(data.paths || [])];
+    } finally {
+      setUploadingPictures(false);
     }
   };
 
@@ -71,7 +154,18 @@ export default function EditJobPage() {
     setLoading(true);
 
     try {
-      await jobsApi.update(jobId, formData);
+      // Upload new pictures first, merge with existing ones
+      const allPicturePaths = await uploadPictures();
+
+      // Update job with picture paths
+      await jobsApi.update(jobId, {
+        ...formData,
+        pictures: allPicturePaths,
+      });
+
+      // Clean up preview URLs
+      picturePreviews.forEach(url => URL.revokeObjectURL(url));
+
       router.push('/recruiter');
     } catch (err: any) {
       setError(err.message || 'Failed to update job');
@@ -182,8 +276,73 @@ export default function EditJobPage() {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 required
                 rows={8}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
               />
+            </div>
+            <div>
+              <label htmlFor="pictures" className="block text-sm font-medium text-gray-700 mb-1">
+                Pictures (Optional - up to 3 total)
+              </label>
+              {existingPictures.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-sm text-gray-600 mb-2">Existing Pictures:</p>
+                  <div className="grid grid-cols-3 gap-4">
+                    {existingPictures.map((picture, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={picture}
+                          alt={`Existing ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg border border-gray-300"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeExistingPicture(index)}
+                          className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-sm font-bold"
+                          aria-label="Remove picture"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <input
+                id="pictures"
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                multiple
+                onChange={handlePictureChange}
+                disabled={existingPictures.length + selectedPictures.length >= 3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+              <p className="text-sm text-gray-500 mt-1">
+                Maximum 3 pictures total (including existing ones), 5MB each. Supported formats: JPEG, PNG, WEBP, GIF
+              </p>
+              {selectedPictures.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-sm text-gray-600 mb-2">New Pictures:</p>
+                  <div className="grid grid-cols-3 gap-4">
+                    {picturePreviews.map((preview, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={preview}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg border border-gray-300"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeNewPicture(index)}
+                          className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-sm font-bold"
+                          aria-label="Remove picture"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex gap-4">
               <button

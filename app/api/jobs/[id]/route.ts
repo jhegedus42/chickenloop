@@ -4,7 +4,6 @@ import connectDB from '@/lib/db';
 import Job from '@/models/Job';
 import Company from '@/models/Company';
 import { requireAuth, requireRole } from '@/lib/auth';
-import mongoose from 'mongoose';
 
 // GET - Get a single job
 export async function GET(
@@ -57,7 +56,7 @@ export async function PUT(
       );
     }
 
-    const { title, description, location, salary, type } = await request.json();
+    const { title, description, location, salary, type, pictures } = await request.json();
 
     // Get recruiter's company to ensure company field is always set
     const company = await Company.findOne({ owner: user.userId });
@@ -71,6 +70,17 @@ export async function PUT(
     if (location) job.location = location;
     if (salary !== undefined) job.salary = salary;
     if (type) job.type = type;
+    
+    // Update pictures array (max 3)
+    if (pictures !== undefined) {
+      if (Array.isArray(pictures) && pictures.length > 3) {
+        return NextResponse.json(
+          { error: 'Maximum 3 pictures allowed' },
+          { status: 400 }
+        );
+      }
+      job.pictures = pictures || [];
+    }
 
     await job.save();
 

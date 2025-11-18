@@ -53,7 +53,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    const { title, description, location, salary, type, company } = await request.json();
+    const { title, description, location, salary, type, company, pictures } = await request.json();
 
     if (title) job.title = title;
     if (description) job.description = description;
@@ -61,6 +61,17 @@ export async function PUT(
     if (salary !== undefined) job.salary = salary;
     if (type) job.type = type;
     if (company) job.company = company;
+    
+    // Update pictures array (max 3)
+    if (pictures !== undefined) {
+      if (Array.isArray(pictures) && pictures.length > 3) {
+        return NextResponse.json(
+          { error: 'Maximum 3 pictures allowed' },
+          { status: 400 }
+        );
+      }
+      job.pictures = pictures || [];
+    }
 
     await job.save();
 
