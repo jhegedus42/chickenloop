@@ -54,6 +54,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate that coordinates are required
+    if (!coordinates || !coordinates.latitude || !coordinates.longitude) {
+      return NextResponse.json(
+        { error: 'Geolocation coordinates are required. Please search for and select a location.' },
+        { status: 400 }
+      );
+    }
+
     // Clean up empty strings in nested objects
     let cleanedAddress = address;
     if (address) {
@@ -135,6 +143,14 @@ export async function PUT(request: NextRequest) {
     }
 
     const { name, description, address, coordinates, website, socialMedia } = await request.json();
+
+    // Validate that coordinates are required for updates
+    if (coordinates === undefined || coordinates === null || !coordinates.latitude || !coordinates.longitude) {
+      return NextResponse.json(
+        { error: 'Geolocation coordinates are required. Please search for and select a location.' },
+        { status: 400 }
+      );
+    }
 
     if (name) company.name = name;
     if (description !== undefined) company.description = description;

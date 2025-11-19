@@ -66,6 +66,14 @@ export async function PUT(
 
     const { name, description, address, coordinates, website, socialMedia } = await request.json();
 
+    // Validate that coordinates are required for updates
+    if (coordinates === undefined || coordinates === null || !coordinates.latitude || !coordinates.longitude) {
+      return NextResponse.json(
+        { error: 'Geolocation coordinates are required. Please search for and select a location.' },
+        { status: 400 }
+      );
+    }
+
     if (name) company.name = name;
     if (description !== undefined) company.description = description;
     if (website !== undefined) company.website = website;

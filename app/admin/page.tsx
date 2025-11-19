@@ -1,11 +1,25 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import { adminApi } from '@/lib/api';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+
+// Dynamically import map component to avoid SSR issues
+const DraggableMap = dynamic(
+  () => import('../components/DraggableMap'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-96 flex items-center justify-center bg-gray-100 border border-gray-200 rounded-lg">
+        <span className="text-gray-500">Loading map...</span>
+      </div>
+    )
+  }
+);
 
 interface User {
   id: string;
@@ -58,6 +72,117 @@ interface Job {
   updatedAt: string;
 }
 
+// Component to display coordinates (prevents hydration mismatch)
+function CoordinatesDisplay({ latitude, longitude }: { latitude: number; longitude: number }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <p className="mt-2 text-sm text-gray-600">Coordinates: Loading...</p>;
+  }
+
+  return (
+    <p className="mt-2 text-sm text-gray-600">
+      Coordinates: {latitude.toFixed(6)}, {longitude.toFixed(6)}
+    </p>
+  );
+}
+
+// Component wrapper for location search (prevents hydration mismatch)
+function LocationSearchSection({
+  searchQuery,
+  setSearchQuery,
+  searchResults,
+  showResults,
+  setShowResults,
+  searching,
+  searchContainerRef,
+  onLocationSelect,
+}: {
+  searchQuery: string;
+  setSearchQuery: (value: string) => void;
+  searchResults: any[];
+  showResults: boolean;
+  setShowResults: (value: boolean) => void;
+  searching: boolean;
+  searchContainerRef: React.RefObject<HTMLDivElement>;
+  onLocationSelect: (result: any) => void;
+}) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className="mb-4 relative">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Search for your location *
+        </label>
+        <p className="text-xs text-gray-600 mb-2">
+          Search for your location by entering your company name. (If we can not find your company, enter a location nearby. A map will pop up on which you can move the Pin to the correct location)
+        </p>
+        <input
+          type="text"
+          value=""
+          disabled
+          placeholder="e.g., Tarifa Windsurf Center, Tarifa, Spain"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-4 relative" ref={searchContainerRef}>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        Search for your location *
+      </label>
+      <p className="text-xs text-gray-600 mb-2">
+        Search for your location by entering your company name. (If we can not find your company, enter a location nearby. A map will pop up on which you can move the Pin to the correct location)
+      </p>
+      <input
+        type="text"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        onFocus={() => searchResults.length > 0 && setShowResults(true)}
+        placeholder="e.g., Tarifa Windsurf Center, Tarifa, Spain"
+        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+      />
+      {searching && (
+        <div className="absolute right-3 top-20 text-gray-500 text-sm">
+          Searching...
+        </div>
+      )}
+      
+      {/* Dropdown with search results */}
+      {showResults && searchResults.length > 0 && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+          {searchResults.map((result, index) => (
+            <button
+              key={index}
+              type="button"
+              onClick={() => onLocationSelect(result)}
+              className="w-full text-left px-4 py-2 hover:bg-blue-50 border-b border-gray-100 last:border-b-0 focus:outline-none focus:bg-blue-50"
+            >
+              <div className="font-medium text-gray-900">{result.displayName}</div>
+              {(result.address.city || result.address.country) && (
+                <div className="text-xs text-gray-500 mt-1">
+                  {[result.address.city, result.address.country].filter(Boolean).join(', ')}
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -99,6 +224,14 @@ export default function AdminDashboard() {
     },
   });
   const [geocodingCompany, setGeocodingCompany] = useState(false);
+  const [companySearchQuery, setCompanySearchQuery] = useState('');
+  const [companySearchResults, setCompanySearchResults] = useState<any[]>([]);
+  const [showCompanySearchResults, setShowCompanySearchResults] = useState(false);
+  const [searchingCompany, setSearchingCompany] = useState(false);
+  const [companyMapMounted, setCompanyMapMounted] = useState(false);
+  const [showCompanyLocationModal, setShowCompanyLocationModal] = useState(false);
+  const companySearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const companySearchContainerRef = useRef<HTMLDivElement>(null);
   const [jobEditForm, setJobEditForm] = useState({
     title: '',
     description: '',
@@ -124,6 +257,61 @@ export default function AdminDashboard() {
       loadJobs();
     }
   }, [user]);
+
+  // Handle clicks outside company search dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (companySearchContainerRef.current && !companySearchContainerRef.current.contains(event.target as Node)) {
+        setShowCompanySearchResults(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Search for locations when company query changes
+  useEffect(() => {
+    if (companySearchTimeoutRef.current) {
+      clearTimeout(companySearchTimeoutRef.current);
+    }
+
+    if (companySearchQuery.trim().length < 3) {
+      setCompanySearchResults([]);
+      setShowCompanySearchResults(false);
+      return;
+    }
+
+    companySearchTimeoutRef.current = setTimeout(async () => {
+      setSearchingCompany(true);
+      try {
+        const response = await fetch(`/api/geocode/search?q=${encodeURIComponent(companySearchQuery)}`);
+        const data = await response.json();
+
+        if (response.ok && data.results) {
+          setCompanySearchResults(data.results);
+          setShowCompanySearchResults(true);
+        }
+      } catch (err) {
+        // Silently handle errors
+      } finally {
+        setSearchingCompany(false);
+      }
+    }, 300); // Debounce 300ms
+
+    return () => {
+      if (companySearchTimeoutRef.current) {
+        clearTimeout(companySearchTimeoutRef.current);
+      }
+    };
+  }, [companySearchQuery]);
+
+  // Mount map when company coordinates are set
+  useEffect(() => {
+    if (companyEditForm.coordinates) {
+      setCompanyMapMounted(true);
+    }
+  }, [companyEditForm.coordinates]);
 
   const loadUsers = async () => {
     try {
@@ -200,6 +388,8 @@ export default function AdminDashboard() {
     setEditingCompany(company);
     const existingAddress = (company as any).address || {};
     const existingSocialMedia = (company as any).socialMedia || {};
+    const existingCoordinates = (company as any).coordinates || null;
+    
     setCompanyEditForm({
       name: company.name,
       description: company.description || '',
@@ -210,13 +400,68 @@ export default function AdminDashboard() {
         postalCode: existingAddress.postalCode || '',
         country: existingAddress.country || '',
       },
-      coordinates: (company as any).coordinates || null,
+      coordinates: existingCoordinates,
       website: company.website || '',
       socialMedia: {
         facebook: existingSocialMedia.facebook || '',
         instagram: existingSocialMedia.instagram || '',
         tiktok: existingSocialMedia.tiktok || '',
         youtube: existingSocialMedia.youtube || '',
+      },
+    });
+    
+    // Initialize search query and map mount state
+    setCompanySearchQuery('');
+    setCompanyMapMounted(!!existingCoordinates);
+  };
+
+  // Update search query when company is being edited (prevents hydration mismatch)
+  useEffect(() => {
+    if (editingCompany) {
+      const existingAddress = (editingCompany as any).address || {};
+      const existingCoordinates = (editingCompany as any).coordinates || null;
+      
+      if (existingCoordinates) {
+        const addressParts = [];
+        if (existingAddress.street) addressParts.push(existingAddress.street);
+        if (existingAddress.city) addressParts.push(existingAddress.city);
+        if (existingAddress.state) addressParts.push(existingAddress.state);
+        if (existingAddress.postalCode) addressParts.push(existingAddress.postalCode);
+        if (existingAddress.country) addressParts.push(existingAddress.country);
+        const searchQuery = addressParts.join(', ') || editingCompany.name;
+        setCompanySearchQuery(searchQuery);
+      }
+    } else {
+      setCompanySearchQuery('');
+    }
+  }, [editingCompany]);
+
+  const handleCompanyLocationSelect = (result: any) => {
+    setCompanyEditForm({
+      ...companyEditForm,
+      address: {
+        street: result.address.street || '',
+        city: result.address.city || '',
+        state: result.address.state || '',
+        postalCode: result.address.postalCode || '',
+        country: result.address.country || '',
+      },
+      coordinates: {
+        latitude: result.latitude,
+        longitude: result.longitude,
+      },
+    });
+    setCompanySearchQuery(result.displayName);
+    setShowCompanySearchResults(false);
+    setCompanyMapMounted(true);
+  };
+
+  const handleCompanyLocationChange = (lat: number, lng: number) => {
+    setCompanyEditForm({
+      ...companyEditForm,
+      coordinates: {
+        latitude: lat,
+        longitude: lng,
       },
     });
   };
@@ -258,6 +503,13 @@ export default function AdminDashboard() {
   const handleUpdateCompany = async () => {
     if (!editingCompany) return;
 
+    // Validate that coordinates are set
+    if (!companyEditForm.coordinates || !companyEditForm.coordinates.latitude || !companyEditForm.coordinates.longitude) {
+      setShowCompanyLocationModal(true);
+      return;
+    }
+
+    setError('');
     try {
       await adminApi.updateCompany(editingCompany.id, companyEditForm);
       setEditingCompany(null);
@@ -923,8 +1175,22 @@ export default function AdminDashboard() {
                   />
                 </div>
                 <div className="border-t pt-4 mt-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Address Details</h3>
-                  <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Location</h3>
+                  
+                  {/* Step 1: Search for location */}
+                  <LocationSearchSection
+                    searchQuery={companySearchQuery}
+                    setSearchQuery={setCompanySearchQuery}
+                    searchResults={companySearchResults}
+                    showResults={showCompanySearchResults}
+                    setShowResults={setShowCompanySearchResults}
+                    searching={searchingCompany}
+                    searchContainerRef={companySearchContainerRef}
+                    onLocationSelect={handleCompanyLocationSelect}
+                  />
+
+                  {/* Address fields (auto-filled but editable) */}
+                  <div className="space-y-4 mb-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
                       <input
@@ -1004,22 +1270,28 @@ export default function AdminDashboard() {
                         />
                       </div>
                     </div>
-                    <div>
-                      <button
-                        type="button"
-                        onClick={handleGeocodeCompany}
-                        disabled={geocodingCompany || (!companyEditForm.address.street && !companyEditForm.address.city)}
-                        className="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-sm"
-                      >
-                        {geocodingCompany ? 'Geocoding...' : 'Get Coordinates (Lat/Lng)'}
-                      </button>
-                      {companyEditForm.coordinates && (
-                        <p className="mt-2 text-sm text-gray-600">
-                          Coordinates: {companyEditForm.coordinates.latitude.toFixed(6)}, {companyEditForm.coordinates.longitude.toFixed(6)}
-                        </p>
-                      )}
-                    </div>
                   </div>
+
+                  {/* Step 3: Map with draggable marker */}
+                  {companyEditForm.coordinates && companyMapMounted && (
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Fine-tune Location (drag the pin if needed)
+                      </label>
+                      <div className="w-full h-96 rounded-lg overflow-hidden border border-gray-200">
+                        <DraggableMap
+                          latitude={companyEditForm.coordinates.latitude}
+                          longitude={companyEditForm.coordinates.longitude}
+                          onLocationChange={handleCompanyLocationChange}
+                          companyName={companyEditForm.name || 'Location'}
+                        />
+                      </div>
+                      <CoordinatesDisplay 
+                        latitude={companyEditForm.coordinates.latitude}
+                        longitude={companyEditForm.coordinates.longitude}
+                      />
+                    </div>
+                  )}
                 </div>
                 <div className="border-t pt-4 mt-4">
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">Social Media</h3>
@@ -1110,6 +1382,24 @@ export default function AdminDashboard() {
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Location Required Modal */}
+        {showCompanyLocationModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+            <div className="bg-white rounded-lg shadow-lg p-8 max-w-md mx-4">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Location Required</h2>
+              <p className="text-gray-700 mb-6">
+                Please define the location of your company. If you can not find it, type the name of the closest town and move the Pin on the map to your location.
+              </p>
+              <button
+                onClick={() => setShowCompanyLocationModal(false)}
+                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 font-semibold"
+              >
+                OK
+              </button>
             </div>
           </div>
         )}

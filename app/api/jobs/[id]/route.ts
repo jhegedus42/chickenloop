@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import mongoose from 'mongoose';
 import connectDB from '@/lib/db';
 import Job from '@/models/Job';
-import Company from '@/models/Company';
 import { requireAuth, requireRole } from '@/lib/auth';
 
-// GET - Get a single job (accessible to all users, including anonymous)
+// GET - Get a single job
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    requireAuth(request);
     await connectDB();
     const { id } = await params;
 
@@ -22,6 +21,9 @@ export async function GET(
 
     return NextResponse.json({ job }, { status: 200 });
   } catch (error: any) {
+    if (error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }
@@ -52,31 +54,14 @@ export async function PUT(
       );
     }
 
-    const { title, description, location, salary, type, pictures } = await request.json();
-
-    // Get recruiter's company to ensure company field is always set
-    const company = await Company.findOne({ owner: user.userId });
-    if (company) {
-      job.company = company.name;
-      job.companyId = company._id as mongoose.Types.ObjectId;
-    }
+    const { title, description, company, location, salary, type } = await request.json();
 
     if (title) job.title = title;
     if (description) job.description = description;
+    if (company) job.company = company;
     if (location) job.location = location;
     if (salary !== undefined) job.salary = salary;
     if (type) job.type = type;
-    
-    // Update pictures array (max 3)
-    if (pictures !== undefined) {
-      if (Array.isArray(pictures) && pictures.length > 3) {
-        return NextResponse.json(
-          { error: 'Maximum 3 pictures allowed' },
-          { status: 400 }
-        );
-      }
-      job.pictures = pictures || [];
-    }
 
     await job.save();
 
