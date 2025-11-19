@@ -4,19 +4,15 @@ import Job from '@/models/Job';
 import Company from '@/models/Company';
 import { requireAuth, requireRole } from '@/lib/auth';
 
-// GET - Get all jobs (accessible to all authenticated users)
+// GET - Get all jobs (accessible to all users, including anonymous)
 export async function GET(request: NextRequest) {
   try {
-    requireAuth(request);
     await connectDB();
 
     const jobs = await Job.find().populate('recruiter', 'name email').sort({ createdAt: -1 });
 
     return NextResponse.json({ jobs }, { status: 200 });
   } catch (error: any) {
-    if (error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }

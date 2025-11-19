@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
-import { useRouter, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Navbar from '../../components/Navbar';
 import { jobsApi } from '@/lib/api';
 import Link from 'next/link';
@@ -24,9 +23,30 @@ interface Job {
   updatedAt?: string;
 }
 
+// Component to handle date formatting (prevents hydration mismatch)
+function FormattedDate({ date }: { date: string }) {
+  const [formattedDate, setFormattedDate] = useState<string>('');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    setFormattedDate(
+      new Date(date).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
+    );
+  }, [date]);
+
+  if (!mounted) {
+    return <p className="text-sm text-gray-500 mt-1">Posted: Loading...</p>;
+  }
+
+  return <p className="text-sm text-gray-500 mt-1">Posted: {formattedDate}</p>;
+}
+
 export default function JobDetailPage() {
-  const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
   const params = useParams();
   const jobId = params.id as string;
   const [job, setJob] = useState<Job | null>(null);
@@ -34,16 +54,11 @@ export default function JobDetailPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login');
-    }
-  }, [user, authLoading, router]);
-
-  useEffect(() => {
-    if (user && jobId) {
+    // Load job regardless of authentication status
+    if (jobId) {
       loadJob();
     }
-  }, [user, jobId]);
+  }, [jobId]);
 
   const loadJob = async () => {
     try {
@@ -56,7 +71,7 @@ export default function JobDetailPage() {
     }
   };
 
-  if (authLoading || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50">
         <Navbar />
@@ -148,13 +163,7 @@ export default function JobDetailPage() {
               <p className="text-sm text-gray-500">
                 Posted by: <span className="font-semibold">{job.recruiter.name}</span> ({job.recruiter.email})
               </p>
-              <p className="text-sm text-gray-500 mt-1">
-                Posted: {new Date(job.createdAt).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </p>
+              <FormattedDate date={job.createdAt} />
             </div>
           </div>
         </div>
@@ -162,4 +171,5 @@ export default function JobDetailPage() {
     </div>
   );
 }
+
 

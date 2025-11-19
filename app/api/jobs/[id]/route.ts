@@ -5,13 +5,12 @@ import Job from '@/models/Job';
 import Company from '@/models/Company';
 import { requireAuth, requireRole } from '@/lib/auth';
 
-// GET - Get a single job
+// GET - Get a single job (accessible to all users, including anonymous)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    requireAuth(request);
     await connectDB();
     const { id } = await params;
 
@@ -23,9 +22,6 @@ export async function GET(
 
     return NextResponse.json({ job }, { status: 200 });
   } catch (error: any) {
-    if (error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }

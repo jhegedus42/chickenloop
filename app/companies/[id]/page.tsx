@@ -4,6 +4,20 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Navbar from '../../components/Navbar';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+
+// Dynamically import Map component to avoid SSR issues
+const MapComponent = dynamic(
+  () => import('../../components/CompanyMap'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full flex items-center justify-center bg-gray-100">
+        <span className="text-gray-500">Loading map...</span>
+      </div>
+    )
+  }
+);
 
 interface Company {
   id: string;
@@ -30,6 +44,39 @@ interface Company {
   owner: any;
   createdAt: string;
   updatedAt: string;
+}
+
+// Location Map Component (prevents hydration mismatch)
+function LocationMap({ coordinates, companyName }: { coordinates: { latitude: number; longitude: number }; companyName: string }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className="border-t pt-6 mb-6">
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Location</h2>
+        <div className="w-full h-96 rounded-lg overflow-hidden border border-gray-200 flex items-center justify-center bg-gray-100">
+          <span className="text-gray-500">Loading map...</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border-t pt-6 mb-6">
+      <h2 className="text-2xl font-semibold text-gray-900 mb-4">Location</h2>
+      <div className="w-full h-96 rounded-lg overflow-hidden border border-gray-200">
+        <MapComponent
+          latitude={coordinates.latitude}
+          longitude={coordinates.longitude}
+          companyName={companyName}
+        />
+      </div>
+    </div>
+  );
 }
 
 // Social Media Icons as SVG Components
@@ -162,6 +209,8 @@ export default function CompanyPage() {
               </div>
             )}
           </div>
+
+          {company.coordinates && <LocationMap coordinates={company.coordinates} companyName={company.name} />}
 
           {company.socialMedia && (
             (company.socialMedia.facebook || 

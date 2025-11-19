@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import { jobsApi } from '@/lib/api';
 import Link from 'next/link';
@@ -58,24 +56,40 @@ function getTimeAgo(date: string): string {
   return `${diffInYears} ${diffInYears === 1 ? 'year' : 'years'} ago`;
 }
 
+// Component to handle time ago display (prevents hydration mismatch)
+function TimeAgoDisplay({ date }: { date: string }) {
+  const [timeAgo, setTimeAgo] = useState<string>('');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    setTimeAgo(getTimeAgo(date));
+    
+    // Update every minute
+    const interval = setInterval(() => {
+      setTimeAgo(getTimeAgo(date));
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [date]);
+
+  // Don't render until mounted to prevent hydration mismatch
+  if (!mounted) {
+    return <span className="text-xs text-gray-500">Loading...</span>;
+  }
+
+  return <span className="text-xs text-gray-500">{timeAgo}</span>;
+}
+
 export default function JobsPage() {
-  const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login');
-    }
-  }, [user, authLoading, router]);
-
-  useEffect(() => {
-    if (user) {
-      loadJobs();
-    }
-  }, [user]);
+    // Load jobs regardless of authentication status
+    loadJobs();
+  }, []);
 
   const loadJobs = async () => {
     try {
@@ -88,7 +102,7 @@ export default function JobsPage() {
     }
   };
 
-  if (authLoading || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50">
         <Navbar />
@@ -162,9 +176,7 @@ export default function JobsPage() {
                         <span className="mr-1">📍</span>
                         {job.location}
                       </p>
-                      <p className="text-xs text-gray-500">
-                        {getTimeAgo(mostRecentDate)}
-                      </p>
+                      <TimeAgoDisplay date={mostRecentDate} />
                     </div>
                   </div>
                 </Link>
