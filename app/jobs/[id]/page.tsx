@@ -16,6 +16,7 @@ interface Job {
   salary?: string;
   type: string;
   languages?: string[];
+  qualifications?: string[];
   pictures?: string[];
   recruiter: {
     name: string;
@@ -177,6 +178,26 @@ export default function JobDetailPage() {
                   </div>
                 </div>
               )}
+              
+              {/* Required Qualifications - in Job Details section */}
+              {job.qualifications && job.qualifications.length > 0 && (
+                <div className="mt-4">
+                  <div className="flex items-center text-gray-600 mb-2">
+                    <span className="mr-2">📜</span>
+                    <span className="font-medium">Required Qualifications:</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2 ml-6">
+                    {job.qualifications.map((qualification, index) => (
+                      <span
+                        key={index}
+                        className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium"
+                      >
+                        {qualification}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Job Description */}
@@ -196,6 +217,23 @@ export default function JobDetailPage() {
                       className="px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
                     >
                       {language}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Required Qualifications */}
+            {job.qualifications && job.qualifications.length > 0 && (
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Required Qualifications</h2>
+                <div className="flex flex-wrap gap-2">
+                  {job.qualifications.map((qualification, index) => (
+                    <span
+                      key={index}
+                      className="px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium"
+                    >
+                      {qualification}
                     </span>
                   ))}
                 </div>

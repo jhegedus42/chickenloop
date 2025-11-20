@@ -10,6 +10,7 @@ export interface IJob extends Document {
   salary?: string;
   type: 'full-time' | 'part-time' | 'contract' | 'freelance';
   languages?: string[]; // Array of language names (max 3)
+  qualifications?: string[]; // Array of qualification names
   pictures?: string[]; // Array of image paths (max 3)
   recruiter: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -63,6 +64,9 @@ const JobSchema: Schema = new Schema(
         },
         message: 'A job can have at most 3 languages',
       },
+    },
+    qualifications: {
+      type: [String],
     },
     pictures: {
       type: [String],

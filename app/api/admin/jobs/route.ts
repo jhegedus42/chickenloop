@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
       salary: job.salary,
       type: job.type,
       languages: (job as any).languages || [],
+      qualifications: (job as any).qualifications || [],
       pictures: (job as any).pictures || [],
       recruiter: job.recruiter,
       createdAt: job.createdAt,

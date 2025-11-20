@@ -7,6 +7,7 @@ import Navbar from '../../../../components/Navbar';
 import { jobsApi, companyApi } from '@/lib/api';
 import { getCountryNameInEnglish } from '@/lib/countryUtils';
 import { OFFICIAL_LANGUAGES } from '@/lib/languages';
+import { QUALIFICATIONS } from '@/lib/qualifications';
 
 export default function EditJobPage() {
   const { user, loading: authLoading } = useAuth();
@@ -21,6 +22,7 @@ export default function EditJobPage() {
     salary: '',
     type: 'full-time',
     languages: [] as string[],
+    qualifications: [] as string[],
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -81,6 +83,7 @@ export default function EditJobPage() {
         salary: job.salary || '',
         type: job.type,
         languages: (job as any).languages || [],
+        qualifications: (job as any).qualifications || [],
       });
       setExistingPictures((job as any).pictures || []);
     } catch (err: any) {
@@ -390,6 +393,87 @@ export default function EditJobPage() {
                 {formData.languages.length > 0 
                   ? `${formData.languages.length} of 3 languages selected`
                   : 'Select up to 3 languages (tap to select)'}
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Required Qualifications (Optional)
+              </label>
+              
+              {/* Selected Qualifications Display */}
+              {formData.qualifications.length > 0 && (
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {formData.qualifications.map((qual) => (
+                    <span
+                      key={qual}
+                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800"
+                    >
+                      {qual}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData({
+                            ...formData,
+                            qualifications: formData.qualifications.filter((q) => q !== qual),
+                          });
+                        }}
+                        className="ml-2 text-green-600 hover:text-green-800"
+                        aria-label={`Remove ${qual}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Qualifications Checkbox List with Subheaders */}
+              <div className="max-h-64 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
+                {QUALIFICATIONS.map((category, categoryIndex) => (
+                  <div key={categoryIndex} className="mb-4 last:mb-0">
+                    {/* Subheader - Non-selectable */}
+                    <div className="sticky top-0 bg-gray-100 px-2 py-2 mb-2 rounded font-semibold text-sm text-gray-700 border-b border-gray-200">
+                      {category.header}
+                    </div>
+                    {/* Qualification Items */}
+                    {category.items.map((qual) => {
+                      const isSelected = formData.qualifications.includes(qual);
+                      
+                      return (
+                        <label
+                          key={qual}
+                          className="flex items-center py-2 px-2 ml-4 rounded hover:bg-gray-50 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setFormData({
+                                  ...formData,
+                                  qualifications: [...formData.qualifications, qual],
+                                });
+                              } else {
+                                setFormData({
+                                  ...formData,
+                                  qualifications: formData.qualifications.filter((q) => q !== qual),
+                                });
+                              }
+                            }}
+                            className="mr-3 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                          />
+                          <span className="text-sm text-gray-900">{qual}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+              
+              <p className="text-xs text-gray-500 mt-2">
+                {formData.qualifications.length > 0 
+                  ? `${formData.qualifications.length} qualification(s) selected`
+                  : 'Select required qualifications (tap to select)'}
               </p>
             </div>
             <div>

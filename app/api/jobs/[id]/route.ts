@@ -50,7 +50,7 @@ export async function PUT(
       );
     }
 
-    const { title, description, company, location, country, salary, type, languages, pictures } = await request.json();
+    const { title, description, company, location, country, salary, type, languages, qualifications, pictures } = await request.json();
 
     if (title) job.title = title;
     if (description) job.description = description;
@@ -82,6 +82,9 @@ export async function PUT(
         );
       }
       job.languages = languages || [];
+    }
+    if (qualifications !== undefined) {
+      job.qualifications = qualifications || [];
     }
     if (pictures !== undefined) {
       if (Array.isArray(pictures) && pictures.length > 3) {
