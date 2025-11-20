@@ -11,6 +11,7 @@ interface Job {
   description: string;
   company: string;
   location: string;
+  country?: string;
   salary?: string;
   type: string;
   pictures?: string[];

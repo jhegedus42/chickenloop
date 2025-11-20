@@ -35,11 +35,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { title, description, location, salary, type, pictures } = await request.json();
+    const { title, description, location, country, salary, type, languages, pictures } = await request.json();
 
-    if (!title || !description || !location || !type) {
+    if (!title || !description || !location || !country || !type) {
       return NextResponse.json(
-        { error: 'Title, description, location, and type are required' },
+        { error: 'Title, description, location, country, and type are required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate languages array (max 3)
+    if (languages && Array.isArray(languages) && languages.length > 3) {
+      return NextResponse.json(
+        { error: 'Maximum 3 languages allowed' },
         { status: 400 }
       );
     }
@@ -58,8 +66,10 @@ export async function POST(request: NextRequest) {
       company: company.name,
       companyId: company._id,
       location,
+      country,
       salary,
       type,
+      languages: languages || [],
       pictures: pictures || [],
       recruiter: user.userId,
     });

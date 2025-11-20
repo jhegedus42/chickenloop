@@ -53,14 +53,39 @@ export async function PUT(
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    const { title, description, location, salary, type, company, pictures } = await request.json();
+    const { title, description, location, country, salary, type, company, languages, pictures } = await request.json();
 
     if (title) job.title = title;
     if (description) job.description = description;
     if (location) job.location = location;
+    if (country !== undefined) {
+      if (!country || country.trim() === '') {
+        return NextResponse.json(
+          { error: 'Country is required' },
+          { status: 400 }
+        );
+      }
+      job.country = country;
+    }
+    // If country is not provided and job doesn't have one, require it
+    if (!job.country || job.country.trim() === '') {
+      return NextResponse.json(
+        { error: 'Country is required' },
+        { status: 400 }
+      );
+    }
     if (salary !== undefined) job.salary = salary;
     if (type) job.type = type;
     if (company) job.company = company;
+    if (languages !== undefined) {
+      if (Array.isArray(languages) && languages.length > 3) {
+        return NextResponse.json(
+          { error: 'Maximum 3 languages allowed' },
+          { status: 400 }
+        );
+      }
+      job.languages = languages || [];
+    }
     
     // Update pictures array (max 3)
     if (pictures !== undefined) {

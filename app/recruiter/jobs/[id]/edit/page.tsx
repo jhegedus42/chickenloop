@@ -5,6 +5,8 @@ import { useAuth } from '../../../../contexts/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
 import Navbar from '../../../../components/Navbar';
 import { jobsApi, companyApi } from '@/lib/api';
+import { getCountryNameInEnglish } from '@/lib/countryUtils';
+import { OFFICIAL_LANGUAGES } from '@/lib/languages';
 
 export default function EditJobPage() {
   const { user, loading: authLoading } = useAuth();
@@ -15,8 +17,10 @@ export default function EditJobPage() {
     title: '',
     description: '',
     location: '',
+    country: '',
     salary: '',
     type: 'full-time',
+    languages: [] as string[],
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -37,30 +41,46 @@ export default function EditJobPage() {
 
   useEffect(() => {
     if (user && user.role === 'recruiter' && jobId) {
-      loadCompany();
-      loadJob();
+      loadData();
     }
   }, [user, jobId]);
 
-  const loadCompany = async () => {
+  const loadData = async () => {
+    // Load company first, then job (so we can use company's country as fallback)
+    let companyData = null;
     try {
-      const data = await companyApi.get();
-      setCompany(data.company);
+      const companyResponse = await companyApi.get();
+      companyData = companyResponse.company;
+      setCompany(companyData);
     } catch (err: any) {
-      // Company might not exist for old jobs, but we'll still show the job's company
+      // Company might not exist for old jobs, but we'll show the job's company
     }
-  };
-
-  const loadJob = async () => {
+    
+    // Load job and use company's location/country as fallback if job doesn't have them
     try {
       const data = await jobsApi.getOne(jobId);
       const job = data.job;
+      
+      // Use job's location if available, otherwise fall back to company's city
+      const jobLocation = job.location || '';
+      const fallbackLocation = companyData?.address?.city || '';
+      const locationToUse = jobLocation || fallbackLocation;
+      
+      // Use job's country if available, otherwise fall back to company's country
+      // Convert both to English
+      const jobCountry = (job as any).country || '';
+      const fallbackCountry = companyData?.address?.country || '';
+      const countryToUse = jobCountry || fallbackCountry;
+      const englishCountryName = countryToUse ? getCountryNameInEnglish(countryToUse) : '';
+      
       setFormData({
         title: job.title,
         description: job.description,
-        location: job.location,
+        location: locationToUse,
+        country: englishCountryName,
         salary: job.salary || '',
         type: job.type,
+        languages: (job as any).languages || [],
       });
       setExistingPictures((job as any).pictures || []);
     } catch (err: any) {
@@ -223,18 +243,33 @@ export default function EditJobPage() {
               />
               <p className="text-sm text-gray-500 mt-1">This is your company profile. To change it, edit your company profile.</p>
             </div>
-            <div>
-              <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
-                Location *
-              </label>
-              <input
-                id="location"
-                type="text"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
+                  Location *
+                </label>
+                <input
+                  id="location"
+                  type="text"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-1">
+                  Country *
+                </label>
+                <input
+                  id="country"
+                  type="text"
+                  value={formData.country}
+                  onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             </div>
             <div>
               <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
@@ -278,6 +313,84 @@ export default function EditJobPage() {
                 rows={8}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Languages Required (Optional - up to 3)
+              </label>
+              
+              {/* Selected Languages Display */}
+              {formData.languages.length > 0 && (
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {formData.languages.map((lang) => (
+                    <span
+                      key={lang}
+                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
+                    >
+                      {lang}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData({
+                            ...formData,
+                            languages: formData.languages.filter((l) => l !== lang),
+                          });
+                        }}
+                        className="ml-2 text-blue-600 hover:text-blue-800"
+                        aria-label={`Remove ${lang}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Languages Checkbox List */}
+              <div className="max-h-48 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
+                {OFFICIAL_LANGUAGES.map((lang) => {
+                  const isSelected = formData.languages.includes(lang);
+                  const isDisabled = !isSelected && formData.languages.length >= 3;
+                  
+                  return (
+                    <label
+                      key={lang}
+                      className={`flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer ${
+                        isDisabled ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        disabled={isDisabled}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            if (formData.languages.length < 3) {
+                              setFormData({
+                                ...formData,
+                                languages: [...formData.languages, lang],
+                              });
+                            }
+                          } else {
+                            setFormData({
+                              ...formData,
+                              languages: formData.languages.filter((l) => l !== lang),
+                            });
+                          }
+                        }}
+                        className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <span className="text-sm text-gray-900">{lang}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              
+              <p className="text-xs text-gray-500 mt-2">
+                {formData.languages.length > 0 
+                  ? `${formData.languages.length} of 3 languages selected`
+                  : 'Select up to 3 languages (tap to select)'}
+              </p>
             </div>
             <div>
               <label htmlFor="pictures" className="block text-sm font-medium text-gray-700 mb-1">

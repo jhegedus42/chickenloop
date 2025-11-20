@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import { adminApi } from '@/lib/api';
+import { OFFICIAL_LANGUAGES } from '@/lib/languages';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 
@@ -64,8 +65,10 @@ interface Job {
   description: string;
   company: string;
   location: string;
+  country?: string;
   salary?: string;
   type: string;
+  languages?: string[];
   pictures?: string[];
   recruiter: any;
   createdAt: string;
@@ -237,8 +240,10 @@ export default function AdminDashboard() {
     description: '',
     company: '',
     location: '',
+    country: '',
     salary: '',
     type: 'full-time',
+    languages: [] as string[],
     pictures: [] as string[],
   });
 
@@ -572,8 +577,10 @@ export default function AdminDashboard() {
       description: job.description,
       company: job.company,
       location: job.location,
+      country: job.country || '',
       salary: job.salary || '',
       type: job.type,
+      languages: job.languages || [],
       pictures: job.pictures || [],
     });
   };
@@ -973,15 +980,27 @@ export default function AdminDashboard() {
                     required
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Location *</label>
-                  <input
-                    type="text"
-                    value={jobEditForm.location}
-                    onChange={(e) => setJobEditForm({ ...jobEditForm, location: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                    required
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Location *</label>
+                    <input
+                      type="text"
+                      value={jobEditForm.location}
+                      onChange={(e) => setJobEditForm({ ...jobEditForm, location: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Country *</label>
+                    <input
+                      type="text"
+                      value={jobEditForm.country}
+                      onChange={(e) => setJobEditForm({ ...jobEditForm, country: e.target.value })}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Job Type *</label>
@@ -1016,6 +1035,84 @@ export default function AdminDashboard() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                     required
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Languages Required (Optional - up to 3)
+                  </label>
+                  
+                  {/* Selected Languages Display */}
+                  {jobEditForm.languages.length > 0 && (
+                    <div className="mb-3 flex flex-wrap gap-2">
+                      {jobEditForm.languages.map((lang) => (
+                        <span
+                          key={lang}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
+                        >
+                          {lang}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setJobEditForm({
+                                ...jobEditForm,
+                                languages: jobEditForm.languages.filter((l) => l !== lang),
+                              });
+                            }}
+                            className="ml-2 text-blue-600 hover:text-blue-800"
+                            aria-label={`Remove ${lang}`}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Languages Checkbox List */}
+                  <div className="max-h-48 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
+                    {OFFICIAL_LANGUAGES.map((lang) => {
+                      const isSelected = jobEditForm.languages.includes(lang);
+                      const isDisabled = !isSelected && jobEditForm.languages.length >= 3;
+                      
+                      return (
+                        <label
+                          key={lang}
+                          className={`flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer ${
+                            isDisabled ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            disabled={isDisabled}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                if (jobEditForm.languages.length < 3) {
+                                  setJobEditForm({
+                                    ...jobEditForm,
+                                    languages: [...jobEditForm.languages, lang],
+                                  });
+                                }
+                              } else {
+                                setJobEditForm({
+                                  ...jobEditForm,
+                                  languages: jobEditForm.languages.filter((l) => l !== lang),
+                                });
+                              }
+                            }}
+                            className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                          <span className="text-sm text-gray-900">{lang}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  
+                  <p className="text-xs text-gray-500 mt-2">
+                    {jobEditForm.languages.length > 0 
+                      ? `${jobEditForm.languages.length} of 3 languages selected`
+                      : 'Select up to 3 languages (tap to select)'}
+                  </p>
                 </div>
                 {jobEditForm.pictures && jobEditForm.pictures.length > 0 && (
                   <div>

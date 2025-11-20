@@ -6,8 +6,10 @@ export interface IJob extends Document {
   company: string;
   companyId?: mongoose.Types.ObjectId;
   location: string;
+  country: string;
   salary?: string;
   type: 'full-time' | 'part-time' | 'contract' | 'freelance';
+  languages?: string[]; // Array of language names (max 3)
   pictures?: string[]; // Array of image paths (max 3)
   recruiter: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -36,6 +38,10 @@ const JobSchema: Schema = new Schema(
       type: String,
       required: true,
     },
+    country: {
+      type: String,
+      required: true,
+    },
     salary: {
       type: String,
     },
@@ -48,6 +54,15 @@ const JobSchema: Schema = new Schema(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
+    },
+    languages: {
+      type: [String],
+      validate: {
+        validator: function(v: string[]) {
+          return v.length <= 3;
+        },
+        message: 'A job can have at most 3 languages',
+      },
     },
     pictures: {
       type: [String],

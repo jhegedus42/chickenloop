@@ -12,8 +12,10 @@ interface Job {
   description: string;
   company: string;
   location: string;
+  country?: string;
   salary?: string;
   type: string;
+  languages?: string[];
   pictures?: string[];
   recruiter: {
     name: string;
@@ -135,19 +137,44 @@ export default function JobDetailPage() {
             </div>
 
             {/* Job Details */}
-            <div className="flex flex-wrap gap-4 mb-6 pb-6 border-b border-gray-200">
-              <div className="flex items-center text-gray-600">
-                <span className="mr-2">📍</span>
-                <span>{job.location}</span>
+            <div className="mb-6 pb-6 border-b border-gray-200">
+              <div className="flex flex-wrap gap-4 mb-4">
+                <div className="flex items-center text-gray-600">
+                  <span className="mr-2">📍</span>
+                  <span>
+                    {job.location}
+                    {job.country && `, ${job.country}`}
+                  </span>
+                </div>
+                <div className="flex items-center text-gray-600">
+                  <span className="mr-2">💼</span>
+                  <span className="capitalize">{job.type.replace('-', ' ')}</span>
+                </div>
+                {job.salary && (
+                  <div className="flex items-center text-gray-700 font-semibold">
+                    <span className="mr-2">💰</span>
+                    <span>{job.salary}</span>
+                  </div>
+                )}
               </div>
-              <div className="flex items-center text-gray-600">
-                <span className="mr-2">💼</span>
-                <span className="capitalize">{job.type.replace('-', ' ')}</span>
-              </div>
-              {job.salary && (
-                <div className="flex items-center text-gray-700 font-semibold">
-                  <span className="mr-2">💰</span>
-                  <span>{job.salary}</span>
+              
+              {/* Languages Required - in Job Details section */}
+              {job.languages && job.languages.length > 0 && (
+                <div className="mt-4">
+                  <div className="flex items-center text-gray-600 mb-2">
+                    <span className="mr-2">🌐</span>
+                    <span className="font-medium">Languages Required:</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2 ml-6">
+                    {job.languages.map((language, index) => (
+                      <span
+                        key={index}
+                        className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
+                      >
+                        {language}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -157,6 +184,23 @@ export default function JobDetailPage() {
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Job Description</h2>
               <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{job.description}</p>
             </div>
+
+            {/* Languages Required */}
+            {job.languages && job.languages.length > 0 && (
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Languages Required</h2>
+                <div className="flex flex-wrap gap-2">
+                  {job.languages.map((language, index) => (
+                    <span
+                      key={index}
+                      className="px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
+                    >
+                      {language}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Posted Info */}
             <div className="pt-6 border-t border-gray-200">

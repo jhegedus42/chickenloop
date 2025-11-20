@@ -3,13 +3,12 @@ import connectDB from '@/lib/db';
 import Job from '@/models/Job';
 import { requireAuth, requireRole } from '@/lib/auth';
 
-// GET - Get a single job
+// GET - Get a single job (accessible to all users, including anonymous)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    requireAuth(request);
     await connectDB();
     const { id } = await params;
 
@@ -21,9 +20,6 @@ export async function GET(
 
     return NextResponse.json({ job }, { status: 200 });
   } catch (error: any) {
-    if (error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }
@@ -54,14 +50,48 @@ export async function PUT(
       );
     }
 
-    const { title, description, company, location, salary, type } = await request.json();
+    const { title, description, company, location, country, salary, type, languages, pictures } = await request.json();
 
     if (title) job.title = title;
     if (description) job.description = description;
     if (company) job.company = company;
     if (location) job.location = location;
+    if (country !== undefined) {
+      if (!country || country.trim() === '') {
+        return NextResponse.json(
+          { error: 'Country is required' },
+          { status: 400 }
+        );
+      }
+      job.country = country;
+    }
+    // If country is not provided and job doesn't have one, require it
+    if (!job.country || job.country.trim() === '') {
+      return NextResponse.json(
+        { error: 'Country is required' },
+        { status: 400 }
+      );
+    }
     if (salary !== undefined) job.salary = salary;
     if (type) job.type = type;
+    if (languages !== undefined) {
+      if (Array.isArray(languages) && languages.length > 3) {
+        return NextResponse.json(
+          { error: 'Maximum 3 languages allowed' },
+          { status: 400 }
+        );
+      }
+      job.languages = languages || [];
+    }
+    if (pictures !== undefined) {
+      if (Array.isArray(pictures) && pictures.length > 3) {
+        return NextResponse.json(
+          { error: 'Maximum 3 pictures allowed' },
+          { status: 400 }
+        );
+      }
+      job.pictures = pictures || [];
+    }
 
     await job.save();
 

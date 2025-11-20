@@ -5,6 +5,8 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Navbar from '../../../components/Navbar';
 import { jobsApi, companyApi } from '@/lib/api';
+import { getCountryNameInEnglish } from '@/lib/countryUtils';
+import { OFFICIAL_LANGUAGES } from '@/lib/languages';
 import Link from 'next/link';
 
 export default function NewJobPage() {
@@ -14,8 +16,10 @@ export default function NewJobPage() {
     title: '',
     description: '',
     location: '',
+    country: '',
     salary: '',
     type: 'full-time',
+    languages: [] as string[],
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -39,6 +43,26 @@ export default function NewJobPage() {
     try {
       const data = await companyApi.get();
       setCompany(data.company);
+      
+      // Preset location and country from company's address if available
+      const updates: { location?: string; country?: string } = {};
+      
+      // Preset location (city) from company's address
+      if (data.company?.address?.city) {
+        updates.location = data.company.address.city;
+      }
+      
+      // Preset country from company's address, converting to English
+      if (data.company?.address?.country) {
+        updates.country = getCountryNameInEnglish(data.company.address.country);
+      }
+      
+      if (Object.keys(updates).length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          ...updates,
+        }));
+      }
     } catch (err: any) {
       if (err.message.includes('not found')) {
         setCompany(null);
@@ -218,18 +242,33 @@ export default function NewJobPage() {
               />
               <p className="text-sm text-gray-500 mt-1">This is your company profile. To change it, edit your company profile.</p>
             </div>
-            <div>
-              <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
-                Location *
-              </label>
-              <input
-                id="location"
-                type="text"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
+                  Location *
+                </label>
+                <input
+                  id="location"
+                  type="text"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                />
+              </div>
+              <div>
+                <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-1">
+                  Country *
+                </label>
+                <input
+                  id="country"
+                  type="text"
+                  value={formData.country}
+                  onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                />
+              </div>
             </div>
             <div>
               <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
@@ -273,6 +312,84 @@ export default function NewJobPage() {
                 rows={8}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Languages Required (Optional - up to 3)
+              </label>
+              
+              {/* Selected Languages Display */}
+              {formData.languages.length > 0 && (
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {formData.languages.map((lang) => (
+                    <span
+                      key={lang}
+                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
+                    >
+                      {lang}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData({
+                            ...formData,
+                            languages: formData.languages.filter((l) => l !== lang),
+                          });
+                        }}
+                        className="ml-2 text-blue-600 hover:text-blue-800"
+                        aria-label={`Remove ${lang}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Languages Checkbox List */}
+              <div className="max-h-48 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
+                {OFFICIAL_LANGUAGES.map((lang) => {
+                  const isSelected = formData.languages.includes(lang);
+                  const isDisabled = !isSelected && formData.languages.length >= 3;
+                  
+                  return (
+                    <label
+                      key={lang}
+                      className={`flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer ${
+                        isDisabled ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        disabled={isDisabled}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            if (formData.languages.length < 3) {
+                              setFormData({
+                                ...formData,
+                                languages: [...formData.languages, lang],
+                              });
+                            }
+                          } else {
+                            setFormData({
+                              ...formData,
+                              languages: formData.languages.filter((l) => l !== lang),
+                            });
+                          }
+                        }}
+                        className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <span className="text-sm text-gray-900">{lang}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              
+              <p className="text-xs text-gray-500 mt-2">
+                {formData.languages.length > 0 
+                  ? `${formData.languages.length} of 3 languages selected`
+                  : 'Select up to 3 languages (tap to select)'}
+              </p>
             </div>
             <div>
               <label htmlFor="pictures" className="block text-sm font-medium text-gray-700 mb-1">

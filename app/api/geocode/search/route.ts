@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
     const response = await fetch(url, {
       headers: {
         'User-Agent': 'Chickenloop/1.0 (contact@chickenloop.com)', // Required by Nominatim TOS
+        'Accept-Language': 'en', // Request English language for country names
       },
     });
 
