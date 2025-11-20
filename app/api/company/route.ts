@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
         city: address.city?.trim() || undefined,
         state: address.state?.trim() || undefined,
         postalCode: address.postalCode?.trim() || undefined,
-        country: address.country?.trim() || undefined,
+        country: address.country?.trim().toUpperCase() || undefined,
       };
       // If all fields are undefined, set to undefined
       if (!cleanedAddress.street && !cleanedAddress.city && !cleanedAddress.state && 
@@ -163,7 +163,7 @@ export async function PUT(request: NextRequest) {
       if (address.city !== undefined) company.address.city = address.city?.trim() || undefined;
       if (address.state !== undefined) company.address.state = address.state?.trim() || undefined;
       if (address.postalCode !== undefined) company.address.postalCode = address.postalCode?.trim() || undefined;
-      if (address.country !== undefined) company.address.country = address.country?.trim() || undefined;
+      if (address.country !== undefined) company.address.country = address.country?.trim().toUpperCase() || undefined;
       company.markModified('address');
     }
     

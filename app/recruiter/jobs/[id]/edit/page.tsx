@@ -5,9 +5,9 @@ import { useAuth } from '../../../../contexts/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
 import Navbar from '../../../../components/Navbar';
 import { jobsApi, companyApi } from '@/lib/api';
-import { getCountryNameInEnglish } from '@/lib/countryUtils';
 import { OFFICIAL_LANGUAGES } from '@/lib/languages';
 import { QUALIFICATIONS } from '@/lib/qualifications';
+import { getCountryNameFromCode } from '@/lib/countryUtils';
 
 export default function EditJobPage() {
   const { user, loading: authLoading } = useAuth();
@@ -48,7 +48,7 @@ export default function EditJobPage() {
   }, [user, jobId]);
 
   const loadData = async () => {
-    // Load company first, then job (so we can use company's country as fallback)
+    // Load company first, then job (so we can use company's location as fallback)
     let companyData = null;
     try {
       const companyResponse = await companyApi.get();
@@ -58,7 +58,7 @@ export default function EditJobPage() {
       // Company might not exist for old jobs, but we'll show the job's company
     }
     
-    // Load job and use company's location/country as fallback if job doesn't have them
+    // Load job and use company's location as fallback if job doesn't have it
     try {
       const data = await jobsApi.getOne(jobId);
       const job = data.job;
@@ -68,18 +68,16 @@ export default function EditJobPage() {
       const fallbackLocation = companyData?.address?.city || '';
       const locationToUse = jobLocation || fallbackLocation;
       
-      // Use job's country if available, otherwise fall back to company's country
-      // Convert both to English
-      const jobCountry = (job as any).country || '';
+      // Use job's country if available (handle null/undefined), otherwise fall back to company's country
+      const jobCountry = (job as any).country != null ? (job as any).country : '';
       const fallbackCountry = companyData?.address?.country || '';
       const countryToUse = jobCountry || fallbackCountry;
-      const englishCountryName = countryToUse ? getCountryNameInEnglish(countryToUse) : '';
       
       setFormData({
         title: job.title,
         description: job.description,
         location: locationToUse,
-        country: englishCountryName,
+        country: countryToUse,
         salary: job.salary || '',
         type: job.type,
         languages: (job as any).languages || [],
@@ -257,21 +255,27 @@ export default function EditJobPage() {
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                 />
               </div>
               <div>
                 <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-1">
-                  Country *
+                  Country
                 </label>
                 <input
                   id="country"
                   type="text"
                   value={formData.country}
-                  onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => setFormData({ ...formData, country: e.target.value.toUpperCase() })}
+                  placeholder="e.g., US, GB, FR"
+                  maxLength={2}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 uppercase"
                 />
+                {formData.country && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    {getCountryNameFromCode(formData.country)}
+                  </p>
+                )}
               </div>
             </div>
             <div>

@@ -85,7 +85,7 @@ export async function PUT(
       if (address.city !== undefined) company.address.city = address.city?.trim() || undefined;
       if (address.state !== undefined) company.address.state = address.state?.trim() || undefined;
       if (address.postalCode !== undefined) company.address.postalCode = address.postalCode?.trim() || undefined;
-      if (address.country !== undefined) company.address.country = address.country?.trim() || undefined;
+      if (address.country !== undefined) company.address.country = address.country?.trim().toUpperCase() || undefined;
       company.markModified('address');
     }
     

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Navbar from '../../components/Navbar';
 import { jobsApi } from '@/lib/api';
+import { getCountryNameFromCode } from '@/lib/countryUtils';
 import Link from 'next/link';
 
 interface Job {
@@ -142,11 +143,14 @@ export default function JobDetailPage() {
               <div className="flex flex-wrap gap-4 mb-4">
                 <div className="flex items-center text-gray-600">
                   <span className="mr-2">📍</span>
-                  <span>
-                    {job.location}
-                    {job.country && `, ${job.country}`}
-                  </span>
+                  <span>{job.location}</span>
                 </div>
+                {job.country && typeof job.country === 'string' && job.country.trim() && (
+                  <div className="flex items-center text-gray-600">
+                    <span className="mr-2">🌍</span>
+                    <span>{getCountryNameFromCode(job.country)}</span>
+                  </div>
+                )}
                 <div className="flex items-center text-gray-600">
                   <span className="mr-2">💼</span>
                   <span className="capitalize">{job.type.replace('-', ' ')}</span>

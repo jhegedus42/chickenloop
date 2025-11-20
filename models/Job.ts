@@ -6,7 +6,7 @@ export interface IJob extends Document {
   company: string;
   companyId?: mongoose.Types.ObjectId;
   location: string;
-  country: string;
+  country?: string; // ISO 3166-1 alpha-2 country code (e.g., 'US', 'GB', 'FR')
   salary?: string;
   type: 'full-time' | 'part-time' | 'contract' | 'freelance';
   languages?: string[]; // Array of language names (max 3)
@@ -41,7 +41,9 @@ const JobSchema: Schema = new Schema(
     },
     country: {
       type: String,
-      required: true,
+      trim: true,
+      // ISO 3166-1 alpha-2 country code (e.g., 'US', 'GB', 'FR')
+      // Stored in uppercase for consistency
     },
     salary: {
       type: String,

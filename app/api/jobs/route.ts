@@ -37,9 +37,9 @@ export async function POST(request: NextRequest) {
 
     const { title, description, location, country, salary, type, languages, qualifications, pictures } = await request.json();
 
-    if (!title || !description || !location || !country || !type) {
+    if (!title || !description || !location || !type) {
       return NextResponse.json(
-        { error: 'Title, description, location, country, and type are required' },
+        { error: 'Title, description, location, and type are required' },
         { status: 400 }
       );
     }
@@ -60,13 +60,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Normalize country: trim and uppercase, or set to null if empty (null explicitly stores the field)
+    const normalizedCountry = country?.trim() ? country.trim().toUpperCase() : null;
+    
     const job = await Job.create({
       title,
       description,
       company: company.name,
       companyId: company._id,
       location,
-      country,
+      country: normalizedCountry,
       salary,
       type,
       languages: languages || [],
@@ -76,9 +79,19 @@ export async function POST(request: NextRequest) {
     });
 
     const populatedJob = await Job.findById(job._id).populate('recruiter', 'name email');
+    
+    // Convert to plain object and ensure all fields are included, including country
+    const jobObject = populatedJob?.toObject();
+    const jobResponse = jobObject ? {
+      ...jobObject,
+      // Handle country field - normalize if it exists, preserve null if explicitly set
+      country: jobObject.country != null 
+        ? (jobObject.country.trim() ? jobObject.country.trim().toUpperCase() : null)
+        : undefined,
+    } : populatedJob;
 
     return NextResponse.json(
-      { message: 'Job created successfully', job: populatedJob },
+      { message: 'Job created successfully', job: jobResponse },
       { status: 201 }
     );
   } catch (error: any) {

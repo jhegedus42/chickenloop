@@ -18,7 +18,19 @@ export async function GET(
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ job }, { status: 200 });
+    // Convert to plain object and ensure all fields are included, including country
+    const jobObject = job.toObject();
+    // Handle country field - normalize if it exists, ensure field is always present
+    const countryValue = jobObject.country != null && typeof jobObject.country === 'string'
+      ? (jobObject.country.trim() ? jobObject.country.trim().toUpperCase() : null)
+      : jobObject.country; // Preserve null if explicitly set, or undefined if never set
+    
+    const jobResponse = {
+      ...jobObject,
+      country: countryValue,
+    };
+
+    return NextResponse.json({ job: jobResponse }, { status: 200 });
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
@@ -57,20 +69,8 @@ export async function PUT(
     if (company) job.company = company;
     if (location) job.location = location;
     if (country !== undefined) {
-      if (!country || country.trim() === '') {
-        return NextResponse.json(
-          { error: 'Country is required' },
-          { status: 400 }
-        );
-      }
-      job.country = country;
-    }
-    // If country is not provided and job doesn't have one, require it
-    if (!job.country || job.country.trim() === '') {
-      return NextResponse.json(
-        { error: 'Country is required' },
-        { status: 400 }
-      );
+      // Normalize country: trim and uppercase, or set to null if empty (null explicitly stores the field)
+      job.country = country?.trim() ? country.trim().toUpperCase() : null;
     }
     if (salary !== undefined) job.salary = salary;
     if (type) job.type = type;
@@ -99,9 +99,19 @@ export async function PUT(
     await job.save();
 
     const updatedJob = await Job.findById(job._id).populate('recruiter', 'name email');
+    
+    // Convert to plain object and ensure all fields are included, including country
+    const jobObject = updatedJob?.toObject();
+    const jobResponse = jobObject ? {
+      ...jobObject,
+      // Handle country field - normalize if it exists, preserve null/undefined appropriately
+      country: jobObject.country != null 
+        ? (jobObject.country.trim() ? jobObject.country.trim().toUpperCase() : null)
+        : undefined,
+    } : updatedJob;
 
     return NextResponse.json(
-      { message: 'Job updated successfully', job: updatedJob },
+      { message: 'Job updated successfully', job: jobResponse },
       { status: 200 }
     );
   } catch (error: any) {

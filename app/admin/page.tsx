@@ -7,6 +7,7 @@ import Navbar from '../components/Navbar';
 import { adminApi } from '@/lib/api';
 import { OFFICIAL_LANGUAGES } from '@/lib/languages';
 import { QUALIFICATIONS } from '@/lib/qualifications';
+import { getCountryNameFromCode } from '@/lib/countryUtils';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 
@@ -42,7 +43,6 @@ interface Company {
     city?: string;
     state?: string;
     postalCode?: string;
-    country?: string;
   };
   coordinates?: {
     latitude: number;
@@ -177,7 +177,10 @@ function LocationSearchSection({
               <div className="font-medium text-gray-900">{result.displayName}</div>
               {(result.address.city || result.address.country) && (
                 <div className="text-xs text-gray-500 mt-1">
-                  {[result.address.city, result.address.country].filter(Boolean).join(', ')}
+                  {[
+                    result.address.city,
+                    result.address.country ? getCountryNameFromCode(result.address.country) : null
+                  ].filter(Boolean).join(', ')}
                 </div>
               )}
             </button>
@@ -580,7 +583,7 @@ export default function AdminDashboard() {
       description: job.description,
       company: job.company,
       location: job.location,
-      country: job.country || '',
+      country: (job as any).country || '',
       salary: job.salary || '',
       type: job.type,
       languages: job.languages || [],
@@ -996,14 +999,20 @@ export default function AdminDashboard() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Country *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Country (ISO Code)</label>
                     <input
                       type="text"
                       value={jobEditForm.country}
-                      onChange={(e) => setJobEditForm({ ...jobEditForm, country: e.target.value })}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      onChange={(e) => setJobEditForm({ ...jobEditForm, country: e.target.value.toUpperCase() })}
+                      placeholder="e.g., US, GB, FR"
+                      maxLength={2}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 uppercase"
                     />
+                    {jobEditForm.country && (
+                      <p className="mt-1 text-xs text-gray-500">
+                        {getCountryNameFromCode(jobEditForm.country)}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div>
@@ -1437,19 +1446,25 @@ export default function AdminDashboard() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Country (ISO Code)</label>
                         <input
                           type="text"
                           value={companyEditForm.address.country}
                           onChange={(e) =>
                             setCompanyEditForm({
                               ...companyEditForm,
-                              address: { ...companyEditForm.address, country: e.target.value },
+                              address: { ...companyEditForm.address, country: e.target.value.toUpperCase() },
                             })
                           }
-                          placeholder="e.g., USA"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                          placeholder="e.g., US, GB, FR (ISO 3166-1 alpha-2)"
+                          maxLength={2}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 uppercase"
                         />
+                        {companyEditForm.address.country && (
+                          <p className="mt-1 text-xs text-gray-500">
+                            {getCountryNameFromCode(companyEditForm.address.country)}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>

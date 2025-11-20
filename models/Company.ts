@@ -57,6 +57,8 @@ const CompanySchema: Schema = new Schema(
       country: {
         type: String,
         trim: true,
+        // ISO 3166-1 alpha-2 country code (e.g., 'US', 'GB', 'FR', 'DE')
+        // Stored in uppercase for consistency
       },
     },
     coordinates: {

@@ -15,7 +15,6 @@ interface Job {
   location: string;
   salary?: string;
   type: string;
-  pictures?: string[];
   recruiter: {
     name: string;
     email: string;
@@ -149,20 +148,6 @@ export default function JobSeekerDashboard() {
                     <p className="text-gray-700 font-semibold mb-4">Salary: {job.salary}</p>
                   )}
                   <p className="text-gray-700 mb-4">{job.description}</p>
-                  {job.pictures && job.pictures.length > 0 && (
-                    <div className="mb-4">
-                      <div className="grid grid-cols-3 gap-2">
-                        {job.pictures.map((picture, index) => (
-                          <img
-                            key={index}
-                            src={picture}
-                            alt={`${job.title} - Image ${index + 1}`}
-                            className="w-full h-32 object-cover rounded-lg border border-gray-300"
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
                   <p className="text-sm text-gray-400 mb-2">
                     Posted by: {job.recruiter.name} ({job.recruiter.email})
                   </p>

@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Navbar from '../../components/Navbar';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import { getCountryNameFromCode } from '@/lib/countryUtils';
 
 // Dynamically import Map component to avoid SSR issues
 const MapComponent = dynamic(
@@ -168,7 +169,11 @@ export default function CompanyPage() {
     if (company.address.city) parts.push(company.address.city);
     if (company.address.state) parts.push(company.address.state);
     if (company.address.postalCode) parts.push(company.address.postalCode);
-    if (company.address.country) parts.push(company.address.country);
+    // Convert ISO country code to readable country name
+    if (company.address.country) {
+      const countryName = getCountryNameFromCode(company.address.country);
+      parts.push(countryName);
+    }
     return parts.length > 0 ? parts.join(', ') : null;
   };
 

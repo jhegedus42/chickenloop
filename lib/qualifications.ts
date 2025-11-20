@@ -107,3 +107,4 @@ export function isValidQualification(qualification: string): boolean {
   return getAllQualifications().includes(qualification);
 }
 
+

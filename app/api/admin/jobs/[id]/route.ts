@@ -58,22 +58,7 @@ export async function PUT(
     if (title) job.title = title;
     if (description) job.description = description;
     if (location) job.location = location;
-    if (country !== undefined) {
-      if (!country || country.trim() === '') {
-        return NextResponse.json(
-          { error: 'Country is required' },
-          { status: 400 }
-        );
-      }
-      job.country = country;
-    }
-    // If country is not provided and job doesn't have one, require it
-    if (!job.country || job.country.trim() === '') {
-      return NextResponse.json(
-        { error: 'Country is required' },
-        { status: 400 }
-      );
-    }
+    if (country !== undefined) job.country = country?.trim().toUpperCase() || undefined;
     if (salary !== undefined) job.salary = salary;
     if (type) job.type = type;
     if (company) job.company = company;

@@ -3,8 +3,37 @@
  */
 
 /**
+ * Convert an ISO 3166-1 alpha-2 country code to a readable country name in English
+ * @param countryCode - ISO 3166-1 alpha-2 country code (e.g., 'US', 'GB', 'FR')
+ * @returns Country name in English, or the original code if conversion fails
+ */
+export function getCountryNameFromCode(countryCode: string): string {
+  if (!countryCode || countryCode.trim() === '') {
+    return '';
+  }
+
+  // Normalize to uppercase for ISO codes
+  const normalizedCode = countryCode.trim().toUpperCase();
+
+  // Use Intl.DisplayNames to convert ISO code to country name
+  try {
+    const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+    const countryName = regionNames.of(normalizedCode);
+    if (countryName) {
+      return countryName;
+    }
+  } catch (e) {
+    // Fall through to return original code
+  }
+
+  // If conversion fails, return the original code
+  return normalizedCode;
+}
+
+/**
  * Convert a country name to English using Intl.DisplayNames
  * This handles cases where country names might be in other languages
+ * @deprecated This function is for backward compatibility. Use getCountryNameFromCode for ISO codes.
  */
 export function getCountryNameInEnglish(countryName: string): string {
   if (!countryName || countryName.trim() === '') {

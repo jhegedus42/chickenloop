@@ -5,9 +5,9 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Navbar from '../../../components/Navbar';
 import { jobsApi, companyApi } from '@/lib/api';
-import { getCountryNameInEnglish } from '@/lib/countryUtils';
 import { OFFICIAL_LANGUAGES } from '@/lib/languages';
 import { QUALIFICATIONS } from '@/lib/qualifications';
+import { getCountryNameFromCode } from '@/lib/countryUtils';
 import Link from 'next/link';
 
 export default function NewJobPage() {
@@ -47,22 +47,11 @@ export default function NewJobPage() {
       setCompany(data.company);
       
       // Preset location and country from company's address if available
-      const updates: { location?: string; country?: string } = {};
-      
-      // Preset location (city) from company's address
-      if (data.company?.address?.city) {
-        updates.location = data.company.address.city;
-      }
-      
-      // Preset country from company's address, converting to English
-      if (data.company?.address?.country) {
-        updates.country = getCountryNameInEnglish(data.company.address.country);
-      }
-      
-      if (Object.keys(updates).length > 0) {
+      if (data.company?.address) {
         setFormData(prev => ({
           ...prev,
-          ...updates,
+          location: data.company.address.city || prev.location,
+          country: data.company.address.country || prev.country,
         }));
       }
     } catch (err: any) {
@@ -260,16 +249,22 @@ export default function NewJobPage() {
               </div>
               <div>
                 <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-1">
-                  Country *
+                  Country
                 </label>
                 <input
                   id="country"
                   type="text"
                   value={formData.country}
-                  onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  onChange={(e) => setFormData({ ...formData, country: e.target.value.toUpperCase() })}
+                  placeholder="e.g., US, GB, FR"
+                  maxLength={2}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 uppercase"
                 />
+                {formData.country && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    {getCountryNameFromCode(formData.country)}
+                  </p>
+                )}
               </div>
             </div>
             <div>

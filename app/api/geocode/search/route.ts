@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
     const data = await response.json();
 
     // Format the results to include display name, coordinates, and address components
+    // Store country as ISO 3166-1 alpha-2 code (e.g., 'US', 'GB', 'FR')
     const results = data.map((item: any) => {
       const address = item.address || {};
       return {
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
           city: address.city || address.town || address.village || address.municipality || '',
           state: address.state || address.region || '',
           postalCode: address.postcode || '',
-          country: address.country || '',
+          country: address.country_code?.toUpperCase() || '', // ISO 3166-1 alpha-2 code
         },
       };
     });
