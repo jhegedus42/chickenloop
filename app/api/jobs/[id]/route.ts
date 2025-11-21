@@ -64,7 +64,7 @@ export async function PUT(
       );
     }
 
-    const { title, description, company, location, country, salary, type, languages, qualifications, pictures } = await request.json();
+    const { title, description, company, location, country, salary, type, languages, qualifications, sports, pictures } = await request.json();
 
     if (title) job.title = title;
     if (description) job.description = description;
@@ -87,6 +87,9 @@ export async function PUT(
     }
     if (qualifications !== undefined) {
       job.qualifications = qualifications || [];
+    }
+    if (sports !== undefined) {
+      job.sports = sports || [];
     }
     if (pictures !== undefined) {
       if (Array.isArray(pictures) && pictures.length > 3) {

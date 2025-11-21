@@ -11,6 +11,7 @@ import {
   getCountryNameFromCode,
   normalizeCountryForStorage,
 } from '@/lib/countryUtils';
+import { SPORTS_LIST } from '@/lib/sports';
 
 export default function EditJobPage() {
   const { user, loading: authLoading } = useAuth();
@@ -26,6 +27,7 @@ export default function EditJobPage() {
     type: 'full-time',
     languages: [] as string[],
     qualifications: [] as string[],
+    sports: [] as string[],
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -87,6 +89,7 @@ export default function EditJobPage() {
         type: job.type,
         languages: (job as any).languages || [],
         qualifications: (job as any).qualifications || [],
+        sports: (job as any).sports || [],
       });
       setExistingPictures((job as any).pictures || []);
     } catch (err: any) {
@@ -189,6 +192,7 @@ export default function EditJobPage() {
       await jobsApi.update(jobId, {
         ...formData,
         country: normalizedCountry,
+        sports: formData.sports,
         pictures: allPicturePaths,
       });
 
@@ -409,6 +413,73 @@ export default function EditJobPage() {
                   : 'Select up to 3 languages (tap to select)'}
               </p>
             </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Sport / Activities (Optional)
+            </label>
+
+            {formData.sports.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {formData.sports.map((sport) => (
+                  <span
+                    key={sport}
+                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800"
+                  >
+                    {sport}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData({
+                          ...formData,
+                          sports: formData.sports.filter((s) => s !== sport),
+                        });
+                      }}
+                      className="ml-2 text-indigo-600 hover:text-indigo-800"
+                      aria-label={`Remove ${sport}`}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className="max-h-56 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
+              {SPORTS_LIST.map((sport) => {
+                const isSelected = formData.sports.includes(sport);
+
+                return (
+                  <label
+                    key={sport}
+                    className="flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setFormData({
+                            ...formData,
+                            sports: [...formData.sports, sport],
+                          });
+                        } else {
+                          setFormData({
+                            ...formData,
+                            sports: formData.sports.filter((s) => s !== sport),
+                          });
+                        }
+                      }}
+                      className="mr-3 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <span className="text-sm text-gray-900">{sport}</span>
+                  </label>
+                );
+              })}
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Select sport or activity categories (multiple selections allowed).
+            </p>
+          </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Required Qualifications (Optional)
