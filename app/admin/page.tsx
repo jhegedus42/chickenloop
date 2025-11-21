@@ -113,7 +113,7 @@ function LocationSearchSection({
   showResults: boolean;
   setShowResults: (value: boolean) => void;
   searching: boolean;
-  searchContainerRef: React.RefObject<HTMLDivElement>;
+  searchContainerRef: React.RefObject<HTMLDivElement | null>;
   onLocationSelect: (result: any) => void;
 }) {
   const [mounted, setMounted] = useState(false);

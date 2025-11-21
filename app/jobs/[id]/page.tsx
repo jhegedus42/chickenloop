@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Navbar from '../../components/Navbar';
 import { jobsApi } from '@/lib/api';
@@ -84,7 +84,7 @@ function formatCompanyAddress(address?: CompanyInfo['address']): string | null {
   return parts.length > 0 ? parts.join(' · ') : null;
 }
 
-const SOCIAL_ICONS: Record<string, JSX.Element> = {
+const SOCIAL_ICONS: Record<string, React.ReactElement> = {
   facebook: (
     <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
       <path d="M13.5 9.5h2.31l.35-2.35h-2.66V5.26c0-.68.19-1.15 1.18-1.15h1.49V2.08c-.26-.03-1.15-.11-2.18-.11-2.16 0-3.64 1.32-3.64 3.75v2.28H8.5v2.35h2.3v7h2.7v-7z" />
@@ -304,13 +304,13 @@ export default function JobDetailPage() {
                     alt={`${job.title} - Image ${lightboxIndex + 1}`}
                     className="w-full h-[70vh] object-contain bg-black"
                   />
-                  {job.pictures.length > 1 && (
+                  {job.pictures && job.pictures.length > 1 && (
                     <>
                       <button
                         type="button"
                         onClick={() =>
                           setLightboxIndex((prev) =>
-                            prev === 0 ? job.pictures.length - 1 : prev - 1
+                            prev === 0 ? (job.pictures?.length ?? 1) - 1 : prev - 1
                           )
                         }
                         className="absolute top-1/2 -translate-y-1/2 left-2 bg-white/80 text-gray-900 rounded-full p-2"
@@ -321,7 +321,7 @@ export default function JobDetailPage() {
                         type="button"
                         onClick={() =>
                           setLightboxIndex((prev) =>
-                            prev === job.pictures.length - 1 ? 0 : prev + 1
+                            prev === (job.pictures?.length ?? 1) - 1 ? 0 : prev + 1
                           )
                         }
                         className="absolute top-1/2 -translate-y-1/2 right-2 bg-white/80 text-gray-900 rounded-full p-2"

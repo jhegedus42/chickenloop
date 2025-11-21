@@ -38,7 +38,7 @@ const ISO_REGION_CODE_FALLBACK = [
 
 let SUPPORTED_REGION_CODES: string[] = [];
 try {
-  SUPPORTED_REGION_CODES = Intl.supportedValuesOf('region');
+  SUPPORTED_REGION_CODES = Intl.supportedValuesOf('region' as any);
 } catch {
   SUPPORTED_REGION_CODES = ISO_REGION_CODE_FALLBACK;
 }
