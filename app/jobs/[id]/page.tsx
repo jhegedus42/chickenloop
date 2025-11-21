@@ -7,6 +7,26 @@ import { jobsApi } from '@/lib/api';
 import { getCountryNameFromCode } from '@/lib/countryUtils';
 import Link from 'next/link';
 
+interface CompanyInfo {
+  id?: string;
+  name?: string;
+  description?: string;
+  address?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    country?: string;
+  };
+  website?: string;
+  socialMedia?: {
+    facebook?: string;
+    instagram?: string;
+    tiktok?: string;
+    youtube?: string;
+  };
+}
+
 interface Job {
   _id: string;
   title: string;
@@ -25,6 +45,7 @@ interface Job {
   };
   createdAt: string;
   updatedAt?: string;
+  companyId?: CompanyInfo;
 }
 
 // Component to handle date formatting (prevents hydration mismatch)
@@ -50,12 +71,27 @@ function FormattedDate({ date }: { date: string }) {
   return <p className="text-sm text-gray-500 mt-1">Posted: {formattedDate}</p>;
 }
 
+function formatCompanyAddress(address?: CompanyInfo['address']): string | null {
+  if (!address) return null;
+  const parts: string[] = [];
+  if (address.street) parts.push(address.street);
+  const cityState = [address.city, address.state].filter(Boolean).join(', ');
+  if (cityState) parts.push(cityState);
+  if (address.postalCode) parts.push(address.postalCode);
+  if (address.country) {
+    parts.push(getCountryNameFromCode(address.country));
+  }
+  return parts.length > 0 ? parts.join(' · ') : null;
+}
+
 export default function JobDetailPage() {
   const params = useParams();
   const jobId = params.id as string;
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
   useEffect(() => {
     // Load job regardless of authentication status
@@ -207,37 +243,125 @@ export default function JobDetailPage() {
               <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{job.description}</p>
             </div>
 
-            {/* Languages Required */}
-            {job.languages && job.languages.length > 0 && (
+            {job.pictures && job.pictures.length > 0 && (
               <div className="mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Languages Required</h2>
-                <div className="flex flex-wrap gap-2">
-                  {job.languages.map((language, index) => (
-                    <span
+                <div className="grid grid-cols-3 gap-2">
+                  {job.pictures.map((picture, index) => (
+                    <button
                       key={index}
-                      className="px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
+                      onClick={() => {
+                        setLightboxIndex(index);
+                        setIsLightboxOpen(true);
+                      }}
+                      className="w-full h-32 overflow-hidden rounded-lg border border-gray-300 p-0"
+                      type="button"
                     >
-                      {language}
-                    </span>
+                      <img
+                        src={picture}
+                        alt={`${job.title} - Image ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Required Qualifications */}
-            {job.qualifications && job.qualifications.length > 0 && (
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Required Qualifications</h2>
-                <div className="flex flex-wrap gap-2">
-                  {job.qualifications.map((qualification, index) => (
-                    <span
-                      key={index}
-                      className="px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium"
-                    >
-                      {qualification}
-                    </span>
-                  ))}
+            {isLightboxOpen && job?.pictures && job.pictures.length > 0 && (
+              <div
+                className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
+                onClick={() => setIsLightboxOpen(false)}
+              >
+                <div
+                  className="relative max-w-3xl w-full mx-auto"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <img
+                    src={job.pictures[lightboxIndex]}
+                    alt={`${job.title} - Image ${lightboxIndex + 1}`}
+                    className="w-full h-[70vh] object-contain bg-black"
+                  />
+                  {job.pictures.length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setLightboxIndex((prev) =>
+                            prev === 0 ? job.pictures.length - 1 : prev - 1
+                          )
+                        }
+                        className="absolute top-1/2 -translate-y-1/2 left-2 bg-white/80 text-gray-900 rounded-full p-2"
+                      >
+                        ‹
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setLightboxIndex((prev) =>
+                            prev === job.pictures.length - 1 ? 0 : prev + 1
+                          )
+                        }
+                        className="absolute top-1/2 -translate-y-1/2 right-2 bg-white/80 text-gray-900 rounded-full p-2"
+                      >
+                        ›
+                      </button>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setIsLightboxOpen(false)}
+                    className="absolute top-2 right-2 bg-white/80 text-gray-900 rounded-full p-2"
+                  >
+                    ✕
+                  </button>
                 </div>
+              </div>
+            )}
+
+            {job.companyId && (
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-3">Company Info</h2>
+                {job.companyId.description && (
+                  <p className="text-gray-700 mb-2">{job.companyId.description}</p>
+                )}
+                {formatCompanyAddress(job.companyId.address) && (
+                  <p className="text-sm text-gray-600 mb-1">
+                    Location: {formatCompanyAddress(job.companyId.address)}
+                  </p>
+                )}
+                {job.companyId.website && (
+                  <p className="text-sm text-gray-600 mb-1">
+                    Website:{' '}
+                    <a
+                      href={job.companyId.website}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      {job.companyId.website}
+                    </a>
+                  </p>
+                )}
+                {job.companyId.socialMedia &&
+                  Object.entries(job.companyId.socialMedia)
+                    .filter(([, value]) => Boolean(value))
+                    .length > 0 && (
+                    <div className="flex flex-wrap gap-3 mt-2">
+                      {Object.entries(job.companyId.socialMedia)
+                        .filter(([, value]) => Boolean(value))
+                        .map(([platform, url]) => (
+                          <a
+                            key={platform}
+                            href={url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-sm text-blue-600 hover:underline"
+                          >
+                            {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                          </a>
+                        ))}
+                    </div>
+                  )}
               </div>
             )}
 

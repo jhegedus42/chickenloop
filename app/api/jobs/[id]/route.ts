@@ -12,7 +12,9 @@ export async function GET(
     await connectDB();
     const { id } = await params;
 
-    const job = await Job.findById(id).populate('recruiter', 'name email');
+    const job = await Job.findById(id)
+      .populate('recruiter', 'name email')
+      .populate('companyId');
     
     if (!job) {
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
@@ -98,7 +100,9 @@ export async function PUT(
 
     await job.save();
 
-    const updatedJob = await Job.findById(job._id).populate('recruiter', 'name email');
+    const updatedJob = await Job.findById(job._id)
+      .populate('recruiter', 'name email')
+      .populate('companyId');
     
     // Convert to plain object and ensure all fields are included, including country
     const jobObject = updatedJob?.toObject();
