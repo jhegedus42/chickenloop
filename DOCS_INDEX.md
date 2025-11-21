@@ -32,6 +32,10 @@ Quick reference to all project documentation.
 - **[CHAT_SUMMARY.md](./CHAT_SUMMARY.md)** - Summary of development conversation
 - **[CONVERSATION_EXPORT.md](./CONVERSATION_EXPORT.md)** - Full conversation export for AI assistants
 
+## 🔐 Credentials & Secrets
+
+- **[PASSWORDS_AND_SECRETS.md](./PASSWORDS_AND_SECRETS.md)** - Where to find passwords, how to set up credentials, security best practices
+
 ## 🆘 Quick Help
 
 ### I need to...
@@ -50,6 +54,9 @@ Quick reference to all project documentation.
 
 **Set up MongoDB:**
 → See [MONGODB_SETUP.md](./MONGODB_SETUP.md)
+
+**Find passwords/credentials:**
+→ See [PASSWORDS_AND_SECRETS.md](./PASSWORDS_AND_SECRETS.md)
 
 **Fix MongoDB connection:**
 → See [FIX_MONGODB_WHITELIST.md](./FIX_MONGODB_WHITELIST.md)

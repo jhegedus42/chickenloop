@@ -16,7 +16,15 @@ This guide helps new collaborators set up the project, access Git, troubleshoot 
    ```
 
 3. **Set up environment variables:**
-   Create `.env.local`:
+   ```bash
+   # Copy the example file
+   cp .env.example .env.local
+   
+   # Edit .env.local and add your actual values
+   # See PASSWORDS_AND_SECRETS.md for where to find passwords
+   ```
+   
+   Required values in `.env.local`:
    ```env
    MONGODB_URI=your_mongodb_connection_string
    JWT_SECRET=your_jwt_secret
