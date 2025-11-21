@@ -43,7 +43,7 @@ function CoordinatesDisplay({ latitude, longitude }: { latitude: number; longitu
   );
 }
 
-export default function NewCompanyPage() {
+export default function EditCompanyPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [formData, setFormData] = useState({
@@ -67,6 +67,7 @@ export default function NewCompanyPage() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -84,6 +85,57 @@ export default function NewCompanyPage() {
       router.push(`/${user.role === 'admin' ? 'admin' : 'job-seeker'}`);
     }
   }, [user, authLoading, router]);
+
+  useEffect(() => {
+    if (user && user.role === 'recruiter') {
+      loadCompany();
+    }
+  }, [user]);
+
+  const loadCompany = async () => {
+    try {
+      const data = await companyApi.get();
+      const existingAddress = data.company.address || {};
+      const existingSocialMedia = data.company.socialMedia || {};
+      
+      setFormData({
+        name: data.company.name,
+        description: data.company.description || '',
+        address: {
+          street: existingAddress.street || '',
+          city: existingAddress.city || '',
+          state: existingAddress.state || '',
+          postalCode: existingAddress.postalCode || '',
+          country: existingAddress.country ? getCountryNameFromCode(existingAddress.country) : '',
+        },
+        coordinates: data.company.coordinates || null,
+        website: data.company.website || '',
+        socialMedia: {
+          facebook: existingSocialMedia.facebook || '',
+          instagram: existingSocialMedia.instagram || '',
+          tiktok: existingSocialMedia.tiktok || '',
+          youtube: existingSocialMedia.youtube || '',
+        },
+      });
+
+      // Build search query from address if coordinates exist
+      if (data.company.coordinates) {
+        const addressParts = [];
+        if (existingAddress.street) addressParts.push(existingAddress.street);
+        if (existingAddress.city) addressParts.push(existingAddress.city);
+        if (existingAddress.state) addressParts.push(existingAddress.state);
+        if (existingAddress.postalCode) addressParts.push(existingAddress.postalCode);
+        if (existingAddress.country) addressParts.push(getCountryNameFromCode(existingAddress.country));
+        const searchQuery = addressParts.join(', ') || data.company.name;
+        setSearchQuery(searchQuery);
+        setMapMounted(true);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to load company');
+    } finally {
+      setFetching(false);
+    }
+  };
 
   // Handle clicks outside search dropdown
   useEffect(() => {
@@ -184,7 +236,7 @@ export default function NewCompanyPage() {
 
     try {
       const normalizedCountry = normalizeCountryForStorage(formData.address.country);
-      await companyApi.create({
+      await companyApi.update({
         ...formData,
         address: {
           ...formData.address,
@@ -193,13 +245,13 @@ export default function NewCompanyPage() {
       });
       router.push('/recruiter');
     } catch (err: any) {
-      setError(err.message || 'Failed to create company');
+      setError(err.message || 'Failed to update company');
     } finally {
       setLoading(false);
     }
   };
 
-  if (authLoading) {
+  if (authLoading || fetching) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50">
         <Navbar />
@@ -215,10 +267,7 @@ export default function NewCompanyPage() {
       <Navbar />
       <main className="max-w-3xl mx-auto px-4 py-12">
         <div className="bg-white rounded-lg shadow-lg p-8">
-          <h1 className="text-3xl font-bold mb-6 text-gray-900">Create Company Profile</h1>
-          <p className="text-gray-600 mb-6">
-            Before you can post jobs, you need to create a company profile. You can only have one company.
-          </p>
+          <h1 className="text-3xl font-bold mb-6 text-gray-900">Edit Company Profile</h1>
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
               {error}
@@ -375,32 +424,32 @@ export default function NewCompanyPage() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                     />
                   </div>
-                  <div>
-                    <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-1">
-                      Country
-                    </label>
-                    <input
-                      id="country"
-                      type="text"
-                      value={formData.address.country}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          address: { ...formData.address, country: e.target.value },
-                        })
-                      }
+                <div>
+                  <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-1">
+                    Country
+                  </label>
+                  <input
+                    id="country"
+                    type="text"
+                    value={formData.address.country}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        address: { ...formData.address, country: e.target.value },
+                      })
+                    }
                     placeholder="e.g., United States"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                    />
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  />
                   <p className="text-xs text-gray-500 mt-1">
                     Enter the country name in English; we will store the ISO code automatically.
                   </p>
-                  {previewCountryCode && (
+                  {formData.address.country && previewCountryCode && (
                     <p className="text-xs text-gray-500 mt-1">
                       Detected ISO: {previewCountryCode}
                     </p>
                   )}
-                  </div>
+                </div>
                 </div>
               </div>
 
@@ -521,7 +570,7 @@ export default function NewCompanyPage() {
                 disabled={loading}
                 className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
               >
-                {loading ? 'Creating...' : 'Create Company'}
+                {loading ? 'Updating...' : 'Update Company'}
               </button>
               <button
                 type="button"

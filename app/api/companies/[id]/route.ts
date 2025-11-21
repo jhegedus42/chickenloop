@@ -1,0 +1,57 @@
+import { NextRequest, NextResponse } from 'next/server';
+import connectDB from '@/lib/db';
+import Company from '@/models/Company';
+
+// GET - Get a company by ID (public endpoint)
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    await connectDB();
+    const { id } = await params;
+
+    const company = await Company.findById(id).populate('owner', 'name email');
+
+    if (!company) {
+      return NextResponse.json({ error: 'Company not found' }, { status: 404 });
+    }
+
+    // Clean up social media: convert empty strings to undefined
+    let cleanedSocialMedia = company.socialMedia;
+    if (cleanedSocialMedia) {
+      cleanedSocialMedia = {
+        facebook: cleanedSocialMedia.facebook?.trim() || undefined,
+        instagram: cleanedSocialMedia.instagram?.trim() || undefined,
+        tiktok: cleanedSocialMedia.tiktok?.trim() || undefined,
+        youtube: cleanedSocialMedia.youtube?.trim() || undefined,
+      };
+      // If all fields are undefined, set to undefined
+      if (!cleanedSocialMedia.facebook && !cleanedSocialMedia.instagram && 
+          !cleanedSocialMedia.tiktok && !cleanedSocialMedia.youtube) {
+        cleanedSocialMedia = undefined;
+      }
+    }
+
+    return NextResponse.json({
+      company: {
+        id: company._id,
+        name: company.name,
+        description: company.description,
+        address: company.address,
+        coordinates: company.coordinates,
+        website: company.website,
+        socialMedia: cleanedSocialMedia,
+        owner: company.owner,
+        createdAt: company.createdAt,
+        updatedAt: company.updatedAt,
+      },
+    });
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: error.message || 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+

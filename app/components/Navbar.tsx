@@ -29,17 +29,15 @@ export default function Navbar() {
             </Link>
           </div>
           <div className="flex items-center space-x-4">
+            <Link
+              href="/jobs"
+              className="px-3 py-2 rounded hover:bg-blue-700"
+            >
+              Jobs
+            </Link>
             {user ? (
               <>
                 <span className="text-sm">Welcome, {user.name}</span>
-                {user.role === 'job-seeker' && (
-                  <Link
-                    href="/jobs"
-                    className="px-3 py-2 rounded hover:bg-blue-700"
-                  >
-                    Jobs
-                  </Link>
-                )}
                 <Link
                   href={`/${user.role === 'admin' ? 'admin' : user.role === 'recruiter' ? 'recruiter' : 'job-seeker'}`}
                   className="px-3 py-2 rounded hover:bg-blue-700"

@@ -104,5 +104,27 @@ export const adminApi = {
     apiRequest(`/admin/users/${id}`, {
       method: 'DELETE',
     }),
+  getCompanies: () => apiRequest('/admin/companies'),
+  getCompany: (id: string) => apiRequest(`/admin/companies/${id}`),
+  updateCompany: (id: string, data: any) =>
+    apiRequest(`/admin/companies/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteCompany: (id: string) =>
+    apiRequest(`/admin/companies/${id}`, {
+      method: 'DELETE',
+    }),
+  getJobs: () => apiRequest('/admin/jobs'),
+  getJob: (id: string) => apiRequest(`/admin/jobs/${id}`),
+  updateJob: (id: string, data: any) =>
+    apiRequest(`/admin/jobs/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteJob: (id: string) =>
+    apiRequest(`/admin/jobs/${id}`, {
+      method: 'DELETE',
+    }),
 };
 

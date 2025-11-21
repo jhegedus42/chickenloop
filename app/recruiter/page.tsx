@@ -15,6 +15,7 @@ interface Job {
   location: string;
   salary?: string;
   type: string;
+  pictures?: string[];
   createdAt: string;
 }
 
@@ -114,14 +115,22 @@ export default function RecruiterDashboard() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50">
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-wrap justify-between items-center gap-3 mb-8">
           <h1 className="text-4xl font-bold text-gray-900">My Job Postings</h1>
-          <Link
-            href="/recruiter/jobs/new"
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold"
-          >
-            Post New Job
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/recruiter/company/edit"
+              className="bg-gray-200 text-gray-900 px-4 py-2 rounded-lg hover:bg-gray-300 font-semibold"
+            >
+              Edit Company
+            </Link>
+            <Link
+              href="/recruiter/jobs/new"
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold"
+            >
+              Post New Job
+            </Link>
+          </div>
         </div>
 
         {error && (
@@ -154,6 +163,20 @@ export default function RecruiterDashboard() {
                       <p className="text-gray-700 font-semibold mb-4">Salary: {job.salary}</p>
                     )}
                     <p className="text-gray-700 mb-4">{job.description}</p>
+                    {job.pictures && job.pictures.length > 0 && (
+                      <div className="mb-4">
+                        <div className="grid grid-cols-3 gap-2">
+                          {job.pictures.map((picture, index) => (
+                            <img
+                              key={index}
+                              src={picture}
+                              alt={`${job.title} - Image ${index + 1}`}
+                              className="w-full h-32 object-cover rounded-lg border border-gray-300"
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <p className="text-sm text-gray-400">
                       Posted: {new Date(job.createdAt).toLocaleDateString()}
                     </p>

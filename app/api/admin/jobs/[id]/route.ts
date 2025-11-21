@@ -1,39 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Job from '@/models/Job';
-import { requireAuth, requireRole } from '@/lib/auth';
+import Company from '@/models/Company';
+import { requireRole } from '@/lib/auth';
 
-// GET - Get a single job (accessible to all users, including anonymous)
+// GET - Get a single job (admin only)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    requireRole(request, ['admin']);
     await connectDB();
     const { id } = await params;
 
     const job = await Job.findById(id)
       .populate('recruiter', 'name email')
-      .populate('companyId');
+      .populate('companyId', 'name');
     
     if (!job) {
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    // Convert to plain object and ensure all fields are included, including country
-    const jobObject = job.toObject();
-    // Handle country field - normalize if it exists, ensure field is always present
-    const countryValue = jobObject.country != null && typeof jobObject.country === 'string'
-      ? (jobObject.country.trim() ? jobObject.country.trim().toUpperCase() : null)
-      : jobObject.country; // Preserve null if explicitly set, or undefined if never set
-    
-    const jobResponse = {
-      ...jobObject,
-      country: countryValue,
-    };
-
-    return NextResponse.json({ job: jobResponse }, { status: 200 });
+    return NextResponse.json({ job }, { status: 200 });
   } catch (error: any) {
+    if (error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error.message === 'Forbidden') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }
@@ -41,13 +37,13 @@ export async function GET(
   }
 }
 
-// PUT - Update a job (recruiters can only update their own jobs)
+// PUT - Update a job (admin only, can edit any job)
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = requireRole(request, ['recruiter']);
+    requireRole(request, ['admin']);
     await connectDB();
     const { id } = await params;
 
@@ -57,25 +53,15 @@ export async function PUT(
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    if (job.recruiter.toString() !== user.userId) {
-      return NextResponse.json(
-        { error: 'You can only edit your own jobs' },
-        { status: 403 }
-      );
-    }
-
-    const { title, description, company, location, country, salary, type, languages, qualifications, sports, occupationalAreas, pictures } = await request.json();
+    const { title, description, location, country, salary, type, company, languages, qualifications, pictures } = await request.json();
 
     if (title) job.title = title;
     if (description) job.description = description;
-    if (company) job.company = company;
     if (location) job.location = location;
-    if (country !== undefined) {
-      // Normalize country: trim and uppercase, or set to null if empty (null explicitly stores the field)
-      job.country = country?.trim() ? country.trim().toUpperCase() : null;
-    }
+    if (country !== undefined) job.country = country?.trim().toUpperCase() || undefined;
     if (salary !== undefined) job.salary = salary;
     if (type) job.type = type;
+    if (company) job.company = company;
     if (languages !== undefined) {
       if (Array.isArray(languages) && languages.length > 3) {
         return NextResponse.json(
@@ -88,12 +74,8 @@ export async function PUT(
     if (qualifications !== undefined) {
       job.qualifications = qualifications || [];
     }
-    if (sports !== undefined) {
-      job.sports = sports || [];
-    }
-    if (occupationalAreas !== undefined) {
-      job.occupationalAreas = occupationalAreas || [];
-    }
+    
+    // Update pictures array (max 3)
     if (pictures !== undefined) {
       if (Array.isArray(pictures) && pictures.length > 3) {
         return NextResponse.json(
@@ -108,20 +90,10 @@ export async function PUT(
 
     const updatedJob = await Job.findById(job._id)
       .populate('recruiter', 'name email')
-      .populate('companyId');
-    
-    // Convert to plain object and ensure all fields are included, including country
-    const jobObject = updatedJob?.toObject();
-    const jobResponse = jobObject ? {
-      ...jobObject,
-      // Handle country field - normalize if it exists, preserve null/undefined appropriately
-      country: jobObject.country != null 
-        ? (jobObject.country.trim() ? jobObject.country.trim().toUpperCase() : null)
-        : undefined,
-    } : updatedJob;
+      .populate('companyId', 'name');
 
     return NextResponse.json(
-      { message: 'Job updated successfully', job: jobResponse },
+      { message: 'Job updated successfully', job: updatedJob },
       { status: 200 }
     );
   } catch (error: any) {
@@ -138,13 +110,13 @@ export async function PUT(
   }
 }
 
-// DELETE - Delete a job (recruiters can only delete their own jobs)
+// DELETE - Delete a job (admin only, can delete any job)
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = requireRole(request, ['recruiter']);
+    requireRole(request, ['admin']);
     await connectDB();
     const { id } = await params;
 
@@ -152,13 +124,6 @@ export async function DELETE(
     
     if (!job) {
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
-    }
-
-    if (job.recruiter.toString() !== user.userId) {
-      return NextResponse.json(
-        { error: 'You can only delete your own jobs' },
-        { status: 403 }
-      );
     }
 
     await Job.findByIdAndDelete(id);

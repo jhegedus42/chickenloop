@@ -6,8 +6,14 @@ export interface IJob extends Document {
   company: string;
   companyId?: mongoose.Types.ObjectId;
   location: string;
+  country?: string; // ISO 3166-1 alpha-2 country code (e.g., 'US', 'GB', 'FR')
   salary?: string;
   type: 'full-time' | 'part-time' | 'contract' | 'freelance';
+  languages?: string[]; // Array of language names (max 3)
+  qualifications?: string[]; // Array of qualification names
+  sports?: string[]; // Array of sports/activity strings
+  occupationalAreas?: string[];
+  pictures?: string[]; // Array of image paths (max 3)
   recruiter: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -35,6 +41,12 @@ const JobSchema: Schema = new Schema(
       type: String,
       required: true,
     },
+    country: {
+      type: String,
+      trim: true,
+      // ISO 3166-1 alpha-2 country code (e.g., 'US', 'GB', 'FR')
+      // Stored in uppercase for consistency
+    },
     salary: {
       type: String,
     },
@@ -47,6 +59,33 @@ const JobSchema: Schema = new Schema(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
+    },
+    languages: {
+      type: [String],
+      validate: {
+        validator: function(v: string[]) {
+          return v.length <= 3;
+        },
+        message: 'A job can have at most 3 languages',
+      },
+    },
+    qualifications: {
+      type: [String],
+    },
+    sports: {
+      type: [String],
+    },
+    occupationalAreas: {
+      type: [String],
+    },
+    pictures: {
+      type: [String],
+      validate: {
+        validator: function(v: string[]) {
+          return v.length <= 3;
+        },
+        message: 'A job can have at most 3 pictures',
+      },
     },
   },
   {
