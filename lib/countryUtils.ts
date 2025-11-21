@@ -30,6 +30,89 @@ export function getCountryNameFromCode(countryCode: string): string {
   return normalizedCode;
 }
 
+const regionNamesInstance = new Intl.DisplayNames(['en'], { type: 'region' });
+const SUPPORTED_REGION_CODES = Intl.supportedValuesOf('region');
+
+const COUNTRY_NAME_TO_CODE: Record<string, string> = SUPPORTED_REGION_CODES.reduce(
+  (map, code) => {
+    const name = regionNamesInstance.of(code);
+    if (name) {
+      map[name.toLowerCase()] = code;
+    }
+    return map;
+  },
+  {} as Record<string, string>
+);
+
+const COUNTRY_NAME_ALIASES: Record<string, string> = {
+  'united states of america': 'US',
+  'usa': 'US',
+  'u.s.': 'US',
+  'uk': 'GB',
+  'great britain': 'GB',
+  'russia': 'RU',
+  'south korea': 'KR',
+  'north korea': 'KP',
+  'czech republic': 'CZ',
+  'ivory coast': 'CI',
+  'viet nam': 'VN',
+};
+
+/**
+ * Convert a full country name (in English) to its ISO 3166-1 alpha-2 code
+ * @param countryName - Full English country name (e.g., 'United States', 'France')
+ * @returns ISO country code (e.g., 'US', 'FR') or null if it cannot be resolved
+ */
+export function getCountryCodeFromName(countryName: string): string | null {
+  if (!countryName || countryName.trim() === '') {
+    return null;
+  }
+
+  const normalized = countryName.trim();
+  const upperInput = normalized.toUpperCase();
+
+  if (/^[A-Z]{2}$/.test(upperInput)) {
+    return upperInput;
+  }
+
+  const lowerInput = normalized.toLowerCase();
+  if (COUNTRY_NAME_TO_CODE[lowerInput]) {
+    return COUNTRY_NAME_TO_CODE[lowerInput];
+  }
+
+  if (COUNTRY_NAME_ALIASES[lowerInput]) {
+    return COUNTRY_NAME_ALIASES[lowerInput];
+  }
+
+  return null;
+}
+
+/**
+ * Normalize a user-entered country value (name or ISO code) for storage.
+ * Returns an ISO 3166-1 alpha-2 code, or undefined if it cannot be resolved.
+ */
+export function normalizeCountryForStorage(countryValue?: string): string | undefined {
+  if (!countryValue) {
+    return undefined;
+  }
+
+  const trimmed = countryValue.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  const isoCode = getCountryCodeFromName(trimmed);
+  if (isoCode) {
+    return isoCode;
+  }
+
+  if (/^[A-Za-z]{2}$/.test(trimmed)) {
+    return trimmed.toUpperCase();
+  }
+
+  return undefined;
+}
+
 /**
  * Convert a country name to English using Intl.DisplayNames
  * This handles cases where country names might be in other languages

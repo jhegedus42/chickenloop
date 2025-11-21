@@ -7,7 +7,10 @@ import Navbar from '../../../components/Navbar';
 import { jobsApi, companyApi } from '@/lib/api';
 import { OFFICIAL_LANGUAGES } from '@/lib/languages';
 import { QUALIFICATIONS } from '@/lib/qualifications';
-import { getCountryNameFromCode } from '@/lib/countryUtils';
+import {
+  getCountryNameFromCode,
+  normalizeCountryForStorage,
+} from '@/lib/countryUtils';
 import Link from 'next/link';
 
 export default function NewJobPage() {
@@ -30,6 +33,7 @@ export default function NewJobPage() {
   const [selectedPictures, setSelectedPictures] = useState<File[]>([]);
   const [picturePreviews, setPicturePreviews] = useState<string[]>([]);
   const [uploadingPictures, setUploadingPictures] = useState(false);
+  const previewCountryCode = normalizeCountryForStorage(formData.country);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -48,10 +52,14 @@ export default function NewJobPage() {
       
       // Preset location and country from company's address if available
       if (data.company?.address) {
+        const companyCountryCode = data.company.address.country;
+        const companyCountryName = companyCountryCode
+          ? getCountryNameFromCode(companyCountryCode)
+          : '';
         setFormData(prev => ({
           ...prev,
           location: data.company.address.city || prev.location,
-          country: data.company.address.country || prev.country,
+          country: companyCountryName || prev.country,
         }));
       }
     } catch (err: any) {
@@ -146,8 +154,11 @@ export default function NewJobPage() {
       const picturePaths = await uploadPictures();
 
       // Create job with picture paths
+      const normalizedCountry = normalizeCountryForStorage(formData.country);
+
       await jobsApi.create({
         ...formData,
+        country: normalizedCountry,
         pictures: picturePaths,
       });
 
@@ -255,14 +266,16 @@ export default function NewJobPage() {
                   id="country"
                   type="text"
                   value={formData.country}
-                  onChange={(e) => setFormData({ ...formData, country: e.target.value.toUpperCase() })}
-                  placeholder="e.g., US, GB, FR"
-                  maxLength={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 uppercase"
+                  onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                  placeholder="e.g., United States"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                 />
-                {formData.country && (
-                  <p className="mt-1 text-xs text-gray-500">
-                    {getCountryNameFromCode(formData.country)}
+                <p className="text-xs text-gray-500 mt-1">
+                  Enter the country name in English; we will store the ISO code for you.
+                </p>
+                {formData.country && previewCountryCode && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Detected ISO: {previewCountryCode}
                   </p>
                 )}
               </div>

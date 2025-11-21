@@ -7,7 +7,10 @@ import Navbar from '../../../../components/Navbar';
 import { jobsApi, companyApi } from '@/lib/api';
 import { OFFICIAL_LANGUAGES } from '@/lib/languages';
 import { QUALIFICATIONS } from '@/lib/qualifications';
-import { getCountryNameFromCode } from '@/lib/countryUtils';
+import {
+  getCountryNameFromCode,
+  normalizeCountryForStorage,
+} from '@/lib/countryUtils';
 
 export default function EditJobPage() {
   const { user, loading: authLoading } = useAuth();
@@ -32,6 +35,7 @@ export default function EditJobPage() {
   const [selectedPictures, setSelectedPictures] = useState<File[]>([]);
   const [picturePreviews, setPicturePreviews] = useState<string[]>([]);
   const [uploadingPictures, setUploadingPictures] = useState(false);
+  const previewCountryCode = normalizeCountryForStorage(formData.country);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -68,10 +72,11 @@ export default function EditJobPage() {
       const fallbackLocation = companyData?.address?.city || '';
       const locationToUse = jobLocation || fallbackLocation;
       
-      // Use job's country if available (handle null/undefined), otherwise fall back to company's country
-      const jobCountry = (job as any).country != null ? (job as any).country : '';
-      const fallbackCountry = companyData?.address?.country || '';
-      const countryToUse = jobCountry || fallbackCountry;
+      const jobCountryCode = (job as any).country;
+      const fallbackCountryCode = companyData?.address?.country;
+      const jobCountryName = jobCountryCode ? getCountryNameFromCode(jobCountryCode) : '';
+      const fallbackCountryName = fallbackCountryCode ? getCountryNameFromCode(fallbackCountryCode) : '';
+      const countryToUse = jobCountryName || fallbackCountryName;
       
       setFormData({
         title: job.title,
@@ -179,8 +184,11 @@ export default function EditJobPage() {
       const allPicturePaths = await uploadPictures();
 
       // Update job with picture paths
+      const normalizedCountry = normalizeCountryForStorage(formData.country);
+
       await jobsApi.update(jobId, {
         ...formData,
+        country: normalizedCountry,
         pictures: allPicturePaths,
       });
 
@@ -266,14 +274,16 @@ export default function EditJobPage() {
                   id="country"
                   type="text"
                   value={formData.country}
-                  onChange={(e) => setFormData({ ...formData, country: e.target.value.toUpperCase() })}
-                  placeholder="e.g., US, GB, FR"
-                  maxLength={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 uppercase"
+                  onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                  placeholder="e.g., United States"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                 />
-                {formData.country && (
-                  <p className="mt-1 text-xs text-gray-500">
-                    {getCountryNameFromCode(formData.country)}
+                <p className="text-xs text-gray-500 mt-1">
+                  Enter the country name in English; we will store the ISO code automatically.
+                </p>
+                {formData.country && previewCountryCode && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Detected ISO: {previewCountryCode}
                   </p>
                 )}
               </div>
