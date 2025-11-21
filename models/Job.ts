@@ -12,6 +12,7 @@ export interface IJob extends Document {
   languages?: string[]; // Array of language names (max 3)
   qualifications?: string[]; // Array of qualification names
   sports?: string[]; // Array of sports/activity strings
+  occupationalAreas?: string[];
   pictures?: string[]; // Array of image paths (max 3)
   recruiter: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -72,6 +73,9 @@ const JobSchema: Schema = new Schema(
       type: [String],
     },
     sports: {
+      type: [String],
+    },
+    occupationalAreas: {
       type: [String],
     },
     pictures: {

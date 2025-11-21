@@ -12,31 +12,7 @@ import {
   normalizeCountryForStorage,
 } from '@/lib/countryUtils';
 import { SPORTS_LIST } from '@/lib/sports';
-const SPORTS_LIST = [
-  'canoeing',
-  'canyoning',
-  'catamaran',
-  'e-foil',
-  'flyboarding',
-  'hydrofoil kite surfing',
-  'hydrofoil surfing',
-  'jet-skiing',
-  'kayaking',
-  'kitesurfing',
-  'parasailing',
-  'rafting',
-  'sailing',
-  'scuba-diving',
-  'snorkeling',
-  'Paddle boarding (SUP)',
-  'surfing',
-  'wakeboarding',
-  'water-skiing',
-  'windsurfing',
-  'wing foiling',
-  'yachting',
-  'Other (see job description)',
-];
+import { OCCUPATIONAL_AREAS } from '@/lib/occupationalAreas';
 import Link from 'next/link';
 
 export default function NewJobPage() {
@@ -52,6 +28,7 @@ export default function NewJobPage() {
     languages: [] as string[],
     qualifications: [] as string[],
     sports: [] as string[],
+    occupationalAreas: [] as string[],
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -187,6 +164,7 @@ export default function NewJobPage() {
         ...formData,
         country: normalizedCountry,
         sports: formData.sports,
+        occupationalAreas: formData.occupationalAreas,
         pictures: picturePaths,
       });
 
@@ -308,35 +286,295 @@ export default function NewJobPage() {
                 )}
               </div>
             </div>
-            <div>
-              <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
-                Job Type *
-              </label>
-              <select
-                id="type"
-                value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-              >
-                <option value="full-time">Full-time</option>
-                <option value="part-time">Part-time</option>
-                <option value="contract">Contract</option>
-                <option value="freelance">Freelance</option>
-              </select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
+                  Job Type *
+                </label>
+                <select
+                  id="type"
+                  value={formData.type}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                >
+                  <option value="full-time">Full-time</option>
+                  <option value="part-time">Part-time</option>
+                  <option value="contract">Contract</option>
+                  <option value="freelance">Freelance</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="salary" className="block text-sm font-medium text-gray-700 mb-1">
+                  Salary
+                </label>
+                <input
+                  id="salary"
+                  type="text"
+                  value={formData.salary}
+                  onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
+                  placeholder="e.g., $50,000 - $70,000"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                />
+              </div>
             </div>
-            <div>
-              <label htmlFor="salary" className="block text-sm font-medium text-gray-700 mb-1">
-                Salary
-              </label>
-              <input
-                id="salary"
-                type="text"
-                value={formData.salary}
-                onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
-                placeholder="e.g., $50,000 - $70,000"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Occupational Area (Optional)
+                </label>
+                {formData.occupationalAreas.length > 0 && (
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    {formData.occupationalAreas.map((area) => (
+                      <span
+                        key={area}
+                        className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800"
+                      >
+                        {area}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData({
+                              ...formData,
+                              occupationalAreas: formData.occupationalAreas.filter((a) => a !== area),
+                            });
+                          }}
+                          className="ml-2 text-purple-600 hover:text-purple-800"
+                          aria-label={`Remove ${area}`}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="max-h-48 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
+                  {OCCUPATIONAL_AREAS.map((area) => {
+                    const isSelected = formData.occupationalAreas.includes(area);
+                    return (
+                      <label
+                        key={area}
+                        className="flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFormData({
+                                ...formData,
+                                occupationalAreas: [...formData.occupationalAreas, area],
+                              });
+                            } else {
+                              setFormData({
+                                ...formData,
+                                occupationalAreas: formData.occupationalAreas.filter((a) => a !== area),
+                              });
+                            }
+                          }}
+                          className="mr-3 h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                        />
+                        <span className="text-sm text-gray-900">{area}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Languages Required (Optional - up to 3)
+                </label>
+                {formData.languages.length > 0 && (
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    {formData.languages.map((lang) => (
+                      <span
+                        key={lang}
+                        className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
+                      >
+                        {lang}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData({
+                              ...formData,
+                              languages: formData.languages.filter((l) => l !== lang),
+                            });
+                          }}
+                          className="ml-2 text-blue-600 hover:text-blue-800"
+                          aria-label={`Remove ${lang}`}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="max-h-48 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
+                  {OFFICIAL_LANGUAGES.map((lang) => {
+                    const isSelected = formData.languages.includes(lang);
+                    const isDisabled = !isSelected && formData.languages.length >= 3;
+                    return (
+                      <label
+                        key={lang}
+                        className={`flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer ${
+                          isDisabled ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          disabled={isDisabled}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              if (formData.languages.length < 3) {
+                                setFormData({
+                                  ...formData,
+                                  languages: [...formData.languages, lang],
+                                });
+                              }
+                            } else {
+                              setFormData({
+                                ...formData,
+                                languages: formData.languages.filter((l) => l !== lang),
+                              });
+                            }
+                          }}
+                          className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <span className="text-sm text-gray-900">{lang}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Sport / Activities (Optional)
+                </label>
+                {formData.sports.length > 0 && (
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    {formData.sports.map((sport) => (
+                      <span
+                        key={sport}
+                        className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800"
+                      >
+                        {sport}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              sports: formData.sports.filter((s) => s !== sport),
+                            })
+                          }
+                          className="ml-2 text-indigo-600 hover:text-indigo-800"
+                          aria-label={`Remove ${sport}`}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="max-h-56 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
+                  {SPORTS_LIST.map((sport) => (
+                    <label
+                      key={sport}
+                      className="flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={formData.sports.includes(sport)}
+                        onChange={() => {
+                          const exists = formData.sports.includes(sport);
+                          setFormData({
+                            ...formData,
+                            sports: exists
+                              ? formData.sports.filter((s) => s !== sport)
+                              : [...formData.sports, sport],
+                          });
+                        }}
+                        className="mr-3 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className="text-sm text-gray-900">{sport}</span>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Select any sport or activity that applies (multiple selections allowed).
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Required Qualifications (Optional)
+                </label>
+                {formData.qualifications.length > 0 && (
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    {formData.qualifications.map((qual) => (
+                      <span
+                        key={qual}
+                        className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800"
+                      >
+                        {qual}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              qualifications: formData.qualifications.filter((q) => q !== qual),
+                            })
+                          }
+                          className="ml-2 text-green-600 hover:text-green-800"
+                          aria-label={`Remove ${qual}`}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="max-h-64 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
+                  {QUALIFICATIONS.map((category, categoryIndex) => (
+                    <div key={categoryIndex} className="mb-4 last:mb-0">
+                      <div className="sticky top-0 bg-gray-100 px-2 py-2 mb-2 rounded font-semibold text-sm text-gray-700 border-b border-gray-200">
+                        {category.header}
+                      </div>
+                      {category.items.map((qual) => {
+                        const isSelected = formData.qualifications.includes(qual);
+                        return (
+                          <label
+                            key={qual}
+                            className="flex items-center py-2 px-2 ml-4 rounded hover:bg-gray-50 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {
+                                const exists = formData.qualifications.includes(qual);
+                                setFormData({
+                                  ...formData,
+                                  qualifications: exists
+                                    ? formData.qualifications.filter((q) => q !== qual)
+                                    : [...formData.qualifications, qual],
+                                });
+                              }}
+                              className="mr-3 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                            />
+                            <span className="text-sm text-gray-900">{qual}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  {formData.qualifications.length > 0
+                    ? `${formData.qualifications.length} qualification(s) selected`
+                    : 'Select required qualifications (tap to select)'}
+                </p>
+              </div>
             </div>
             <div>
               <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
@@ -351,233 +589,7 @@ export default function NewJobPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Languages Required (Optional - up to 3)
-              </label>
-              
-              {/* Selected Languages Display */}
-              {formData.languages.length > 0 && (
-                <div className="mb-3 flex flex-wrap gap-2">
-                  {formData.languages.map((lang) => (
-                    <span
-                      key={lang}
-                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
-                    >
-                      {lang}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFormData({
-                            ...formData,
-                            languages: formData.languages.filter((l) => l !== lang),
-                          });
-                        }}
-                        className="ml-2 text-blue-600 hover:text-blue-800"
-                        aria-label={`Remove ${lang}`}
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Languages Checkbox List */}
-              <div className="max-h-48 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
-                {OFFICIAL_LANGUAGES.map((lang) => {
-                  const isSelected = formData.languages.includes(lang);
-                  const isDisabled = !isSelected && formData.languages.length >= 3;
-                  
-                  return (
-                    <label
-                      key={lang}
-                      className={`flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer ${
-                        isDisabled ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        disabled={isDisabled}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            if (formData.languages.length < 3) {
-                              setFormData({
-                                ...formData,
-                                languages: [...formData.languages, lang],
-                              });
-                            }
-                          } else {
-                            setFormData({
-                              ...formData,
-                              languages: formData.languages.filter((l) => l !== lang),
-                            });
-                          }
-                        }}
-                        className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
-                      <span className="text-sm text-gray-900">{lang}</span>
-                    </label>
-                  );
-                })}
-              </div>
-              
-              <p className="text-xs text-gray-500 mt-2">
-                {formData.languages.length > 0 
-                  ? `${formData.languages.length} of 3 languages selected`
-                  : 'Select up to 3 languages (tap to select)'}
-              </p>
-            </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Sport / Activities (Optional)
-            </label>
-
-            {formData.sports.length > 0 && (
-              <div className="mb-3 flex flex-wrap gap-2">
-                {formData.sports.map((sport) => (
-                  <span
-                    key={sport}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800"
-                  >
-                    {sport}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFormData({
-                          ...formData,
-                          sports: formData.sports.filter((s) => s !== sport),
-                        });
-                      }}
-                      className="ml-2 text-indigo-600 hover:text-indigo-800"
-                      aria-label={`Remove ${sport}`}
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-
-            <div className="max-h-56 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
-              {SPORTS_LIST.map((sport) => {
-                const isSelected = formData.sports.includes(sport);
-
-                return (
-                  <label
-                    key={sport}
-                    className="flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setFormData({
-                            ...formData,
-                            sports: [...formData.sports, sport],
-                          });
-                        } else {
-                          setFormData({
-                            ...formData,
-                            sports: formData.sports.filter((s) => s !== sport),
-                          });
-                        }
-                      }}
-                      className="mr-3 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                    />
-                    <span className="text-sm text-gray-900">{sport}</span>
-                  </label>
-                );
-              })}
-            </div>
-            <p className="text-xs text-gray-500 mt-2">
-              Select any sport or activity that applies (multiple selections allowed).
-            </p>
-          </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Required Qualifications (Optional)
-              </label>
-              
-              {/* Selected Qualifications Display */}
-              {formData.qualifications.length > 0 && (
-                <div className="mb-3 flex flex-wrap gap-2">
-                  {formData.qualifications.map((qual) => (
-                    <span
-                      key={qual}
-                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800"
-                    >
-                      {qual}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFormData({
-                            ...formData,
-                            qualifications: formData.qualifications.filter((q) => q !== qual),
-                          });
-                        }}
-                        className="ml-2 text-green-600 hover:text-green-800"
-                        aria-label={`Remove ${qual}`}
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Qualifications Checkbox List with Subheaders */}
-              <div className="max-h-64 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
-                {QUALIFICATIONS.map((category, categoryIndex) => (
-                  <div key={categoryIndex} className="mb-4 last:mb-0">
-                    {/* Subheader - Non-selectable */}
-                    <div className="sticky top-0 bg-gray-100 px-2 py-2 mb-2 rounded font-semibold text-sm text-gray-700 border-b border-gray-200">
-                      {category.header}
-                    </div>
-                    {/* Qualification Items */}
-                    {category.items.map((qual) => {
-                      const isSelected = formData.qualifications.includes(qual);
-                      
-                      return (
-                        <label
-                          key={qual}
-                          className="flex items-center py-2 px-2 ml-4 rounded hover:bg-gray-50 cursor-pointer"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setFormData({
-                                  ...formData,
-                                  qualifications: [...formData.qualifications, qual],
-                                });
-                              } else {
-                                setFormData({
-                                  ...formData,
-                                  qualifications: formData.qualifications.filter((q) => q !== qual),
-                                });
-                              }
-                            }}
-                            className="mr-3 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                          />
-                          <span className="text-sm text-gray-900">{qual}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                ))}
-              </div>
-              
-              <p className="text-xs text-gray-500 mt-2">
-                {formData.qualifications.length > 0 
-                  ? `${formData.qualifications.length} qualification(s) selected`
-                  : 'Select required qualifications (tap to select)'}
-              </p>
-            </div>
-            <div>
               <label htmlFor="pictures" className="block text-sm font-medium text-gray-700 mb-1">
                 Pictures (Optional - up to 3)
               </label>

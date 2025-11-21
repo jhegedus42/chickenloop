@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { title, description, location, country, salary, type, languages, qualifications, sports, pictures } = await request.json();
+    const { title, description, location, country, salary, type, languages, qualifications, sports, occupationalAreas, pictures } = await request.json();
 
     if (!title || !description || !location || !type) {
       return NextResponse.json(
@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
       languages: languages || [],
       qualifications: qualifications || [],
       sports: sports || [],
+      occupationalAreas: occupationalAreas || [],
       pictures: pictures || [],
       recruiter: user.userId,
     });
