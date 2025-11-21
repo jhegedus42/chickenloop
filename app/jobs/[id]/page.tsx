@@ -84,6 +84,29 @@ function formatCompanyAddress(address?: CompanyInfo['address']): string | null {
   return parts.length > 0 ? parts.join(' · ') : null;
 }
 
+const SOCIAL_ICONS: Record<string, JSX.Element> = {
+  facebook: (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
+      <path d="M13.5 9.5h2.31l.35-2.35h-2.66V5.26c0-.68.19-1.15 1.18-1.15h1.49V2.08c-.26-.03-1.15-.11-2.18-.11-2.16 0-3.64 1.32-3.64 3.75v2.28H8.5v2.35h2.3v7h2.7v-7z" />
+    </svg>
+  ),
+  instagram: (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
+      <path d="M7 2C4.24 2 2 4.24 2 7v10c0 2.76 2.24 5 5 5h10c2.76 0 5-2.24 5-5V7c0-2.76-2.24-5-5-5H7zm10 2c1.65 0 3 1.35 3 3v10c0 1.65-1.35 3-3 3H7c-1.65 0-3-1.35-3-3V7c0-1.65 1.35-3 3-3h10zm-5 2.5c-2.49 0-4.5 2.01-4.5 4.5S9.51 16.5 12 16.5 16.5 14.49 16.5 12 14.49 7.5 12 7.5zm0 2c1.38 0 2.5 1.12 2.5 2.5S13.38 14.5 12 14.5 9.5 13.38 9.5 12 10.62 9.5 12 9.5zM17.5 6.25a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5z"/>
+    </svg>
+  ),
+  tiktok: (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
+      <path d="M17.25 4.5h-1.04c-.2 0-.36.16-.36.36s.16.36.36.36h.54v3.33c0 1.71-.86 2.5-2.46 2.5-1.43 0-2.34-.88-2.34-2.58V6.42c0-.2-.16-.36-.36-.36s-.36.16-.36.36v5.56c0 2.92 1.76 4.56 4.47 4.56 2.22 0 3.84-1.08 4.41-3.22h1.13v-4.74c0-.2-.16-.36-.36-.36s-.36.16-.36.36v.59c-.66-.28-1.26-.46-1.92-.54V4.86c0-.2-.16-.36-.36-.36z"/>
+    </svg>
+  ),
+  youtube: (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
+      <path d="M19.63 4.36a3.01 3.01 0 0 0-2.12-2.12C15.61 1.5 12 1.5 12 1.5s-3.61 0-5.51.74a3.01 3.01 0 0 0-2.12 2.12C3.5 6.24 3.5 12 3.5 12s0 5.76.87 7.64a3.01 3.01 0 0 0 2.12 2.12c1.9.74 5.51.74 5.51.74s3.61 0 5.51-.74a3.01 3.01 0 0 0 2.12-2.12c.87-1.88.87-7.64.87-7.64s0-5.76-.87-7.64zM10 15.5v-7l6 3.5-6 3.5z"/>
+    </svg>
+  ),
+};
+
 export default function JobDetailPage() {
   const params = useParams();
   const jobId = params.id as string;
@@ -244,7 +267,7 @@ export default function JobDetailPage() {
             </div>
 
             {job.pictures && job.pictures.length > 0 && (
-              <div className="mb-6">
+            <div className="mb-6">
                 <div className="grid grid-cols-3 gap-2">
                   {job.pictures.map((picture, index) => (
                     <button
@@ -342,26 +365,39 @@ export default function JobDetailPage() {
                     </a>
                   </p>
                 )}
-                {job.companyId.socialMedia &&
-                  Object.entries(job.companyId.socialMedia)
-                    .filter(([, value]) => Boolean(value))
-                    .length > 0 && (
-                    <div className="flex flex-wrap gap-3 mt-2">
-                      {Object.entries(job.companyId.socialMedia)
-                        .filter(([, value]) => Boolean(value))
-                        .map(([platform, url]) => (
-                          <a
-                            key={platform}
-                            href={url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-sm text-blue-600 hover:underline"
-                          >
+                {(() => {
+                  const socialEntries = job.companyId.socialMedia
+                    ? Object.entries(job.companyId.socialMedia).filter(([, value]) => Boolean(value))
+                    : [];
+                  if (socialEntries.length === 0) {
+                    return null;
+                  }
+                  const companyNameText =
+                    job.companyId.name && job.companyId.name.trim()
+                      ? `${job.companyId.name.trim()}`
+                      : 'us';
+                  return (
+                    <div className="flex flex-wrap items-center gap-3 mt-3 text-sm text-blue-600">
+                      <span className="font-semibold text-gray-600">
+                        Follow {companyNameText} on:
+                      </span>
+                      {socialEntries.map(([platform, url]) => (
+                        <a
+                          key={platform}
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-1 hover:underline"
+                        >
+                          <span aria-hidden="true">{SOCIAL_ICONS[platform] || '🌐'}</span>
+                          <span className="text-blue-600">
                             {platform.charAt(0).toUpperCase() + platform.slice(1)}
-                          </a>
-                        ))}
+                          </span>
+                        </a>
+                      ))}
                     </div>
-                  )}
+                  );
+                })()}
               </div>
             )}
 
