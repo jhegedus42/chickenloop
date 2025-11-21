@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Company from '@/models/Company';
 import { requireRole } from '@/lib/auth';
+import { normalizeCountryForStorage } from '@/lib/countryUtils';
 
 // GET - Get current recruiter's company
 export async function GET(request: NextRequest) {
@@ -65,12 +66,13 @@ export async function POST(request: NextRequest) {
     // Clean up empty strings in nested objects
     let cleanedAddress = address;
     if (address) {
+      const normalizedCountry = normalizeCountryForStorage(address.country);
       cleanedAddress = {
         street: address.street?.trim() || undefined,
         city: address.city?.trim() || undefined,
         state: address.state?.trim() || undefined,
         postalCode: address.postalCode?.trim() || undefined,
-        country: address.country?.trim().toUpperCase() || undefined,
+        country: normalizedCountry || undefined,
       };
       // If all fields are undefined, set to undefined
       if (!cleanedAddress.street && !cleanedAddress.city && !cleanedAddress.state && 
@@ -163,7 +165,7 @@ export async function PUT(request: NextRequest) {
       if (address.city !== undefined) company.address.city = address.city?.trim() || undefined;
       if (address.state !== undefined) company.address.state = address.state?.trim() || undefined;
       if (address.postalCode !== undefined) company.address.postalCode = address.postalCode?.trim() || undefined;
-      if (address.country !== undefined) company.address.country = address.country?.trim().toUpperCase() || undefined;
+      if (address.country !== undefined) company.address.country = normalizeCountryForStorage(address.country) || undefined;
       company.markModified('address');
     }
     

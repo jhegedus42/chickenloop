@@ -5,6 +5,10 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Navbar from '../../../components/Navbar';
 import { companyApi } from '@/lib/api';
+import {
+  getCountryNameFromCode,
+  normalizeCountryForStorage,
+} from '@/lib/countryUtils';
 import dynamic from 'next/dynamic';
 
 // Dynamically import map component to avoid SSR issues
@@ -72,6 +76,7 @@ export default function EditCompanyPage() {
   const [mapMounted, setMapMounted] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const previewCountryCode = normalizeCountryForStorage(formData.address.country);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -101,7 +106,7 @@ export default function EditCompanyPage() {
           city: existingAddress.city || '',
           state: existingAddress.state || '',
           postalCode: existingAddress.postalCode || '',
-          country: existingAddress.country || '',
+          country: existingAddress.country ? getCountryNameFromCode(existingAddress.country) : '',
         },
         coordinates: data.company.coordinates || null,
         website: data.company.website || '',
@@ -120,7 +125,7 @@ export default function EditCompanyPage() {
         if (existingAddress.city) addressParts.push(existingAddress.city);
         if (existingAddress.state) addressParts.push(existingAddress.state);
         if (existingAddress.postalCode) addressParts.push(existingAddress.postalCode);
-        if (existingAddress.country) addressParts.push(existingAddress.country);
+        if (existingAddress.country) addressParts.push(getCountryNameFromCode(existingAddress.country));
         const searchQuery = addressParts.join(', ') || data.company.name;
         setSearchQuery(searchQuery);
         setMapMounted(true);
@@ -195,7 +200,7 @@ export default function EditCompanyPage() {
         city: result.address.city || '',
         state: result.address.state || '',
         postalCode: result.address.postalCode || '',
-        country: result.address.country || '',
+        country: result.address.country ? getCountryNameFromCode(result.address.country) : '',
       },
       coordinates: {
         latitude: result.latitude,
@@ -230,7 +235,14 @@ export default function EditCompanyPage() {
     setLoading(true);
 
     try {
-      await companyApi.update(formData);
+      const normalizedCountry = normalizeCountryForStorage(formData.address.country);
+      await companyApi.update({
+        ...formData,
+        address: {
+          ...formData.address,
+          country: normalizedCountry || undefined,
+        },
+      });
       router.push('/recruiter');
     } catch (err: any) {
       setError(err.message || 'Failed to update company');
@@ -412,24 +424,32 @@ export default function EditCompanyPage() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                     />
                   </div>
-                  <div>
-                    <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-1">
-                      Country
-                    </label>
-                    <input
-                      id="country"
-                      type="text"
-                      value={formData.address.country}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          address: { ...formData.address, country: e.target.value },
-                        })
-                      }
-                      placeholder="e.g., USA"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                    />
-                  </div>
+                <div>
+                  <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-1">
+                    Country
+                  </label>
+                  <input
+                    id="country"
+                    type="text"
+                    value={formData.address.country}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        address: { ...formData.address, country: e.target.value },
+                      })
+                    }
+                    placeholder="e.g., United States"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Enter the country name in English; we will store the ISO code automatically.
+                  </p>
+                  {formData.address.country && previewCountryCode && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Detected ISO: {previewCountryCode}
+                    </p>
+                  )}
+                </div>
                 </div>
               </div>
 

@@ -5,6 +5,10 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Navbar from '../../../components/Navbar';
 import { companyApi } from '@/lib/api';
+import {
+  getCountryNameFromCode,
+  normalizeCountryForStorage,
+} from '@/lib/countryUtils';
 import dynamic from 'next/dynamic';
 
 // Dynamically import map component to avoid SSR issues
@@ -71,6 +75,7 @@ export default function NewCompanyPage() {
   const [mapMounted, setMapMounted] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const previewCountryCode = normalizeCountryForStorage(formData.address.country);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -143,7 +148,7 @@ export default function NewCompanyPage() {
         city: result.address.city || '',
         state: result.address.state || '',
         postalCode: result.address.postalCode || '',
-        country: result.address.country || '',
+        country: result.address.country ? getCountryNameFromCode(result.address.country) : '',
       },
       coordinates: {
         latitude: result.latitude,
@@ -178,7 +183,14 @@ export default function NewCompanyPage() {
     setLoading(true);
 
     try {
-      await companyApi.create(formData);
+      const normalizedCountry = normalizeCountryForStorage(formData.address.country);
+      await companyApi.create({
+        ...formData,
+        address: {
+          ...formData.address,
+          country: normalizedCountry || undefined,
+        },
+      });
       router.push('/recruiter');
     } catch (err: any) {
       setError(err.message || 'Failed to create company');
@@ -377,9 +389,17 @@ export default function NewCompanyPage() {
                           address: { ...formData.address, country: e.target.value },
                         })
                       }
-                      placeholder="e.g., USA"
+                    placeholder="e.g., United States"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                     />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Enter the country name in English; we will store the ISO code automatically.
+                  </p>
+                  {previewCountryCode && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Detected ISO: {previewCountryCode}
+                    </p>
+                  )}
                   </div>
                 </div>
               </div>
