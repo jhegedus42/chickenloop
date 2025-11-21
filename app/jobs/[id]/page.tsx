@@ -118,15 +118,12 @@ export default function JobDetailPage() {
           {/* Job Pictures */}
           {job.pictures && job.pictures.length > 0 && (
             <div className="w-full">
-              <div className="grid grid-cols-3 gap-0">
-                {job.pictures.map((picture, index) => (
-                  <img
-                    key={index}
-                    src={picture}
-                    alt={`${job.title} - Image ${index + 1}`}
-                    className="w-full h-64 object-cover"
-                  />
-                ))}
+              <div className="relative w-full h-64 bg-gray-200 overflow-hidden">
+                <img
+                  src={job.pictures[0]}
+                  alt={`${job.title} - Featured`}
+                  className="w-full h-full object-cover"
+                />
               </div>
             </div>
           )}
@@ -165,12 +162,12 @@ export default function JobDetailPage() {
               
               {/* Languages Required - in Job Details section */}
               {job.languages && job.languages.length > 0 && (
-                <div className="mt-4">
-                  <div className="flex items-center text-gray-600 mb-2">
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <div className="flex items-center text-gray-600">
                     <span className="mr-2">🌐</span>
                     <span className="font-medium">Languages Required:</span>
                   </div>
-                  <div className="flex flex-wrap gap-2 ml-6">
+                  <div className="flex flex-wrap gap-2">
                     {job.languages.map((language, index) => (
                       <span
                         key={index}
@@ -185,12 +182,12 @@ export default function JobDetailPage() {
               
               {/* Required Qualifications - in Job Details section */}
               {job.qualifications && job.qualifications.length > 0 && (
-                <div className="mt-4">
-                  <div className="flex items-center text-gray-600 mb-2">
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <div className="flex items-center text-gray-600">
                     <span className="mr-2">📜</span>
                     <span className="font-medium">Required Qualifications:</span>
                   </div>
-                  <div className="flex flex-wrap gap-2 ml-6">
+                  <div className="flex flex-wrap gap-2">
                     {job.qualifications.map((qualification, index) => (
                       <span
                         key={index}
