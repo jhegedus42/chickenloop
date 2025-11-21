@@ -31,7 +31,17 @@ export function getCountryNameFromCode(countryCode: string): string {
 }
 
 const regionNamesInstance = new Intl.DisplayNames(['en'], { type: 'region' });
-const SUPPORTED_REGION_CODES = Intl.supportedValuesOf('region');
+const ISO_REGION_CODE_FALLBACK = [
+  'US', 'GB', 'FR', 'DE', 'IT', 'ES', 'NL', 'BE', 'PT', 'AT', 'CH', 'SE', 'NO', 'DK',
+  'CA', 'AU', 'NZ', 'JP', 'KR', 'CN', 'IN', 'BR', 'MX', 'ZA', 'IE', 'CZ', 'GR', 'TR',
+];
+
+let SUPPORTED_REGION_CODES: string[] = [];
+try {
+  SUPPORTED_REGION_CODES = Intl.supportedValuesOf('region');
+} catch {
+  SUPPORTED_REGION_CODES = ISO_REGION_CODE_FALLBACK;
+}
 
 const COUNTRY_NAME_TO_CODE: Record<string, string> = SUPPORTED_REGION_CODES.reduce(
   (map, code) => {
