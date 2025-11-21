@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Navbar from '../components/Navbar';
 import { jobsApi } from '@/lib/api';
+import { getCountryNameFromCode } from '@/lib/countryUtils';
 import Link from 'next/link';
 
 interface Job {
@@ -11,6 +12,7 @@ interface Job {
   description: string;
   company: string;
   location: string;
+  country?: string;
   salary?: string;
   type: string;
   pictures?: string[];
@@ -172,9 +174,14 @@ export default function JobsPage() {
 
                     {/* Location and Time Ago */}
                     <div className="flex flex-col gap-1">
-                      <p className="text-sm text-gray-600 flex items-center">
+                      <p className="text-sm text-gray-600 flex flex-wrap items-center gap-1">
                         <span className="mr-1">📍</span>
-                        {job.location}
+                        <span className="font-medium text-gray-800">{job.location}</span>
+                        {job.country && typeof job.country === 'string' && job.country.trim() && (
+                          <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                            • {getCountryNameFromCode(job.country)}
+                          </span>
+                        )}
                       </p>
                       <TimeAgoDisplay date={mostRecentDate} />
                     </div>
