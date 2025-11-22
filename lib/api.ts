@@ -126,5 +126,15 @@ export const adminApi = {
     apiRequest(`/admin/jobs/${id}`, {
       method: 'DELETE',
     }),
+  getAuditLogs: (params?: { limit?: number; offset?: number; action?: string; entityType?: string; userId?: string }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.offset) queryParams.append('offset', params.offset.toString());
+    if (params?.action) queryParams.append('action', params.action);
+    if (params?.entityType) queryParams.append('entityType', params.entityType);
+    if (params?.userId) queryParams.append('userId', params.userId);
+    const query = queryParams.toString();
+    return apiRequest(`/admin/audit-logs${query ? `?${query}` : ''}`);
+  },
 };
 

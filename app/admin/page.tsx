@@ -199,7 +199,10 @@ export default function AdminDashboard() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<'users' | 'companies' | 'jobs'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'companies' | 'jobs' | 'audit-logs'>('users');
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [auditLogsLoading, setAuditLogsLoading] = useState(false);
+  const [auditLogsTotal, setAuditLogsTotal] = useState(0);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [editingJob, setEditingJob] = useState<Job | null>(null);
@@ -266,8 +269,15 @@ export default function AdminDashboard() {
       loadUsers();
       loadCompanies();
       loadJobs();
+      loadAuditLogs();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (activeTab === 'audit-logs') {
+      loadAuditLogs();
+    }
+  }, [activeTab]);
 
   // Handle clicks outside company search dropdown
   useEffect(() => {
@@ -350,6 +360,20 @@ export default function AdminDashboard() {
       setJobs(data.jobs);
     } catch (err: any) {
       setError(err.message || 'Failed to load jobs');
+    }
+  };
+
+  const loadAuditLogs = async () => {
+    setAuditLogsLoading(true);
+    try {
+      const data = await adminApi.getAuditLogs({ limit: 100 });
+      setAuditLogs(data.auditLogs || []);
+      setAuditLogsTotal(data.total || 0);
+    } catch (err: any) {
+      console.error('Failed to load audit logs:', err);
+      setError(err.message || 'Failed to load audit logs');
+    } finally {
+      setAuditLogsLoading(false);
     }
   };
 
@@ -787,6 +811,16 @@ export default function AdminDashboard() {
               }`}
             >
               Jobs
+            </button>
+            <button
+              onClick={() => setActiveTab('audit-logs')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'audit-logs'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Audit Logs
             </button>
           </nav>
         </div>
@@ -1598,6 +1632,99 @@ export default function AdminDashboard() {
                 OK
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Audit Logs Tab */}
+        {activeTab === 'audit-logs' && (
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-xl font-bold text-gray-900">Audit Logs</h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Track all administrative actions and deletions. Total: {auditLogsTotal} entries
+              </p>
+            </div>
+            {auditLogsLoading ? (
+              <div className="p-8 text-center text-gray-500">Loading audit logs...</div>
+            ) : auditLogs.length === 0 ? (
+              <div className="p-8 text-center text-gray-500">No audit logs found.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date/Time
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Action
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Entity
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        User
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Reason/Details
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        IP Address
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {auditLogs.map((log: any) => (
+                      <tr key={log._id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {new Date(log.createdAt).toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              log.action === 'delete'
+                                ? 'bg-red-100 text-red-800'
+                                : log.action === 'create'
+                                ? 'bg-green-100 text-green-800'
+                                : log.action === 'update'
+                                ? 'bg-blue-100 text-blue-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}
+                          >
+                            {log.action}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <div className="font-medium">{log.entityType}</div>
+                          {log.entityId && (
+                            <div className="text-xs text-gray-500">{log.entityId.toString().substring(0, 8)}...</div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <div className="font-medium">{log.userName}</div>
+                          <div className="text-xs text-gray-500">{log.userEmail}</div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900">
+                          <div className="max-w-xs truncate">{log.reason || '-'}</div>
+                          {log.metadata && Object.keys(log.metadata).length > 0 && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              {Object.entries(log.metadata).map(([key, value]) => (
+                                <span key={key} className="mr-2">
+                                  {key}: {String(value)}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {log.ipAddress || '-'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
       </main>

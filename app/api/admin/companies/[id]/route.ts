@@ -3,6 +3,7 @@ import connectDB from '@/lib/db';
 import Company from '@/models/Company';
 import Job from '@/models/Job';
 import { requireRole } from '@/lib/auth';
+import { createDeleteAuditLog } from '@/lib/audit';
 
 // GET - Get a single company (admin only)
 export async function GET(
@@ -133,7 +134,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    requireRole(request, ['admin']);
+    const user = requireRole(request, ['admin']);
     await connectDB();
     const { id } = await params;
 
@@ -143,11 +144,32 @@ export async function DELETE(
       return NextResponse.json({ error: 'Company not found' }, { status: 404 });
     }
 
+    // Count jobs that will be deleted
+    const jobsCount = await Job.countDocuments({ companyId: company._id });
+
+    // Store company data for audit log before deletion
+    const companyData = {
+      id: String(company._id),
+      name: company.name,
+      owner: company.owner ? String(company.owner) : undefined,
+      jobsCount,
+    };
+
     // Delete associated jobs
     await Job.deleteMany({ companyId: company._id });
 
     // Delete the company
     await Company.findByIdAndDelete(id);
+
+    // Create audit log
+    await createDeleteAuditLog(request, {
+      entityType: 'company',
+      entityId: id,
+      userId: user.userId,
+      before: companyData,
+      reason: `Deleted company "${company.name}" and ${jobsCount} associated job(s)`,
+      metadata: { jobsDeleted: jobsCount },
+    });
 
     return NextResponse.json(
       { message: 'Company deleted successfully' },

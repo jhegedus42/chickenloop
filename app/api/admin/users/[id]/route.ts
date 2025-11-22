@@ -5,6 +5,7 @@ import Job from '@/models/Job';
 import CV from '@/models/CV';
 import bcrypt from 'bcryptjs';
 import { requireRole } from '@/lib/auth';
+import { createDeleteAuditLog } from '@/lib/audit';
 
 // GET - Get a single user with all their data (admin only)
 export async function GET(
@@ -112,7 +113,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    requireRole(request, ['admin']);
+    const adminUser = requireRole(request, ['admin']);
     await connectDB();
     const { id } = await params;
 
@@ -122,6 +123,25 @@ export async function DELETE(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Count associated data for audit log
+    let jobsCount = 0;
+    let cvsCount = 0;
+    if (user.role === 'recruiter') {
+      jobsCount = await Job.countDocuments({ recruiter: user._id });
+    } else if (user.role === 'job-seeker') {
+      cvsCount = await CV.countDocuments({ jobSeeker: user._id });
+    }
+
+    // Store user data for audit log before deletion
+    const userData = {
+      id: String(user._id),
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      jobsCount,
+      cvsCount,
+    };
+
     // Delete associated data
     if (user.role === 'recruiter') {
       await Job.deleteMany({ recruiter: user._id });
@@ -130,6 +150,16 @@ export async function DELETE(
     }
 
     await User.findByIdAndDelete(id);
+
+    // Create audit log
+    await createDeleteAuditLog(request, {
+      entityType: 'user',
+      entityId: id,
+      userId: adminUser.userId,
+      before: userData,
+      reason: `Deleted ${user.role} user "${user.name}" (${user.email})${jobsCount > 0 ? ` and ${jobsCount} job(s)` : ''}${cvsCount > 0 ? ` and ${cvsCount} CV(s)` : ''}`,
+      metadata: { jobsDeleted: jobsCount, cvsDeleted: cvsCount },
+    });
 
     return NextResponse.json(
       { message: 'User deleted successfully' },

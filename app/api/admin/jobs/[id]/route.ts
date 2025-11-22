@@ -3,6 +3,7 @@ import connectDB from '@/lib/db';
 import Job from '@/models/Job';
 import Company from '@/models/Company';
 import { requireRole } from '@/lib/auth';
+import { createDeleteAuditLog } from '@/lib/audit';
 
 // GET - Get a single job (admin only)
 export async function GET(
@@ -116,7 +117,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    requireRole(request, ['admin']);
+    const user = requireRole(request, ['admin']);
     await connectDB();
     const { id } = await params;
 
@@ -126,7 +127,25 @@ export async function DELETE(
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
+    // Store job data for audit log before deletion
+    const jobData = {
+      id: String(job._id),
+      title: job.title,
+      company: job.company,
+      companyId: job.companyId ? String(job.companyId) : undefined,
+      recruiter: job.recruiter ? String(job.recruiter) : undefined,
+    };
+
     await Job.findByIdAndDelete(id);
+
+    // Create audit log
+    await createDeleteAuditLog(request, {
+      entityType: 'job',
+      entityId: id,
+      userId: user.userId,
+      before: jobData,
+      reason: `Deleted job "${job.title}" at ${job.company}`,
+    });
 
     return NextResponse.json(
       { message: 'Job deleted successfully' },
