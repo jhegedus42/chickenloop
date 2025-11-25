@@ -45,3 +45,11 @@ next-env.d.ts
 # OpenMemory - IDE/Assistant specific rules
 .cursor/rules/openmemory.mdc
 CLAUDE.md
+
+# Shared credentials (keep local, never commit)
+SHARED_DATABASE_CREDENTIALS.md
+SHARED_DATABASE_CREDENTIALS.template.md
+*.credentials.md
+
+# User uploaded files (not committed to git)
+public/uploads/

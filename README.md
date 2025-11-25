@@ -56,6 +56,9 @@ MONGODB_URI=mongodb://localhost:27017/chickenloop
 JWT_SECRET=your-secret-key-change-in-production
 ```
 
+**👥 Working with a Team?**
+If you're working with a team that shares the same database, see [`COWORKER_SETUP.md`](./COWORKER_SETUP.md) for setup instructions. Get your database credentials from your team lead.
+
 4. Start the development server:
 ```bash
 npm run dev
