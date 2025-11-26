@@ -14,60 +14,70 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-blue-600 text-white shadow-lg">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16 items-center">
-          <div className="flex items-center">
-            <Link href="/" className="flex items-center">
-              <Image
-                src="/logo.png"
-                alt="ChickenLoop logo"
-                width={300}
-                height={80}
-                priority
-              />
-            </Link>
-          </div>
-          <div className="flex items-center space-x-4">
-            <Link
-              href="/jobs"
-              className="px-3 py-2 rounded hover:bg-blue-700"
-            >
-              Jobs
-            </Link>
-            {user ? (
-              <>
-                <span className="text-sm">Welcome, {user.name}</span>
-                <Link
-                  href={`/${user.role === 'admin' ? 'admin' : user.role === 'recruiter' ? 'recruiter' : 'job-seeker'}`}
-                  className="px-3 py-2 rounded hover:bg-blue-700"
-                >
-                  Dashboard
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="px-3 py-2 rounded hover:bg-blue-700"
-                >
-                  Logout
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  className="px-3 py-2 rounded hover:bg-blue-700"
-                >
-                  Login
-                </Link>
-                <Link href="/register" className="px-4 py-2 rounded bg-blue-500 hover:bg-blue-700">
-                  Register
-                </Link>
-              </>
-            )}
+    <>
+      <nav className="bg-blue-600 text-white shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16 items-center">
+            <div className="flex items-center">
+              <Link href="/" className="flex items-center">
+                <Image
+                  src="/logo.png"
+                  alt="ChickenLoop logo"
+                  width={300}
+                  height={80}
+                  priority
+                />
+              </Link>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Link
+                href="/jobs"
+                className="px-3 py-2 rounded hover:bg-blue-700"
+              >
+                Jobs
+              </Link>
+              {user ? (
+                <>
+                  <Link
+                    href={`/${user.role === 'admin' ? 'admin' : user.role === 'recruiter' ? 'recruiter' : 'job-seeker'}`}
+                    className="px-3 py-2 rounded hover:bg-blue-700"
+                  >
+                    Dashboard
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="px-3 py-2 rounded hover:bg-blue-700"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="px-3 py-2 rounded hover:bg-blue-700"
+                  >
+                    Login
+                  </Link>
+                  <Link href="/register" className="px-4 py-2 rounded bg-blue-500 hover:bg-blue-700">
+                    Register
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+      {user && (
+        <div className="bg-gray-50 border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-end py-2">
+              <span className="text-sm text-gray-700">Welcome, {user.name}</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
