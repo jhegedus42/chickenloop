@@ -233,7 +233,7 @@ export default function JobDetailPage() {
                 <div className="mt-4 flex flex-wrap items-center gap-3">
                   <div className="flex items-center text-gray-600">
                     <span className="mr-2">🌐</span>
-                    <span className="font-medium">Languages Required:</span>
+                    <span className="font-medium">Languages:</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {job.languages.map((language, index) => (
@@ -253,7 +253,7 @@ export default function JobDetailPage() {
                 <div className="mt-4 flex flex-wrap items-center gap-3">
                   <div className="flex items-center text-gray-600">
                     <span className="mr-2">📜</span>
-                    <span className="font-medium">Required Qualifications:</span>
+                    <span className="font-medium">Qualifications:</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {job.qualifications.map((qualification, index) => (
