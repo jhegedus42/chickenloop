@@ -62,12 +62,6 @@ const JobSchema: Schema = new Schema(
     },
     languages: {
       type: [String],
-      validate: {
-        validator: function(v: string[]) {
-          return v.length <= 3;
-        },
-        message: 'A job can have at most 3 languages',
-      },
     },
     qualifications: {
       type: [String],

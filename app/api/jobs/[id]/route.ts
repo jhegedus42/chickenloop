@@ -77,13 +77,8 @@ export async function PUT(
     if (salary !== undefined) job.salary = salary;
     if (type) job.type = type;
     if (languages !== undefined) {
-      if (Array.isArray(languages) && languages.length > 3) {
-        return NextResponse.json(
-          { error: 'Maximum 3 languages allowed' },
-          { status: 400 }
-        );
-      }
       job.languages = languages || [];
+      job.markModified('languages');
     }
     if (qualifications !== undefined) {
       job.qualifications = qualifications || [];

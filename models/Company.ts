@@ -15,6 +15,11 @@ export interface ICompany extends Document {
     longitude: number;
   };
   website?: string;
+  contact?: {
+    email?: string;
+    officePhone?: string;
+    whatsapp?: string;
+  };
   socialMedia?: {
     facebook?: string;
     instagram?: string;
@@ -23,6 +28,8 @@ export interface ICompany extends Document {
     twitter?: string;
   };
   offeredActivities?: string[]; // Array of offered activity strings
+  offeredServices?: string[]; // Array of offered service strings
+  pictures?: string[]; // Array of image paths (max 3)
   owner: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -75,6 +82,21 @@ const CompanySchema: Schema = new Schema(
       type: String,
       trim: true,
     },
+    contact: {
+      email: {
+        type: String,
+        trim: true,
+        lowercase: true,
+      },
+      officePhone: {
+        type: String,
+        trim: true,
+      },
+      whatsapp: {
+        type: String,
+        trim: true,
+      },
+    },
     socialMedia: {
       facebook: {
         type: String,
@@ -99,6 +121,18 @@ const CompanySchema: Schema = new Schema(
     },
     offeredActivities: {
       type: [String],
+    },
+    offeredServices: {
+      type: [String],
+    },
+    pictures: {
+      type: [String],
+      validate: {
+        validator: function(v: string[]) {
+          return v.length <= 3;
+        },
+        message: 'A company can have at most 3 pictures',
+      },
     },
     owner: {
       type: Schema.Types.ObjectId,

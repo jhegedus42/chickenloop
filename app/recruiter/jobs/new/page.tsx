@@ -382,7 +382,7 @@ export default function NewJobPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Languages Required (Optional - up to 3)
+                  Languages Required (Optional)
                 </label>
                 {formData.languages.length > 0 && (
                   <div className="mb-3 flex flex-wrap gap-2">
@@ -412,26 +412,20 @@ export default function NewJobPage() {
                 <div className="max-h-48 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
                   {OFFICIAL_LANGUAGES.map((lang) => {
                     const isSelected = formData.languages.includes(lang);
-                    const isDisabled = !isSelected && formData.languages.length >= 3;
                     return (
                       <label
                         key={lang}
-                        className={`flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer ${
-                          isDisabled ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
+                        className="flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer"
                       >
                         <input
                           type="checkbox"
                           checked={isSelected}
-                          disabled={isDisabled}
                           onChange={(e) => {
                             if (e.target.checked) {
-                              if (formData.languages.length < 3) {
-                                setFormData({
-                                  ...formData,
-                                  languages: [...formData.languages, lang],
-                                });
-                              }
+                              setFormData({
+                                ...formData,
+                                languages: [...formData.languages, lang],
+                              });
                             } else {
                               setFormData({
                                 ...formData,

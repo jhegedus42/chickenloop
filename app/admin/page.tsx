@@ -8,6 +8,7 @@ import { adminApi } from '@/lib/api';
 import { OFFICIAL_LANGUAGES } from '@/lib/languages';
 import { QUALIFICATIONS } from '@/lib/qualifications';
 import { OFFERED_ACTIVITIES_LIST } from '@/lib/offeredActivities';
+import { OFFERED_SERVICES_LIST } from '@/lib/offeredServices';
 import { getCountryNameFromCode } from '@/lib/countryUtils';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -50,6 +51,11 @@ interface Company {
     longitude: number;
   };
   website?: string;
+  contact?: {
+    email?: string;
+    officePhone?: string;
+    whatsapp?: string;
+  };
   socialMedia?: {
     facebook?: string;
     instagram?: string;
@@ -229,6 +235,11 @@ export default function AdminDashboard() {
     },
     coordinates: null as { latitude: number; longitude: number } | null,
     website: '',
+    contact: {
+      email: '',
+      officePhone: '',
+      whatsapp: '',
+    },
     socialMedia: {
       facebook: '',
       instagram: '',
@@ -236,8 +247,13 @@ export default function AdminDashboard() {
       youtube: '',
       twitter: '',
     },
-    offeredActivities: [] as string[],
+      offeredActivities: [] as string[],
+      offeredServices: [] as string[],
   });
+  const [existingCompanyPictures, setExistingCompanyPictures] = useState<string[]>([]);
+  const [selectedCompanyPictures, setSelectedCompanyPictures] = useState<File[]>([]);
+  const [companyPicturePreviews, setCompanyPicturePreviews] = useState<string[]>([]);
+  const [uploadingCompanyPictures, setUploadingCompanyPictures] = useState(false);
   const [geocodingCompany, setGeocodingCompany] = useState(false);
   const [companySearchQuery, setCompanySearchQuery] = useState('');
   const [companySearchResults, setCompanySearchResults] = useState<any[]>([]);
@@ -441,6 +457,11 @@ export default function AdminDashboard() {
       },
       coordinates: existingCoordinates,
       website: company.website || '',
+      contact: {
+        email: (company as any).contact?.email || '',
+        officePhone: (company as any).contact?.officePhone || '',
+        whatsapp: (company as any).contact?.whatsapp || '',
+      },
       socialMedia: {
         facebook: existingSocialMedia.facebook || '',
         instagram: existingSocialMedia.instagram || '',
@@ -449,7 +470,9 @@ export default function AdminDashboard() {
         twitter: existingSocialMedia.twitter || '',
       },
       offeredActivities: (company as any).offeredActivities || [],
+      offeredServices: (company as any).offeredServices || [],
     });
+    setExistingCompanyPictures((company as any).pictures || []);
     
     // Initialize search query and map mount state
     setCompanySearchQuery('');
@@ -541,6 +564,84 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleCompanyPictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const totalPictures = existingCompanyPictures.length + selectedCompanyPictures.length + files.length;
+    
+    if (totalPictures > 3) {
+      setError('Maximum 3 pictures allowed (including existing ones)');
+      return;
+    }
+
+    // Validate file types and sizes
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+
+    for (const file of files) {
+      if (!validTypes.includes(file.type)) {
+        setError(`Invalid file type: ${file.name}. Only images (JPEG, PNG, WEBP, GIF) are allowed.`);
+        return;
+      }
+      if (file.size > maxSize) {
+        setError(`File ${file.name} is too large. Maximum size is 5MB.`);
+        return;
+      }
+    }
+
+    const newPictures = [...selectedCompanyPictures, ...files];
+    setSelectedCompanyPictures(newPictures);
+    setError('');
+
+    // Create preview URLs
+    const newPreviews = files.map(file => URL.createObjectURL(file));
+    setCompanyPicturePreviews([...companyPicturePreviews, ...newPreviews]);
+  };
+
+  const removeExistingCompanyPicture = (index: number) => {
+    const newPictures = existingCompanyPictures.filter((_, i) => i !== index);
+    setExistingCompanyPictures(newPictures);
+  };
+
+  const removeNewCompanyPicture = (index: number) => {
+    const newPictures = selectedCompanyPictures.filter((_, i) => i !== index);
+    const newPreviews = companyPicturePreviews.filter((_, i) => i !== index);
+    
+    // Revoke the URL to free memory
+    URL.revokeObjectURL(companyPicturePreviews[index]);
+    
+    setSelectedCompanyPictures(newPictures);
+    setCompanyPicturePreviews(newPreviews);
+  };
+
+  const uploadCompanyPictures = async (): Promise<string[]> => {
+    if (selectedCompanyPictures.length === 0) return existingCompanyPictures;
+
+    setUploadingCompanyPictures(true);
+    try {
+      const uploadFormData = new FormData();
+      selectedCompanyPictures.forEach((file) => {
+        uploadFormData.append('pictures', file);
+      });
+
+      const response = await fetch('/api/company/upload', {
+        method: 'POST',
+        body: uploadFormData,
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to upload pictures');
+      }
+
+      // Merge existing pictures with newly uploaded ones
+      return [...existingCompanyPictures, ...(data.paths || [])];
+    } finally {
+      setUploadingCompanyPictures(false);
+    }
+  };
+
   const handleUpdateCompany = async () => {
     if (!editingCompany) return;
 
@@ -552,7 +653,17 @@ export default function AdminDashboard() {
 
     setError('');
     try {
-      await adminApi.updateCompany(editingCompany.id, companyEditForm);
+      // Upload pictures first
+      const picturePaths = await uploadCompanyPictures();
+
+      await adminApi.updateCompany(editingCompany.id, {
+        ...companyEditForm,
+        pictures: picturePaths,
+      });
+
+      // Clean up preview URLs
+      companyPicturePreviews.forEach(url => URL.revokeObjectURL(url));
+
       setEditingCompany(null);
       loadCompanies();
     } catch (err: any) {
@@ -1405,6 +1516,130 @@ export default function AdminDashboard() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                   />
                 </div>
+
+                {/* Offering Section */}
+                <div className="border-t pt-4 mt-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Offering</h3>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Offered Activities (Optional)
+                      </label>
+                      {companyEditForm.offeredActivities.length > 0 && (
+                        <div className="mb-3 flex flex-wrap gap-2">
+                          {companyEditForm.offeredActivities.map((activity) => (
+                            <span
+                              key={activity}
+                              className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800"
+                            >
+                              {activity}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setCompanyEditForm({
+                                    ...companyEditForm,
+                                    offeredActivities: companyEditForm.offeredActivities.filter((a) => a !== activity),
+                                  })
+                                }
+                                className="ml-2 text-indigo-600 hover:text-indigo-800"
+                                aria-label={`Remove ${activity}`}
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="max-h-56 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
+                        {OFFERED_ACTIVITIES_LIST.map((activity) => (
+                          <label
+                            key={activity}
+                            className="flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={companyEditForm.offeredActivities.includes(activity)}
+                              onChange={() => {
+                                const exists = companyEditForm.offeredActivities.includes(activity);
+                                setCompanyEditForm({
+                                  ...companyEditForm,
+                                  offeredActivities: exists
+                                    ? companyEditForm.offeredActivities.filter((a) => a !== activity)
+                                    : [...companyEditForm.offeredActivities, activity],
+                                });
+                              }}
+                              className="mr-3 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                            />
+                            <span className="text-sm text-gray-900">{activity}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Select any activities that the company offers (multiple selections allowed).
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Offered Services (Optional)
+                      </label>
+                      {companyEditForm.offeredServices.length > 0 && (
+                        <div className="mb-3 flex flex-wrap gap-2">
+                          {companyEditForm.offeredServices.map((service) => (
+                            <span
+                              key={service}
+                              className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800"
+                            >
+                              {service}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setCompanyEditForm({
+                                    ...companyEditForm,
+                                    offeredServices: companyEditForm.offeredServices.filter((s) => s !== service),
+                                  })
+                                }
+                                className="ml-2 text-indigo-600 hover:text-indigo-800"
+                                aria-label={`Remove ${service}`}
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="max-h-56 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
+                        {OFFERED_SERVICES_LIST.map((service) => (
+                          <label
+                            key={service}
+                            className="flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={companyEditForm.offeredServices.includes(service)}
+                              onChange={() => {
+                                const exists = companyEditForm.offeredServices.includes(service);
+                                setCompanyEditForm({
+                                  ...companyEditForm,
+                                  offeredServices: exists
+                                    ? companyEditForm.offeredServices.filter((s) => s !== service)
+                                    : [...companyEditForm.offeredServices, service],
+                                });
+                              }}
+                              className="mr-3 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                            />
+                            <span className="text-sm text-gray-900">{service}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Select any services that the company offers (multiple selections allowed).
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="border-t pt-4 mt-4">
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">Location</h3>
                   
@@ -1530,6 +1765,82 @@ export default function AdminDashboard() {
                     </div>
                   )}
                 </div>
+
+                {/* Contact Section */}
+                <div className="border-t pt-4 mt-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact</h3>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                      <input
+                        type="url"
+                        value={companyEditForm.website}
+                        onChange={(e) => setCompanyEditForm({ ...companyEditForm, website: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="admin-contact-email" className="block text-sm font-medium text-gray-700 mb-1">
+                        E-mail
+                      </label>
+                      <input
+                        id="admin-contact-email"
+                        type="email"
+                        value={companyEditForm.contact.email}
+                        onChange={(e) => setCompanyEditForm({ 
+                          ...companyEditForm, 
+                          contact: { ...companyEditForm.contact, email: e.target.value }
+                        })}
+                        placeholder="example@company.com"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="admin-contact-office-phone" className="block text-sm font-medium text-gray-700 mb-1">
+                        Office Phone
+                      </label>
+                      <input
+                        id="admin-contact-office-phone"
+                        type="tel"
+                        value={companyEditForm.contact.officePhone}
+                        onChange={(e) => setCompanyEditForm({ 
+                          ...companyEditForm, 
+                          contact: { ...companyEditForm.contact, officePhone: e.target.value }
+                        })}
+                        placeholder="+34 912345678"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Format: +[country code][number] (e.g., +1 234 567 8900)
+                      </p>
+                    </div>
+
+                    <div>
+                      <label htmlFor="admin-contact-whatsapp" className="block text-sm font-medium text-gray-700 mb-1">
+                        WhatsApp
+                      </label>
+                      <input
+                        id="admin-contact-whatsapp"
+                        type="tel"
+                        value={companyEditForm.contact.whatsapp}
+                        onChange={(e) => setCompanyEditForm({ 
+                          ...companyEditForm, 
+                          contact: { ...companyEditForm.contact, whatsapp: e.target.value }
+                        })}
+                        placeholder="+34 912345678"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Format: +[country code][number] (e.g., +1 234 567 8900)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Social Media Section */}
                 <div className="border-t pt-4 mt-4">
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">Social Media</h3>
                   <div className="space-y-4">
@@ -1610,78 +1921,78 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 </div>
+
+                {/* Pictures Section */}
                 <div className="border-t pt-4 mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Offered Activities (Optional)
-                  </label>
-                  {companyEditForm.offeredActivities.length > 0 && (
-                    <div className="mb-3 flex flex-wrap gap-2">
-                      {companyEditForm.offeredActivities.map((activity) => (
-                        <span
-                          key={activity}
-                          className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800"
-                        >
-                          {activity}
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setCompanyEditForm({
-                                ...companyEditForm,
-                                offeredActivities: companyEditForm.offeredActivities.filter((a) => a !== activity),
-                              })
-                            }
-                            className="ml-2 text-indigo-600 hover:text-indigo-800"
-                            aria-label={`Remove ${activity}`}
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <div className="max-h-56 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
-                    {OFFERED_ACTIVITIES_LIST.map((activity) => (
-                      <label
-                        key={activity}
-                        className="flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={companyEditForm.offeredActivities.includes(activity)}
-                          onChange={() => {
-                            const exists = companyEditForm.offeredActivities.includes(activity);
-                            setCompanyEditForm({
-                              ...companyEditForm,
-                              offeredActivities: exists
-                                ? companyEditForm.offeredActivities.filter((a) => a !== activity)
-                                : [...companyEditForm.offeredActivities, activity],
-                            });
-                          }}
-                          className="mr-3 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                        />
-                        <span className="text-sm text-gray-900">{activity}</span>
-                      </label>
-                    ))}
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Pictures</h3>
+                  
+                  <div>
+                    <label htmlFor="admin-company-pictures" className="block text-sm font-medium text-gray-700 mb-1">
+                      Upload Pictures (Optional - up to 3)
+                    </label>
+                    {(existingCompanyPictures.length > 0 || companyPicturePreviews.length > 0) && (
+                      <div className="mb-4">
+                        <p className="text-sm text-gray-600 mb-2">Current Pictures:</p>
+                        <div className="grid grid-cols-3 gap-4">
+                          {existingCompanyPictures.map((picture, index) => (
+                            <div key={`existing-${index}`} className="relative group">
+                              <img
+                                src={picture}
+                                alt={`Existing ${index + 1}`}
+                                className="w-full h-32 object-cover rounded-lg border border-gray-300"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeExistingCompanyPicture(index)}
+                                className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-sm font-bold"
+                                aria-label="Remove picture"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                          {companyPicturePreviews.map((preview, index) => (
+                            <div key={`new-${index}`} className="relative group">
+                              <img
+                                src={preview}
+                                alt={`Preview ${index + 1}`}
+                                className="w-full h-32 object-cover rounded-lg border border-gray-300"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeNewCompanyPicture(index)}
+                                className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-sm font-bold"
+                                aria-label="Remove picture"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <input
+                      id="admin-company-pictures"
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                      multiple
+                      onChange={handleCompanyPictureChange}
+                      disabled={existingCompanyPictures.length + selectedCompanyPictures.length >= 3 || uploadingCompanyPictures}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                    <p className="text-sm text-gray-500 mt-1">
+                      Maximum 3 pictures total (including existing ones), 5MB each. Supported formats: JPEG, PNG, WEBP, GIF
+                    </p>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Select any activities that the company offers (multiple selections allowed).
-                  </p>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
-                  <input
-                    type="url"
-                    value={companyEditForm.website}
-                    onChange={(e) => setCompanyEditForm({ ...companyEditForm, website: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                  />
-                </div>
+
                 <div className="flex gap-4">
                   <button
                     onClick={handleUpdateCompany}
-                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 font-semibold"
+                    disabled={uploadingCompanyPictures}
+                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Update
+                    {uploadingCompanyPictures ? 'Updating...' : 'Update'}
                   </button>
                   <button
                     onClick={() => setEditingCompany(null)}

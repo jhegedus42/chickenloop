@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, description, address, coordinates, website, socialMedia, offeredActivities } = await request.json();
+    const { name, description, address, coordinates, website, contact, socialMedia, offeredActivities, offeredServices, pictures } = await request.json();
 
     if (!name) {
       return NextResponse.json(
@@ -81,6 +81,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    let cleanedContact = contact;
+    if (contact) {
+      cleanedContact = {
+        email: contact.email?.trim().toLowerCase() || undefined,
+        officePhone: contact.officePhone?.trim() || undefined,
+        whatsapp: contact.whatsapp?.trim() || undefined,
+      };
+      // If all fields are undefined, set to undefined
+      if (!cleanedContact.email && !cleanedContact.officePhone && !cleanedContact.whatsapp) {
+        cleanedContact = undefined;
+      }
+    }
+
     let cleanedSocialMedia = socialMedia;
     if (socialMedia) {
       cleanedSocialMedia = {
@@ -104,8 +117,11 @@ export async function POST(request: NextRequest) {
       address: cleanedAddress,
       coordinates: coordinates || undefined,
       website: website?.trim() || undefined,
+      contact: cleanedContact,
       socialMedia: cleanedSocialMedia,
       offeredActivities: offeredActivities || [],
+      offeredServices: offeredServices || [],
+      pictures: pictures || [],
       owner: user.userId,
     });
 
@@ -147,7 +163,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const { name, description, address, coordinates, website, socialMedia, offeredActivities } = await request.json();
+    const { name, description, address, coordinates, website, contact, socialMedia, offeredActivities, offeredServices, pictures } = await request.json();
 
     // Validate that coordinates are required for updates
     if (coordinates === undefined || coordinates === null || !coordinates.latitude || !coordinates.longitude) {
@@ -160,6 +176,15 @@ export async function PUT(request: NextRequest) {
     if (name) company.name = name;
     if (description !== undefined) company.description = description;
     if (website !== undefined) company.website = website;
+    
+    // Update contact
+    if (contact !== undefined) {
+      if (!company.contact) company.contact = {};
+      if (contact.email !== undefined) company.contact.email = contact.email?.trim().toLowerCase() || undefined;
+      if (contact.officePhone !== undefined) company.contact.officePhone = contact.officePhone?.trim() || undefined;
+      if (contact.whatsapp !== undefined) company.contact.whatsapp = contact.whatsapp?.trim() || undefined;
+      company.markModified('contact');
+    }
     
     // Update nested objects properly - normalize empty strings to undefined
     if (address !== undefined) {
@@ -192,6 +217,16 @@ export async function PUT(request: NextRequest) {
     if (offeredActivities !== undefined) {
       company.offeredActivities = offeredActivities || [];
       company.markModified('offeredActivities');
+    }
+
+    if (offeredServices !== undefined) {
+      company.offeredServices = offeredServices || [];
+      company.markModified('offeredServices');
+    }
+
+    if (pictures !== undefined) {
+      company.pictures = pictures || [];
+      company.markModified('pictures');
     }
 
     await company.save();

@@ -44,14 +44,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate languages array (max 3)
-    if (languages && Array.isArray(languages) && languages.length > 3) {
-      return NextResponse.json(
-        { error: 'Maximum 3 languages allowed' },
-        { status: 400 }
-      );
-    }
-
     // Validate pictures array (max 3)
     if (pictures && Array.isArray(pictures) && pictures.length > 3) {
       return NextResponse.json(

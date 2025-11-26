@@ -340,7 +340,7 @@ export default function EditJobPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Languages Required (Optional - up to 3)
+                Languages Required (Optional)
               </label>
               
               {/* Selected Languages Display */}
@@ -374,27 +374,21 @@ export default function EditJobPage() {
               <div className="max-h-48 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
                 {OFFICIAL_LANGUAGES.map((lang) => {
                   const isSelected = formData.languages.includes(lang);
-                  const isDisabled = !isSelected && formData.languages.length >= 3;
                   
                   return (
                     <label
                       key={lang}
-                      className={`flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer ${
-                        isDisabled ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
+                      className="flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer"
                     >
                       <input
                         type="checkbox"
                         checked={isSelected}
-                        disabled={isDisabled}
                         onChange={(e) => {
                           if (e.target.checked) {
-                            if (formData.languages.length < 3) {
-                              setFormData({
-                                ...formData,
-                                languages: [...formData.languages, lang],
-                              });
-                            }
+                            setFormData({
+                              ...formData,
+                              languages: [...formData.languages, lang],
+                            });
                           } else {
                             setFormData({
                               ...formData,
@@ -412,8 +406,8 @@ export default function EditJobPage() {
               
               <p className="text-xs text-gray-500 mt-2">
                 {formData.languages.length > 0 
-                  ? `${formData.languages.length} of 3 languages selected`
-                  : 'Select up to 3 languages (tap to select)'}
+                  ? `${formData.languages.length} language(s) selected`
+                  : 'Select languages (tap to select)'}
               </p>
             </div>
             <div>
