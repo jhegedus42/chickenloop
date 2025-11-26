@@ -44,6 +44,7 @@ export async function GET(
         coordinates: company.coordinates,
         website: company.website,
         socialMedia: cleanedSocialMedia,
+        offeredActivities: company.offeredActivities,
         owner: company.owner,
         createdAt: company.createdAt,
         updatedAt: company.updatedAt,

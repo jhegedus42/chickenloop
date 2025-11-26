@@ -7,6 +7,7 @@ import Navbar from '../components/Navbar';
 import { adminApi } from '@/lib/api';
 import { OFFICIAL_LANGUAGES } from '@/lib/languages';
 import { QUALIFICATIONS } from '@/lib/qualifications';
+import { OFFERED_ACTIVITIES_LIST } from '@/lib/offeredActivities';
 import { getCountryNameFromCode } from '@/lib/countryUtils';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -235,6 +236,7 @@ export default function AdminDashboard() {
       youtube: '',
       twitter: '',
     },
+    offeredActivities: [] as string[],
   });
   const [geocodingCompany, setGeocodingCompany] = useState(false);
   const [companySearchQuery, setCompanySearchQuery] = useState('');
@@ -446,6 +448,7 @@ export default function AdminDashboard() {
         youtube: existingSocialMedia.youtube || '',
         twitter: existingSocialMedia.twitter || '',
       },
+      offeredActivities: (company as any).offeredActivities || [],
     });
     
     // Initialize search query and map mount state
@@ -1606,6 +1609,63 @@ export default function AdminDashboard() {
                       />
                     </div>
                   </div>
+                </div>
+                <div className="border-t pt-4 mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Offered Activities (Optional)
+                  </label>
+                  {companyEditForm.offeredActivities.length > 0 && (
+                    <div className="mb-3 flex flex-wrap gap-2">
+                      {companyEditForm.offeredActivities.map((activity) => (
+                        <span
+                          key={activity}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800"
+                        >
+                          {activity}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCompanyEditForm({
+                                ...companyEditForm,
+                                offeredActivities: companyEditForm.offeredActivities.filter((a) => a !== activity),
+                              })
+                            }
+                            className="ml-2 text-indigo-600 hover:text-indigo-800"
+                            aria-label={`Remove ${activity}`}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="max-h-56 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
+                    {OFFERED_ACTIVITIES_LIST.map((activity) => (
+                      <label
+                        key={activity}
+                        className="flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={companyEditForm.offeredActivities.includes(activity)}
+                          onChange={() => {
+                            const exists = companyEditForm.offeredActivities.includes(activity);
+                            setCompanyEditForm({
+                              ...companyEditForm,
+                              offeredActivities: exists
+                                ? companyEditForm.offeredActivities.filter((a) => a !== activity)
+                                : [...companyEditForm.offeredActivities, activity],
+                            });
+                          }}
+                          className="mr-3 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                        />
+                        <span className="text-sm text-gray-900">{activity}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Select any activities that the company offers (multiple selections allowed).
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>

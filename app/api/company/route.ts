@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, description, address, coordinates, website, socialMedia } = await request.json();
+    const { name, description, address, coordinates, website, socialMedia, offeredActivities } = await request.json();
 
     if (!name) {
       return NextResponse.json(
@@ -105,6 +105,7 @@ export async function POST(request: NextRequest) {
       coordinates: coordinates || undefined,
       website: website?.trim() || undefined,
       socialMedia: cleanedSocialMedia,
+      offeredActivities: offeredActivities || [],
       owner: user.userId,
     });
 
@@ -146,7 +147,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const { name, description, address, coordinates, website, socialMedia } = await request.json();
+    const { name, description, address, coordinates, website, socialMedia, offeredActivities } = await request.json();
 
     // Validate that coordinates are required for updates
     if (coordinates === undefined || coordinates === null || !coordinates.latitude || !coordinates.longitude) {
@@ -186,6 +187,11 @@ export async function PUT(request: NextRequest) {
       if (socialMedia.youtube !== undefined) company.socialMedia.youtube = socialMedia.youtube?.trim() || undefined;
       if (socialMedia.twitter !== undefined) company.socialMedia.twitter = socialMedia.twitter?.trim() || undefined;
       company.markModified('socialMedia');
+    }
+
+    if (offeredActivities !== undefined) {
+      company.offeredActivities = offeredActivities || [];
+      company.markModified('offeredActivities');
     }
 
     await company.save();

@@ -22,6 +22,7 @@ export interface ICompany extends Document {
     youtube?: string;
     twitter?: string;
   };
+  offeredActivities?: string[]; // Array of offered activity strings
   owner: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -95,6 +96,9 @@ const CompanySchema: Schema = new Schema(
         type: String,
         trim: true,
       },
+    },
+    offeredActivities: {
+      type: [String],
     },
     owner: {
       type: Schema.Types.ObjectId,

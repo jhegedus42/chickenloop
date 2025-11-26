@@ -9,6 +9,7 @@ import {
   getCountryNameFromCode,
   normalizeCountryForStorage,
 } from '@/lib/countryUtils';
+import { OFFERED_ACTIVITIES_LIST } from '@/lib/offeredActivities';
 import dynamic from 'next/dynamic';
 
 // Dynamically import map component to avoid SSR issues
@@ -65,6 +66,7 @@ export default function EditCompanyPage() {
       youtube: '',
       twitter: '',
     },
+    offeredActivities: [] as string[],
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -118,6 +120,7 @@ export default function EditCompanyPage() {
           youtube: existingSocialMedia.youtube || '',
           twitter: existingSocialMedia.twitter || '',
         },
+        offeredActivities: data.company.offeredActivities || [],
       });
 
       // Build search query from address if coordinates exist
@@ -570,6 +573,63 @@ export default function EditCompanyPage() {
                   />
                 </div>
               </div>
+            </div>
+            <div className="border-t pt-4 mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Offered Activities (Optional)
+              </label>
+              {formData.offeredActivities.length > 0 && (
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {formData.offeredActivities.map((activity) => (
+                    <span
+                      key={activity}
+                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800"
+                    >
+                      {activity}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFormData({
+                            ...formData,
+                            offeredActivities: formData.offeredActivities.filter((a) => a !== activity),
+                          })
+                        }
+                        className="ml-2 text-indigo-600 hover:text-indigo-800"
+                        aria-label={`Remove ${activity}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="max-h-56 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
+                {OFFERED_ACTIVITIES_LIST.map((activity) => (
+                  <label
+                    key={activity}
+                    className="flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.offeredActivities.includes(activity)}
+                      onChange={() => {
+                        const exists = formData.offeredActivities.includes(activity);
+                        setFormData({
+                          ...formData,
+                          offeredActivities: exists
+                            ? formData.offeredActivities.filter((a) => a !== activity)
+                            : [...formData.offeredActivities, activity],
+                        });
+                      }}
+                      className="mr-3 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <span className="text-sm text-gray-900">{activity}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Select any activities that your company offers (multiple selections allowed).
+              </p>
             </div>
             <div>
               <label htmlFor="website" className="block text-sm font-medium text-gray-700 mb-1">

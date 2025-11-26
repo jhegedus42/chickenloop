@@ -30,6 +30,7 @@ export async function GET(
         coordinates: company.coordinates,
         website: company.website,
         socialMedia: company.socialMedia,
+        offeredActivities: company.offeredActivities,
         owner: company.owner,
         createdAt: company.createdAt,
         updatedAt: company.updatedAt,
@@ -65,7 +66,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Company not found' }, { status: 404 });
     }
 
-    const { name, description, address, coordinates, website, socialMedia } = await request.json();
+    const { name, description, address, coordinates, website, socialMedia, offeredActivities } = await request.json();
 
     // Validate that coordinates are required for updates
     if (coordinates === undefined || coordinates === null || !coordinates.latitude || !coordinates.longitude) {
@@ -105,6 +106,11 @@ export async function PUT(
       if (socialMedia.youtube !== undefined) company.socialMedia.youtube = socialMedia.youtube?.trim() || undefined;
       if (socialMedia.twitter !== undefined) company.socialMedia.twitter = socialMedia.twitter?.trim() || undefined;
       company.markModified('socialMedia');
+    }
+
+    if (offeredActivities !== undefined) {
+      company.offeredActivities = offeredActivities || [];
+      company.markModified('offeredActivities');
     }
 
     await company.save();
