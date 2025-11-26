@@ -39,7 +39,17 @@ npm install
 
 3. Save the file
 
-### Step 4: Start Development Server
+### Step 4: Install Git Hooks (Optional but Recommended)
+
+This automatically updates the `SESSION_MEMORY.md` file on each commit:
+
+```bash
+./scripts/install-git-hooks.sh
+```
+
+This ensures the project memory file stays up-to-date with your commits.
+
+### Step 5: Start Development Server
 
 ```bash
 npm run dev
@@ -90,6 +100,7 @@ Your app should now be running at `http://localhost:3000` and connected to the s
 - [ ] `.env.local` file created
 - [ ] `MONGODB_URI` added (from team lead)
 - [ ] `JWT_SECRET` added (from team lead)
+- [ ] Git hooks installed (`./scripts/install-git-hooks.sh`) - Optional but recommended
 - [ ] Dev server runs successfully (`npm run dev`)
 - [ ] Can log in / see shared data
 

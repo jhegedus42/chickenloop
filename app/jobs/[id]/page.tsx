@@ -84,28 +84,30 @@ function formatCompanyAddress(address?: CompanyInfo['address']): string | null {
   return parts.length > 0 ? parts.join(' · ') : null;
 }
 
-const SOCIAL_ICONS: Record<string, React.ReactElement> = {
-  facebook: (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
-      <path d="M13.5 9.5h2.31l.35-2.35h-2.66V5.26c0-.68.19-1.15 1.18-1.15h1.49V2.08c-.26-.03-1.15-.11-2.18-.11-2.16 0-3.64 1.32-3.64 3.75v2.28H8.5v2.35h2.3v7h2.7v-7z" />
-    </svg>
-  ),
-  instagram: (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
-      <path d="M7 2C4.24 2 2 4.24 2 7v10c0 2.76 2.24 5 5 5h10c2.76 0 5-2.24 5-5V7c0-2.76-2.24-5-5-5H7zm10 2c1.65 0 3 1.35 3 3v10c0 1.65-1.35 3-3 3H7c-1.65 0-3-1.35-3-3V7c0-1.65 1.35-3 3-3h10zm-5 2.5c-2.49 0-4.5 2.01-4.5 4.5S9.51 16.5 12 16.5 16.5 14.49 16.5 12 14.49 7.5 12 7.5zm0 2c1.38 0 2.5 1.12 2.5 2.5S13.38 14.5 12 14.5 9.5 13.38 9.5 12 10.62 9.5 12 9.5zM17.5 6.25a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5z"/>
-    </svg>
-  ),
-  tiktok: (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
-      <path d="M17.25 4.5h-1.04c-.2 0-.36.16-.36.36s.16.36.36.36h.54v3.33c0 1.71-.86 2.5-2.46 2.5-1.43 0-2.34-.88-2.34-2.58V6.42c0-.2-.16-.36-.36-.36s-.36.16-.36.36v5.56c0 2.92 1.76 4.56 4.47 4.56 2.22 0 3.84-1.08 4.41-3.22h1.13v-4.74c0-.2-.16-.36-.36-.36s-.36.16-.36.36v.59c-.66-.28-1.26-.46-1.92-.54V4.86c0-.2-.16-.36-.36-.36z"/>
-    </svg>
-  ),
-  youtube: (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
-      <path d="M19.63 4.36a3.01 3.01 0 0 0-2.12-2.12C15.61 1.5 12 1.5 12 1.5s-3.61 0-5.51.74a3.01 3.01 0 0 0-2.12 2.12C3.5 6.24 3.5 12 3.5 12s0 5.76.87 7.64a3.01 3.01 0 0 0 2.12 2.12c1.9.74 5.51.74 5.51.74s3.61 0 5.51-.74a3.01 3.01 0 0 0 2.12-2.12c.87-1.88.87-7.64.87-7.64s0-5.76-.87-7.64zM10 15.5v-7l6 3.5-6 3.5z"/>
-    </svg>
-  ),
-};
+// Social Media Icons as SVG Components (same as Company Details page)
+const FacebookIcon = () => (
+  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+  </svg>
+);
+
+const InstagramIcon = () => (
+  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+  </svg>
+);
+
+const TikTokIcon = () => (
+  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+  </svg>
+);
+
+const YouTubeIcon = () => (
+  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+  </svg>
+);
 
 export default function JobDetailPage() {
   const params = useParams();
@@ -377,26 +379,55 @@ export default function JobDetailPage() {
                     job.companyId.name && job.companyId.name.trim()
                       ? `${job.companyId.name.trim()}`
                       : 'us';
+                  const getIconComponent = (platform: string) => {
+                    switch (platform) {
+                      case 'facebook':
+                        return <FacebookIcon />;
+                      case 'instagram':
+                        return <InstagramIcon />;
+                      case 'tiktok':
+                        return <TikTokIcon />;
+                      case 'youtube':
+                        return <YouTubeIcon />;
+                      default:
+                        return null;
+                    }
+                  };
+
+                  const getIconColors = (platform: string) => {
+                    switch (platform) {
+                      case 'facebook':
+                        return 'text-blue-600 hover:text-blue-800 hover:bg-blue-50';
+                      case 'instagram':
+                        return 'text-pink-600 hover:text-pink-800 hover:bg-pink-50';
+                      case 'tiktok':
+                        return 'text-gray-900 hover:text-gray-700 hover:bg-gray-100';
+                      case 'youtube':
+                        return 'text-red-600 hover:text-red-800 hover:bg-red-50';
+                      default:
+                        return 'text-gray-600 hover:text-gray-800 hover:bg-gray-50';
+                    }
+                  };
+
                   return (
-                    <div className="flex flex-wrap items-center gap-3 mt-3 text-sm text-blue-600">
-                      <span className="font-semibold text-gray-600">
-                        Follow {companyNameText} on:
+                    <p className="text-sm text-gray-600 mb-1">
+                      <span className="font-semibold text-gray-600">Follow {companyNameText} on:</span>{' '}
+                      <span className="inline-flex items-center gap-3">
+                        {socialEntries.map(([platform, url]) => (
+                          <a
+                            key={platform}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`flex items-center justify-center w-12 h-12 ${getIconColors(platform)} rounded-lg transition-all`}
+                            aria-label={platform.charAt(0).toUpperCase() + platform.slice(1)}
+                            title={platform.charAt(0).toUpperCase() + platform.slice(1)}
+                          >
+                            {getIconComponent(platform)}
+                          </a>
+                        ))}
                       </span>
-                      {socialEntries.map(([platform, url]) => (
-                        <a
-                          key={platform}
-                          href={url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex items-center gap-1 hover:underline"
-                        >
-                          <span aria-hidden="true">{SOCIAL_ICONS[platform] || '🌐'}</span>
-                          <span className="text-blue-600">
-                            {platform.charAt(0).toUpperCase() + platform.slice(1)}
-                          </span>
-                        </a>
-                      ))}
-                    </div>
+                    </p>
                   );
                 })()}
               </div>
