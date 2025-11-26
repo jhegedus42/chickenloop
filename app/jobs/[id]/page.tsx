@@ -349,12 +349,13 @@ export default function JobDetailPage() {
                 )}
                 {formatCompanyAddress(job.companyId.address) && (
                   <p className="text-sm text-gray-600 mb-1">
-                    Location: {formatCompanyAddress(job.companyId.address)}
+                    <span className="font-semibold text-gray-600">Location:</span>{' '}
+                    {formatCompanyAddress(job.companyId.address)}
                   </p>
                 )}
                 {job.companyId.website && (
                   <p className="text-sm text-gray-600 mb-1">
-                    Website:{' '}
+                    <span className="font-semibold text-gray-600">Website:</span>{' '}
                     <a
                       href={job.companyId.website}
                       target="_blank"
