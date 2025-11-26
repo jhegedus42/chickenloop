@@ -20,6 +20,7 @@ export interface ICompany extends Document {
     instagram?: string;
     tiktok?: string;
     youtube?: string;
+    twitter?: string;
   };
   owner: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -87,6 +88,10 @@ const CompanySchema: Schema = new Schema(
         trim: true,
       },
       youtube: {
+        type: String,
+        trim: true,
+      },
+      twitter: {
         type: String,
         trim: true,
       },

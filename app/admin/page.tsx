@@ -54,6 +54,7 @@ interface Company {
     instagram?: string;
     tiktok?: string;
     youtube?: string;
+    twitter?: string;
   };
   owner: any;
   createdAt: string;
@@ -232,6 +233,7 @@ export default function AdminDashboard() {
       instagram: '',
       tiktok: '',
       youtube: '',
+      twitter: '',
     },
   });
   const [geocodingCompany, setGeocodingCompany] = useState(false);
@@ -442,6 +444,7 @@ export default function AdminDashboard() {
         instagram: existingSocialMedia.instagram || '',
         tiktok: existingSocialMedia.tiktok || '',
         youtube: existingSocialMedia.youtube || '',
+        twitter: existingSocialMedia.twitter || '',
       },
     });
     
@@ -1584,6 +1587,21 @@ export default function AdminDashboard() {
                           })
                         }
                         placeholder="https://youtube.com/@yourchannel"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">X (Twitter) URL</label>
+                      <input
+                        type="url"
+                        value={companyEditForm.socialMedia.twitter}
+                        onChange={(e) =>
+                          setCompanyEditForm({
+                            ...companyEditForm,
+                            socialMedia: { ...companyEditForm.socialMedia, twitter: e.target.value },
+                          })
+                        }
+                        placeholder="https://x.com/yourhandle"
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                       />
                     </div>

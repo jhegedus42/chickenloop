@@ -63,6 +63,7 @@ export default function NewCompanyPage() {
       instagram: '',
       tiktok: '',
       youtube: '',
+      twitter: '',
     },
   });
   const [error, setError] = useState('');
@@ -497,6 +498,24 @@ export default function NewCompanyPage() {
                       })
                     }
                     placeholder="https://youtube.com/@yourchannel"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="twitter" className="block text-sm font-medium text-gray-700 mb-1">
+                    X (Twitter) URL
+                  </label>
+                  <input
+                    id="twitter"
+                    type="url"
+                    value={formData.socialMedia.twitter}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        socialMedia: { ...formData.socialMedia, twitter: e.target.value },
+                      })
+                    }
+                    placeholder="https://x.com/yourhandle"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                   />
                 </div>

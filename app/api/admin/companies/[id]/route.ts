@@ -103,6 +103,7 @@ export async function PUT(
       if (socialMedia.instagram !== undefined) company.socialMedia.instagram = socialMedia.instagram?.trim() || undefined;
       if (socialMedia.tiktok !== undefined) company.socialMedia.tiktok = socialMedia.tiktok?.trim() || undefined;
       if (socialMedia.youtube !== undefined) company.socialMedia.youtube = socialMedia.youtube?.trim() || undefined;
+      if (socialMedia.twitter !== undefined) company.socialMedia.twitter = socialMedia.twitter?.trim() || undefined;
       company.markModified('socialMedia');
     }
 
