@@ -6,6 +6,8 @@ import Navbar from '../../components/Navbar';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { getCountryNameFromCode } from '@/lib/countryUtils';
+import { OFFERED_ACTIVITIES_LIST } from '@/lib/offeredActivities';
+import { OFFERED_SERVICES_LIST } from '@/lib/offeredServices';
 
 // Dynamically import Map component to avoid SSR issues
 const MapComponent = dynamic(
@@ -36,6 +38,11 @@ interface Company {
     longitude: number;
   };
   website?: string;
+  contact?: {
+    email?: string;
+    officePhone?: string;
+    whatsapp?: string;
+  };
   socialMedia?: {
     facebook?: string;
     instagram?: string;
@@ -43,6 +50,9 @@ interface Company {
     youtube?: string;
     twitter?: string;
   };
+  offeredActivities?: string[];
+  offeredServices?: string[];
+  pictures?: string[];
   owner: any;
   createdAt: string;
   updatedAt: string;
@@ -197,30 +207,137 @@ export default function CompanyPage() {
             </div>
           )}
 
-          <div className="border-t pt-6 mb-6">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">Contact Information</h2>
-            
-            {formatAddress() && (
-              <div className="mb-4">
-                <p className="text-gray-600">
-                  <span className="font-semibold">Address:</span> {formatAddress()}
-                </p>
+          {/* Pictures Section */}
+          {company.pictures && company.pictures.length > 0 && (
+            <div className="border-t pt-6 mb-6">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4">Pictures</h2>
+              <div className="grid grid-cols-3 gap-2">
+                {company.pictures.map((picture, index) => (
+                  <img
+                    key={index}
+                    src={picture}
+                    alt={`${company.name} - Image ${index + 1}`}
+                    className="w-full h-48 object-cover rounded-lg border border-gray-300"
+                  />
+                ))}
               </div>
-            )}
+            </div>
+          )}
 
-            {company.website && (
-              <div className="mb-4">
-                <a
-                  href={company.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline font-semibold"
-                >
-                  Visit Website →
-                </a>
+          {/* Offering Section */}
+          {(company.offeredActivities && company.offeredActivities.length > 0) ||
+           (company.offeredServices && company.offeredServices.length > 0) ? (
+            <div className="border-t pt-6 mb-6">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4">Offering</h2>
+              <div className="grid md:grid-cols-2 gap-6">
+                {company.offeredActivities && company.offeredActivities.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Offered Activities</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {company.offeredActivities.map((activity, index) => (
+                        <span
+                          key={index}
+                          className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
+                        >
+                          {activity}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {company.offeredServices && company.offeredServices.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Offered Services</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {company.offeredServices.map((service, index) => (
+                        <span
+                          key={index}
+                          className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium"
+                        >
+                          {service}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </div>
+          ) : null}
+
+          {/* Contact Information Section */}
+          {(company.website || company.contact?.email || company.contact?.officePhone || company.contact?.whatsapp || company.address) && (
+            <div className="border-t pt-6 mb-6">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4">Contact Information</h2>
+              
+              {formatAddress() && (
+                <div className="mb-4">
+                  <p className="text-gray-600">
+                    <span className="font-semibold">Location:</span> {formatAddress()}
+                  </p>
+                </div>
+              )}
+
+              {company.website && (
+                <div className="mb-4">
+                  <p className="text-gray-600">
+                    <span className="font-semibold">Website:</span>{' '}
+                    <a
+                      href={company.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      {company.website}
+                    </a>
+                  </p>
+                </div>
+              )}
+
+              {company.contact?.email && (
+                <div className="mb-4">
+                  <p className="text-gray-600">
+                    <span className="font-semibold">E-mail:</span>{' '}
+                    <a
+                      href={`mailto:${company.contact.email}`}
+                      className="text-blue-600 hover:underline"
+                    >
+                      {company.contact.email}
+                    </a>
+                  </p>
+                </div>
+              )}
+
+              {company.contact?.officePhone && (
+                <div className="mb-4">
+                  <p className="text-gray-600">
+                    <span className="font-semibold">Office Phone:</span>{' '}
+                    <a
+                      href={`tel:${company.contact.officePhone.replace(/\s/g, '')}`}
+                      className="text-blue-600 hover:underline"
+                    >
+                      {company.contact.officePhone}
+                    </a>
+                  </p>
+                </div>
+              )}
+
+              {company.contact?.whatsapp && (
+                <div className="mb-4">
+                  <p className="text-gray-600">
+                    <span className="font-semibold">WhatsApp:</span>{' '}
+                    <a
+                      href={`https://wa.me/${company.contact.whatsapp.replace(/[^\d]/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      {company.contact.whatsapp}
+                    </a>
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           {company.coordinates && <LocationMap coordinates={company.coordinates} companyName={company.name} />}
 
