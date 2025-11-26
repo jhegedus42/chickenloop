@@ -447,7 +447,7 @@ export default function JobDetailPage() {
             {/* Posted Info */}
             <div className="pt-6 border-t border-gray-200">
               <p className="text-sm text-gray-500">
-                Posted by: <span className="font-semibold">{job.recruiter.name}</span> ({job.recruiter.email})
+                Posted by: <span className="font-semibold">{job.recruiter.name}</span>
               </p>
               <FormattedDate date={job.createdAt} />
             </div>
