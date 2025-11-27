@@ -9,7 +9,10 @@ export async function GET(request: NextRequest) {
   try {
     await connectDB();
 
-    const jobs = await Job.find().populate('recruiter', 'name email').sort({ createdAt: -1 });
+    // Filter out spam jobs from public listings
+    const jobs = await Job.find({ spam: { $ne: 'yes' } })
+      .populate('recruiter', 'name email')
+      .sort({ createdAt: -1 });
 
     return NextResponse.json({ jobs }, { status: 200 });
   } catch (error: any) {

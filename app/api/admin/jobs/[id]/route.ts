@@ -54,7 +54,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    const { title, description, location, country, salary, type, company, languages, qualifications, pictures } = await request.json();
+    const { title, description, location, country, salary, type, company, languages, qualifications, pictures, spam } = await request.json();
 
     if (title) job.title = title;
     if (description) job.description = description;
@@ -85,6 +85,13 @@ export async function PUT(
         );
       }
       job.pictures = pictures || [];
+    }
+    
+    // Update spam flag (admin can clear spam flag)
+    if (spam !== undefined) {
+      if (spam === 'yes' || spam === 'no') {
+        job.spam = spam;
+      }
     }
 
     await job.save();

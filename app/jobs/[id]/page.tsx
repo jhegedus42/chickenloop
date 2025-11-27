@@ -49,6 +49,7 @@ interface Job {
   createdAt: string;
   updatedAt?: string;
   companyId?: CompanyInfo;
+  spam?: 'yes' | 'no';
 }
 
 // Component to handle date formatting (prevents hydration mismatch)
@@ -95,6 +96,8 @@ export default function JobDetailPage() {
   const [error, setError] = useState('');
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [reportingSpam, setReportingSpam] = useState(false);
+  const [spamReported, setSpamReported] = useState(false);
 
   useEffect(() => {
     // Load job regardless of authentication status
@@ -107,10 +110,36 @@ export default function JobDetailPage() {
     try {
       const data = await jobsApi.getOne(jobId);
       setJob(data.job);
+      // Check if job is already flagged as spam
+      if (data.job.spam === 'yes') {
+        setSpamReported(true);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load job');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleReportSpam = async () => {
+    if (!job || spamReported) return;
+    
+    setReportingSpam(true);
+    try {
+      const response = await fetch(`/api/jobs/${jobId}/report-spam`, {
+        method: 'POST',
+      });
+      
+      if (response.ok) {
+        setSpamReported(true);
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to report spam. Please try again.');
+      }
+    } catch (err: any) {
+      alert('Failed to report spam. Please try again.');
+    } finally {
+      setReportingSpam(false);
     }
   };
 
@@ -378,6 +407,21 @@ export default function JobDetailPage() {
                 )}
               </div>
             )}
+
+            {/* Report Spam Button */}
+            <div className="pt-6 border-t border-gray-200 mb-4">
+              <button
+                onClick={handleReportSpam}
+                disabled={reportingSpam || spamReported}
+                className={`px-4 py-2 text-sm rounded-lg font-medium transition-colors ${
+                  spamReported
+                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    : 'bg-red-100 text-red-700 hover:bg-red-200'
+                }`}
+              >
+                {spamReported ? '✓ Reported as Spam' : reportingSpam ? 'Reporting...' : '🚩 Report as Spam'}
+              </button>
+            </div>
 
             {/* Posted Info */}
             <div className="pt-6 border-t border-gray-200">

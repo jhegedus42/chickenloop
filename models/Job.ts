@@ -14,6 +14,7 @@ export interface IJob extends Document {
   sports?: string[]; // Array of sports/activity strings
   occupationalAreas?: string[];
   pictures?: string[]; // Array of image paths (max 3)
+  spam?: 'yes' | 'no'; // Spam flag: 'yes' if flagged as spam, 'no' otherwise
   recruiter: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -80,6 +81,11 @@ const JobSchema: Schema = new Schema(
         },
         message: 'A job can have at most 3 pictures',
       },
+    },
+    spam: {
+      type: String,
+      enum: ['yes', 'no'],
+      default: 'no',
     },
   },
   {

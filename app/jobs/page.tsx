@@ -241,7 +241,7 @@ export default function JobsPage() {
           <h1 className="text-4xl font-bold text-gray-900">Available Jobs</h1>
           
           {/* Filters */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
+          <div className="flex flex-col sm:flex-row items-end sm:items-center sm:justify-end gap-3 flex-wrap">
             {/* Country Filter */}
             <div className="flex items-center gap-3">
               <label htmlFor="country-filter" className="text-sm font-medium text-gray-700 whitespace-nowrap">

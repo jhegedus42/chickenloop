@@ -80,6 +80,7 @@ interface Job {
   languages?: string[];
   qualifications?: string[];
   pictures?: string[];
+  spam?: 'yes' | 'no';
   recruiter: any;
   createdAt: string;
   updatedAt: string;
@@ -742,6 +743,20 @@ export default function AdminDashboard() {
       loadJobs();
     } catch (err: any) {
       alert(err.message || 'Failed to update job');
+    }
+  };
+
+  const handleClearSpam = async (jobId: string) => {
+    if (!confirm('Clear spam flag for this job? It will be visible in public listings again.')) {
+      return;
+    }
+
+    try {
+      await adminApi.updateJob(jobId, { spam: 'no' });
+      loadJobs();
+      alert('Spam flag cleared successfully');
+    } catch (err: any) {
+      alert(err.message || 'Failed to clear spam flag');
     }
   };
 
@@ -1429,13 +1444,16 @@ export default function AdminDashboard() {
                     Recruiter
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Spam Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {jobs.map((job) => (
-                  <tr key={job.id}>
+                  <tr key={job.id} className={job.spam === 'yes' ? 'bg-red-50' : ''}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       <Link
                         href={`/jobs/${job.id}`}
@@ -1462,6 +1480,17 @@ export default function AdminDashboard() {
                         <span>-</span>
                       )}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {job.spam === 'yes' ? (
+                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                          🚩 Flagged
+                        </span>
+                      ) : (
+                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                          OK
+                        </span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
                         onClick={() => handleEditJob(job)}
@@ -1469,6 +1498,14 @@ export default function AdminDashboard() {
                       >
                         Edit
                       </button>
+                      {job.spam === 'yes' && (
+                        <button
+                          onClick={() => handleClearSpam(job.id)}
+                          className="text-orange-600 hover:text-orange-900 mr-4"
+                        >
+                          Clear Spam
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDeleteJob(job.id)}
                         className="text-red-600 hover:text-red-900"
