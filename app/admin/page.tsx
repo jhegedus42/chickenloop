@@ -747,7 +747,7 @@ export default function AdminDashboard() {
   };
 
   const handleClearSpam = async (jobId: string) => {
-    if (!confirm('Clear spam flag for this job? It will be visible in public listings again.')) {
+    if (!confirm('Clear spam flag for this job?')) {
       return;
     }
 

@@ -408,27 +408,32 @@ export default function JobDetailPage() {
               </div>
             )}
 
-            {/* Report Spam Button */}
-            <div className="pt-6 border-t border-gray-200 mb-4">
-              <button
-                onClick={handleReportSpam}
-                disabled={reportingSpam || spamReported}
-                className={`px-4 py-2 text-sm rounded-lg font-medium transition-colors ${
-                  spamReported
-                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                    : 'bg-red-100 text-red-700 hover:bg-red-200'
-                }`}
-              >
-                {spamReported ? '✓ Reported as Spam' : reportingSpam ? 'Reporting...' : '🚩 Report as Spam'}
-              </button>
-            </div>
-
-            {/* Posted Info */}
+            {/* Posted Info and Report Spam Button - Two Column Layout */}
             <div className="pt-6 border-t border-gray-200">
-              <p className="text-sm text-gray-500">
-                Posted by: <span className="font-semibold">{job.recruiter.name}</span>
-              </p>
-              <FormattedDate date={job.createdAt} />
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                {/* Left Column - Posted Info */}
+                <div className="flex-1">
+                  <p className="text-sm text-gray-500">
+                    Posted by: <span className="font-semibold">{job.recruiter.name}</span>
+                  </p>
+                  <FormattedDate date={job.createdAt} />
+                </div>
+                
+                {/* Right Column - Report Spam Button */}
+                <div className="flex-shrink-0">
+                  <button
+                    onClick={handleReportSpam}
+                    disabled={reportingSpam || spamReported}
+                    className={`px-4 py-2 text-sm rounded-lg font-medium transition-colors ${
+                      spamReported
+                        ? 'bg-red-100 text-red-700 cursor-not-allowed'
+                        : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                    }`}
+                  >
+                    {spamReported ? '✓ Reported as Spam' : reportingSpam ? 'Reporting...' : '🚩 Report as Spam'}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

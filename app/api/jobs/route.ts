@@ -9,8 +9,8 @@ export async function GET(request: NextRequest) {
   try {
     await connectDB();
 
-    // Filter out spam jobs from public listings
-    const jobs = await Job.find({ spam: { $ne: 'yes' } })
+    // Get all jobs (spam jobs remain visible for admin review)
+    const jobs = await Job.find()
       .populate('recruiter', 'name email')
       .sort({ createdAt: -1 });
 
