@@ -39,8 +39,10 @@ After deployment starts, go to your Vercel project dashboard:
    - Value: `2hxoXFr26ersairETgh8k0lBTC0fT2xR0YetVIuJxM8=`
    - Environments: ✅ Production ✅ Preview ✅ Development
 
-3. Click "Save"
-4. Go to **Deployments** → Click "..." on latest deployment → **Redeploy**
+3. **Image Storage:** The app uses Vercel Blob Storage for images. The `BLOB_READ_WRITE_TOKEN` is automatically available in Vercel deployments - no manual setup needed! 🎉
+
+4. Click "Save"
+5. Go to **Deployments** → Click "..." on latest deployment → **Redeploy**
 
 ### Step 3: Set Up MongoDB Atlas (1 minute)
 

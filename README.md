@@ -54,7 +54,10 @@ Create a `.env.local` file in the root directory:
 ```env
 MONGODB_URI=mongodb://localhost:27017/chickenloop
 JWT_SECRET=your-secret-key-change-in-production
+BLOB_READ_WRITE_TOKEN=your-vercel-blob-token  # Optional for local dev - get from Vercel dashboard
 ```
+
+**Note:** For local development, image uploads require a Vercel Blob Storage token. You can get one from your Vercel dashboard under Settings → Storage → Blob. For production deployments on Vercel, this token is automatically available.
 
 **👥 Working with a Team?**
 If you're working with a team that shares the same database, see [`COWORKER_SETUP.md`](./COWORKER_SETUP.md) for setup instructions. Get your database credentials from your team lead.

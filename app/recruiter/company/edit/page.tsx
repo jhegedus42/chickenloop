@@ -78,6 +78,10 @@ export default function EditCompanyPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [existingLogo, setExistingLogo] = useState<string>('');
+  const [selectedLogo, setSelectedLogo] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>('');
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [existingPictures, setExistingPictures] = useState<string[]>([]);
   const [selectedPictures, setSelectedPictures] = useState<File[]>([]);
   const [picturePreviews, setPicturePreviews] = useState<string[]>([]);
@@ -139,6 +143,9 @@ export default function EditCompanyPage() {
         offeredActivities: data.company.offeredActivities || [],
         offeredServices: data.company.offeredServices || [],
       });
+      // Set logo - preserve the actual value from database (could be string, null, or undefined)
+      const logoValue = data.company.logo;
+      setExistingLogo(logoValue ? String(logoValue) : '');
       setExistingPictures(data.company.pictures || []);
 
       // Build search query from address if coordinates exist
@@ -278,6 +285,45 @@ export default function EditCompanyPage() {
     setPicturePreviews([...picturePreviews, ...newPreviews]);
   };
 
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      setError(`Invalid file type: ${file.name}. Only images (JPEG, PNG, WEBP, GIF) are allowed.`);
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      setError(`File ${file.name} is too large. Maximum size is 5MB.`);
+      return;
+    }
+
+    setSelectedLogo(file);
+    setError('');
+
+    // Create preview URL
+    const preview = URL.createObjectURL(file);
+    setLogoPreview(preview);
+  };
+
+  const removeLogo = () => {
+    if (logoPreview) {
+      URL.revokeObjectURL(logoPreview);
+      setLogoPreview('');
+    }
+    setSelectedLogo(null);
+    // Only clear existingLogo if we're removing the existing one (not just a preview)
+    // If there's a preview, we're just canceling the new upload, so keep existingLogo
+    if (!logoPreview) {
+      setExistingLogo('');
+    }
+  };
+
   const removeExistingPicture = (index: number) => {
     const newPictures = existingPictures.filter((_, i) => i !== index);
     setExistingPictures(newPictures);
@@ -292,6 +338,35 @@ export default function EditCompanyPage() {
     
     setSelectedPictures(newPictures);
     setPicturePreviews(newPreviews);
+  };
+
+  const uploadLogo = async (): Promise<string | null> => {
+    // If no new logo is selected, return null (we'll handle preserving existing logo in submit)
+    if (!selectedLogo) {
+      return null;
+    }
+
+    setUploadingLogo(true);
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append('logo', selectedLogo);
+
+      const response = await fetch('/api/company/upload-logo', {
+        method: 'POST',
+        body: uploadFormData,
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to upload logo');
+      }
+
+      return data.url || null;
+    } finally {
+      setUploadingLogo(false);
+    }
   };
 
   const uploadPictures = async (): Promise<string[]> => {
@@ -336,20 +411,32 @@ export default function EditCompanyPage() {
     setLoading(true);
 
     try {
-      // Upload pictures first
+      // Upload logo first - this will return existingLogo if no new logo is selected
+      const logoUrl = await uploadLogo();
+      
+      // Upload pictures
       const picturePaths = await uploadPictures();
 
       const normalizedCountry = normalizeCountryForStorage(formData.address.country);
+      
+      // Prepare logo value:
+      // - If new logo was uploaded (logoUrl is a non-null string), use it
+      // - Otherwise, preserve existing logo (existingLogo might be empty string if no logo exists)
+      // - Only send undefined if we explicitly want to clear (which we handle via removeLogo)
+      const logoValue = logoUrl ? logoUrl : (existingLogo && existingLogo.trim().length > 0 ? existingLogo : undefined);
+      
       await companyApi.update({
         ...formData,
         address: {
           ...formData.address,
           country: normalizedCountry || undefined,
         },
+        logo: logoValue, // Send logo value (new, existing, or undefined to clear)
         pictures: picturePaths,
       });
 
       // Clean up preview URLs
+      if (logoPreview) URL.revokeObjectURL(logoPreview);
       picturePreviews.forEach(url => URL.revokeObjectURL(url));
 
       router.push('/recruiter');
@@ -883,6 +970,48 @@ export default function EditCompanyPage() {
               </div>
             </div>
 
+            {/* Logo Section */}
+            <div className="border-t pt-4 mt-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Company Logo</h3>
+              
+              <div>
+                <label htmlFor="logo" className="block text-sm font-medium text-gray-700 mb-1">
+                  Upload Logo (Optional)
+                </label>
+                {(existingLogo || logoPreview) && (
+                  <div className="mb-4">
+                    <p className="text-sm text-gray-600 mb-2">Current Logo:</p>
+                    <div className="relative inline-block group">
+                      <img
+                        src={logoPreview || existingLogo}
+                        alt="Company Logo"
+                        className="w-32 h-32 object-contain rounded-lg border border-gray-300 bg-white p-2"
+                      />
+                      <button
+                        type="button"
+                        onClick={removeLogo}
+                        className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-sm font-bold"
+                        aria-label="Remove logo"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <input
+                  id="logo"
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                  onChange={handleLogoChange}
+                  disabled={uploadingLogo}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Maximum 5MB. Supported formats: JPEG, PNG, WEBP, GIF. Recommended: Square image (e.g., 200x200px)
+                </p>
+              </div>
+            </div>
+
             {/* Pictures Section */}
             <div className="border-t pt-4 mt-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Pictures</h3>
@@ -950,10 +1079,10 @@ export default function EditCompanyPage() {
             <div className="flex gap-4">
               <button
                 type="submit"
-                disabled={loading || uploadingPictures}
+                disabled={loading || uploadingPictures || uploadingLogo}
                 className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
               >
-                {loading || uploadingPictures ? 'Updating...' : 'Update Company'}
+                {loading || uploadingPictures || uploadingLogo ? 'Updating...' : 'Update Company'}
               </button>
               <button
                 type="button"

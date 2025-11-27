@@ -47,6 +47,7 @@ export async function GET(
         socialMedia: cleanedSocialMedia,
         offeredActivities: company.offeredActivities,
         offeredServices: company.offeredServices,
+        logo: company.logo,
         pictures: company.pictures,
         owner: company.owner,
         createdAt: company.createdAt,

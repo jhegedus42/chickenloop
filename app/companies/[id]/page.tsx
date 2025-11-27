@@ -52,6 +52,7 @@ interface Company {
   };
   offeredActivities?: string[];
   offeredServices?: string[];
+  logo?: string;
   pictures?: string[];
   owner: any;
   createdAt: string;
@@ -199,7 +200,16 @@ export default function CompanyPage() {
       <Navbar />
       <main className="max-w-4xl mx-auto px-4 py-12">
         <div className="bg-white rounded-lg shadow-lg p-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">{company.name}</h1>
+          <div className="flex items-center gap-6 mb-4">
+            {company.logo && (
+              <img
+                src={company.logo}
+                alt={`${company.name} Logo`}
+                className="w-24 h-24 object-contain rounded-lg border border-gray-300 bg-white p-2 flex-shrink-0"
+              />
+            )}
+            <h1 className="text-4xl font-bold text-gray-900">{company.name}</h1>
+          </div>
           
           {company.description && (
             <div className="mb-6">

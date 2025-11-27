@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, description, address, coordinates, website, contact, socialMedia, offeredActivities, offeredServices, pictures } = await request.json();
+    const { name, description, address, coordinates, website, contact, socialMedia, offeredActivities, offeredServices, logo, pictures } = await request.json();
 
     if (!name) {
       return NextResponse.json(
@@ -121,6 +121,7 @@ export async function POST(request: NextRequest) {
       socialMedia: cleanedSocialMedia,
       offeredActivities: offeredActivities || [],
       offeredServices: offeredServices || [],
+      logo: logo || undefined,
       pictures: pictures || [],
       owner: user.userId,
     });
@@ -163,7 +164,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const { name, description, address, coordinates, website, contact, socialMedia, offeredActivities, offeredServices, pictures } = await request.json();
+    const { name, description, address, coordinates, website, contact, socialMedia, offeredActivities, offeredServices, logo, pictures } = await request.json();
 
     // Validate that coordinates are required for updates
     if (coordinates === undefined || coordinates === null || !coordinates.latitude || !coordinates.longitude) {
@@ -222,6 +223,13 @@ export async function PUT(request: NextRequest) {
     if (offeredServices !== undefined) {
       company.offeredServices = offeredServices || [];
       company.markModified('offeredServices');
+    }
+
+    if (logo !== undefined) {
+      // Only update logo if it's a non-empty string, otherwise clear it
+      const trimmedLogo = logo?.trim();
+      company.logo = trimmedLogo && trimmedLogo.length > 0 ? trimmedLogo : undefined;
+      company.markModified('logo');
     }
 
     if (pictures !== undefined) {

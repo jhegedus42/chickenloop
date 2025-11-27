@@ -39,6 +39,7 @@ interface Job {
   salary?: string;
   type: string;
   languages?: string[];
+  occupationalAreas?: string[];
   qualifications?: string[];
   pictures?: string[];
   recruiter: {
@@ -212,6 +213,26 @@ export default function JobDetailPage() {
                         className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
                       >
                         {language}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Job Categories - in Job Details section */}
+              {job.occupationalAreas && job.occupationalAreas.length > 0 && (
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <div className="flex items-center text-gray-600">
+                    <span className="mr-2">💼</span>
+                    <span className="font-medium">Job Category:</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {job.occupationalAreas.map((area, index) => (
+                      <span
+                        key={index}
+                        className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium"
+                      >
+                        {area}
                       </span>
                     ))}
                   </div>

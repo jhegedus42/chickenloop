@@ -412,7 +412,7 @@ export default function EditJobPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Occupational Area (Optional)
+                Job Category (Optional)
               </label>
 
               {formData.occupationalAreas.length > 0 && (
@@ -472,7 +472,7 @@ export default function EditJobPage() {
                   );
                 })}
               </div>
-              <p className="text-xs text-gray-500 mt-2">Select occupational areas that describe this role.</p>
+              <p className="text-xs text-gray-500 mt-2">Select job categories that describe this role.</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

@@ -29,6 +29,7 @@ export interface ICompany extends Document {
   };
   offeredActivities?: string[]; // Array of offered activity strings
   offeredServices?: string[]; // Array of offered service strings
+  logo?: string; // Company logo image URL
   pictures?: string[]; // Array of image paths (max 3)
   owner: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -124,6 +125,10 @@ const CompanySchema: Schema = new Schema(
     },
     offeredServices: {
       type: [String],
+    },
+    logo: {
+      type: String,
+      trim: true,
     },
     pictures: {
       type: [String],

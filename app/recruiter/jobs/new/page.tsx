@@ -321,7 +321,7 @@ export default function NewJobPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Occupational Area (Optional)
+                  Job Category (Optional)
                 </label>
                 {formData.occupationalAreas.length > 0 && (
                   <div className="mb-3 flex flex-wrap gap-2">
