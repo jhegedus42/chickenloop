@@ -57,6 +57,8 @@ export async function POST(request: NextRequest) {
       certifications,
       professionalCertifications,
       experienceAndSkill,
+      languages,
+      lookingForWorkInAreas,
       pictures,
     } = await request.json();
 
@@ -79,6 +81,8 @@ export async function POST(request: NextRequest) {
       certifications: certifications || [],
       professionalCertifications: professionalCertifications || [],
       experienceAndSkill: experienceAndSkill || [],
+      languages: languages || [],
+      lookingForWorkInAreas: lookingForWorkInAreas || [],
       pictures: pictures || [],
       jobSeeker: user.userId,
     });
@@ -125,6 +129,8 @@ export async function PUT(request: NextRequest) {
       certifications,
       professionalCertifications,
       experienceAndSkill,
+      languages,
+      lookingForWorkInAreas,
       pictures,
     } = await request.json();
 
@@ -144,6 +150,14 @@ export async function PUT(request: NextRequest) {
     if (experienceAndSkill !== undefined) {
       cv.experienceAndSkill = experienceAndSkill || [];
       cv.markModified('experienceAndSkill');
+    }
+    if (languages !== undefined) {
+      cv.languages = languages || [];
+      cv.markModified('languages');
+    }
+    if (lookingForWorkInAreas !== undefined) {
+      cv.lookingForWorkInAreas = lookingForWorkInAreas || [];
+      cv.markModified('lookingForWorkInAreas');
     }
     if (pictures !== undefined) {
       cv.pictures = pictures || [];

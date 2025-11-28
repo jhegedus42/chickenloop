@@ -24,6 +24,8 @@ export interface ICV extends Document {
   certifications?: string[];
   professionalCertifications?: string[];
   experienceAndSkill?: string[];
+  languages?: string[];
+  lookingForWorkInAreas?: string[];
   pictures?: string[];
   jobSeeker: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -71,6 +73,8 @@ const CVSchema: Schema = new Schema(
     certifications: [String],
     professionalCertifications: [String],
     experienceAndSkill: [String],
+    languages: [String],
+    lookingForWorkInAreas: [String],
     pictures: [String],
     jobSeeker: {
       type: Schema.Types.ObjectId,

@@ -7,6 +7,8 @@ import Navbar from '../../../components/Navbar';
 import { cvApi } from '@/lib/api';
 import { SPORTS_LIST } from '@/lib/sports';
 import { QUALIFICATIONS } from '@/lib/qualifications';
+import { OFFICIAL_LANGUAGES } from '@/lib/languages';
+import { OCCUPATIONAL_AREAS } from '@/lib/occupationalAreas';
 
 export default function NewCVPage() {
   const { user, loading: authLoading } = useAuth();
@@ -23,6 +25,8 @@ export default function NewCVPage() {
     certifications: [''],
     professionalCertifications: [] as string[],
     experienceAndSkill: [] as string[],
+    languages: [] as string[],
+    lookingForWorkInAreas: [] as string[],
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -127,6 +131,8 @@ export default function NewCVPage() {
         certifications: formData.certifications.filter((cert) => cert.trim() !== ''),
         professionalCertifications: formData.professionalCertifications || [],
         experienceAndSkill: formData.experienceAndSkill || [],
+        languages: formData.languages || [],
+        lookingForWorkInAreas: formData.lookingForWorkInAreas || [],
         pictures: picturePaths,
       };
       await cvApi.create(data);
@@ -306,6 +312,69 @@ export default function NewCVPage() {
                 rows={4}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+            </div>
+
+            {/* Looking for work in these areas */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Looking for work in these areas:
+              </label>
+              {formData.lookingForWorkInAreas.length > 0 && (
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {formData.lookingForWorkInAreas.map((area) => (
+                    <span
+                      key={area}
+                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800"
+                    >
+                      {area}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData({
+                            ...formData,
+                            lookingForWorkInAreas: formData.lookingForWorkInAreas.filter((a) => a !== area),
+                          });
+                        }}
+                        className="ml-2 text-purple-600 hover:text-purple-800"
+                        aria-label={`Remove ${area}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="max-h-48 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
+                {OCCUPATIONAL_AREAS.map((area) => {
+                  const isSelected = formData.lookingForWorkInAreas.includes(area);
+                  return (
+                    <label
+                      key={area}
+                      className="flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setFormData({
+                              ...formData,
+                              lookingForWorkInAreas: [...formData.lookingForWorkInAreas, area],
+                            });
+                          } else {
+                            setFormData({
+                              ...formData,
+                              lookingForWorkInAreas: formData.lookingForWorkInAreas.filter((a) => a !== area),
+                            });
+                          }
+                        }}
+                        className="mr-3 h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                      />
+                      <span className="text-sm text-gray-900">{area}</span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Pictures Section */}
@@ -521,6 +590,69 @@ export default function NewCVPage() {
               </div>
             </div>
 
+            {/* Languages Section */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Languages (Important - Recruiters will filter for it)
+              </label>
+              {formData.languages.length > 0 && (
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {formData.languages.map((lang) => (
+                    <span
+                      key={lang}
+                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
+                    >
+                      {lang}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData({
+                            ...formData,
+                            languages: formData.languages.filter((l) => l !== lang),
+                          });
+                        }}
+                        className="ml-2 text-blue-600 hover:text-blue-800"
+                        aria-label={`Remove ${lang}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="max-h-48 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
+                {OFFICIAL_LANGUAGES.map((lang) => {
+                  const isSelected = formData.languages.includes(lang);
+                  return (
+                    <label
+                      key={lang}
+                      className="flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setFormData({
+                              ...formData,
+                              languages: [...formData.languages, lang],
+                            });
+                          } else {
+                            setFormData({
+                              ...formData,
+                              languages: formData.languages.filter((l) => l !== lang),
+                            });
+                          }
+                        }}
+                        className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <span className="text-sm text-gray-900">{lang}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
             <div>
               <div className="flex justify-between items-center mb-4">
                 <label className="block text-sm font-medium text-gray-700">Certifications</label>
@@ -557,7 +689,7 @@ export default function NewCVPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Sports Experiences and Skills
+                Sports Experiences and Skills (Important - Recruiters will filter for it)
               </label>
               {formData.experienceAndSkill.length > 0 && (
                 <div className="mb-3 flex flex-wrap gap-2">
@@ -623,7 +755,7 @@ export default function NewCVPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Professional Certifications (Optional)
+                Professional Certifications (Important - Recruiters will filter for it)
               </label>
               
               {/* Selected Professional Certifications Display */}

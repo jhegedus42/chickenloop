@@ -127,6 +127,23 @@ export default function ViewCVPage() {
             </div>
           )}
 
+          {/* Looking for work in these areas */}
+          {cv.lookingForWorkInAreas && cv.lookingForWorkInAreas.length > 0 && (
+            <div className="mb-6 pb-6 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Looking for work in these areas:</h2>
+              <div className="flex flex-wrap gap-2">
+                {cv.lookingForWorkInAreas.map((area: string, index: number) => (
+                  <span
+                    key={`area-${index}`}
+                    className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium"
+                  >
+                    {area}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Experience */}
           {cv.experience && cv.experience.length > 0 && (
             <div className="mb-6 pb-6 border-b border-gray-200">
@@ -212,6 +229,23 @@ export default function ViewCVPage() {
                         {skill}
                       </span>
                     ))}
+              </div>
+            </div>
+          )}
+
+          {/* Languages */}
+          {cv.languages && cv.languages.length > 0 && (
+            <div className="mb-6 pb-6 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Languages</h2>
+              <div className="flex flex-wrap gap-2">
+                {cv.languages.map((lang: string, index: number) => (
+                  <span
+                    key={`lang-${index}`}
+                    className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium"
+                  >
+                    {lang}
+                  </span>
+                ))}
               </div>
             </div>
           )}
