@@ -9,7 +9,17 @@ export async function GET(request: NextRequest) {
   try {
     await connectDB();
 
-    const jobs = await Job.find().populate('recruiter', 'name email').sort({ createdAt: -1 });
+    // Get only published jobs (unpublished jobs are hidden from public)
+    // Include jobs where published is true OR undefined (default is true)
+    // Exclude only jobs where published is explicitly false
+    const jobs = await Job.find({ 
+      $or: [
+        { published: true },
+        { published: { $exists: false } }
+      ]
+    })
+      .populate('recruiter', 'name email')
+      .sort({ createdAt: -1 });
 
     return NextResponse.json({ jobs }, { status: 200 });
   } catch (error: any) {
@@ -35,19 +45,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { title, description, location, country, salary, type, languages, qualifications, sports, occupationalAreas, pictures } = await request.json();
+    const { title, description, location, country, salary, type, languages, qualifications, sports, occupationalAreas, pictures, applyByEmail, applyByWebsite, applicationEmail, applicationWebsite } = await request.json();
 
     if (!title || !description || !location || !type) {
       return NextResponse.json(
         { error: 'Title, description, location, and type are required' },
-        { status: 400 }
-      );
-    }
-
-    // Validate languages array (max 3)
-    if (languages && Array.isArray(languages) && languages.length > 3) {
-      return NextResponse.json(
-        { error: 'Maximum 3 languages allowed' },
         { status: 400 }
       );
     }
@@ -77,7 +79,12 @@ export async function POST(request: NextRequest) {
       sports: sports || [],
       occupationalAreas: occupationalAreas || [],
       pictures: pictures || [],
+      applyByEmail: applyByEmail || false,
+      applyByWebsite: applyByWebsite || false,
+      applicationEmail: applicationEmail || undefined,
+      applicationWebsite: applicationWebsite || undefined,
       recruiter: user.userId,
+      published: true, // New jobs are published by default
     });
 
     const populatedJob = await Job.findById(job._id).populate('recruiter', 'name email');

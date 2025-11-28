@@ -6,6 +6,8 @@ import Navbar from '../../components/Navbar';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { getCountryNameFromCode } from '@/lib/countryUtils';
+import { OFFERED_ACTIVITIES_LIST } from '@/lib/offeredActivities';
+import { OFFERED_SERVICES_LIST } from '@/lib/offeredServices';
 
 // Dynamically import Map component to avoid SSR issues
 const MapComponent = dynamic(
@@ -36,12 +38,22 @@ interface Company {
     longitude: number;
   };
   website?: string;
+  contact?: {
+    email?: string;
+    officePhone?: string;
+    whatsapp?: string;
+  };
   socialMedia?: {
     facebook?: string;
     instagram?: string;
     tiktok?: string;
     youtube?: string;
+    twitter?: string;
   };
+  offeredActivities?: string[];
+  offeredServices?: string[];
+  logo?: string;
+  pictures?: string[];
   owner: any;
   createdAt: string;
   updatedAt: string;
@@ -105,11 +117,27 @@ const YouTubeIcon = () => (
   </svg>
 );
 
+const TwitterIcon = () => (
+  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+  </svg>
+);
+
+interface Job {
+  _id: string;
+  title: string;
+  location: string;
+  companyId?: string | { _id?: string; id?: string };
+}
+
 export default function CompanyPage() {
   const params = useParams();
   const [company, setCompany] = useState<Company | null>(null);
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
   useEffect(() => {
     const loadCompany = async () => {
@@ -122,6 +150,11 @@ export default function CompanyPage() {
         }
         
         setCompany(data.company);
+        
+        // Load jobs for this company
+        if (data.company?.id) {
+          loadCompanyJobs(data.company.id);
+        }
       } catch (err: any) {
         setError(err.message || 'Failed to load company');
       } finally {
@@ -133,6 +166,33 @@ export default function CompanyPage() {
       loadCompany();
     }
   }, [params.id]);
+
+  const loadCompanyJobs = async (companyId: string) => {
+    try {
+      const response = await fetch('/api/jobs');
+      const data = await response.json();
+      
+      if (response.ok && data.jobs) {
+        // Filter jobs by companyId and only include published jobs
+        const companyJobs = data.jobs.filter((job: Job) => {
+          if (!job.companyId) return false;
+          // Handle both string and object companyId
+          const jobCompanyId = typeof job.companyId === 'string' 
+            ? job.companyId 
+            : job.companyId._id || job.companyId.id;
+          const matchesCompany = jobCompanyId === companyId || jobCompanyId?.toString() === companyId;
+          // Only include published jobs (published is true OR undefined, exclude false)
+          const jobPublished = (job as any).published;
+          const isPublished = jobPublished !== false; // true or undefined means published
+          return matchesCompany && isPublished;
+        });
+        setJobs(companyJobs);
+      }
+    } catch (err) {
+      // Silently fail - jobs are optional
+      console.error('Failed to load company jobs:', err);
+    }
+  };
 
   if (loading) {
     return (
@@ -182,7 +242,16 @@ export default function CompanyPage() {
       <Navbar />
       <main className="max-w-4xl mx-auto px-4 py-12">
         <div className="bg-white rounded-lg shadow-lg p-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">{company.name}</h1>
+          <div className="flex items-center gap-6 mb-4">
+            {company.logo && (
+              <img
+                src={company.logo}
+                alt={`${company.name} Logo`}
+                className="w-24 h-24 object-contain rounded-lg border border-gray-300 bg-white p-2 flex-shrink-0"
+              />
+            )}
+            <h1 className="text-4xl font-bold text-gray-900">{company.name}</h1>
+          </div>
           
           {company.description && (
             <div className="mb-6">
@@ -190,30 +259,225 @@ export default function CompanyPage() {
             </div>
           )}
 
-          <div className="border-t pt-6 mb-6">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">Contact Information</h2>
-            
-            {formatAddress() && (
-              <div className="mb-4">
-                <p className="text-gray-600">
-                  <span className="font-semibold">Address:</span> {formatAddress()}
-                </p>
+          {/* Pictures Section */}
+          {company.pictures && company.pictures.length > 0 && (
+            <div className="border-t pt-6 mb-6">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4">Pictures</h2>
+              <div className="grid grid-cols-3 gap-2">
+                {company.pictures.map((picture, index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      setLightboxIndex(index);
+                      setIsLightboxOpen(true);
+                    }}
+                    className="w-full h-48 overflow-hidden rounded-lg border border-gray-300 p-0"
+                    type="button"
+                  >
+                    <img
+                      src={picture}
+                      alt={`${company.name} - Image ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
               </div>
-            )}
+            </div>
+          )}
 
-            {company.website && (
-              <div className="mb-4">
-                <a
-                  href={company.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline font-semibold"
+          {/* Lightbox for Pictures */}
+          {isLightboxOpen && company?.pictures && company.pictures.length > 0 && (
+            <div
+              className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
+              onClick={() => setIsLightboxOpen(false)}
+            >
+              <div
+                className="relative max-w-3xl w-full mx-auto"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <img
+                  src={company.pictures[lightboxIndex]}
+                  alt={`${company.name} - Image ${lightboxIndex + 1}`}
+                  className="w-full h-[70vh] object-contain bg-black"
+                />
+                {company.pictures && company.pictures.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setLightboxIndex((prev) =>
+                          prev === 0 ? (company.pictures?.length ?? 1) - 1 : prev - 1
+                        )
+                      }
+                      className="absolute top-1/2 -translate-y-1/2 left-2 bg-white/80 text-gray-900 rounded-full p-2"
+                    >
+                      ‹
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setLightboxIndex((prev) =>
+                          prev === (company.pictures?.length ?? 1) - 1 ? 0 : prev + 1
+                        )
+                      }
+                      className="absolute top-1/2 -translate-y-1/2 right-2 bg-white/80 text-gray-900 rounded-full p-2"
+                    >
+                      ›
+                    </button>
+                  </>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsLightboxOpen(false)}
+                  className="absolute top-2 right-2 bg-white/80 text-gray-900 rounded-full p-2"
                 >
-                  Visit Website →
-                </a>
+                  ✕
+                </button>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* Offering Section */}
+          {(company.offeredActivities && company.offeredActivities.length > 0) ||
+           (company.offeredServices && company.offeredServices.length > 0) ? (
+            <div className="border-t pt-6 mb-6">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4">Offering</h2>
+              <div className="grid md:grid-cols-2 gap-6">
+                {company.offeredActivities && company.offeredActivities.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Offered Activities</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {company.offeredActivities.map((activity, index) => (
+                        <span
+                          key={index}
+                          className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
+                        >
+                          {activity}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {company.offeredServices && company.offeredServices.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Offered Services</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {company.offeredServices.map((service, index) => (
+                        <span
+                          key={index}
+                          className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium"
+                        >
+                          {service}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
+
+          {/* Job Openings Section */}
+          {jobs.length > 0 && (
+            <div className="border-t pt-6 mb-6">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4">Job Openings</h2>
+              <ul className="list-disc list-inside space-y-2">
+                {jobs.map((job) => {
+                  // Extract town from location (assuming format like "Town, Country" or just "Town")
+                  const locationParts = job.location.split(',').map((part: string) => part.trim());
+                  const town = locationParts[0] || job.location;
+                  
+                  return (
+                    <li key={job._id} className="text-gray-700">
+                      <Link
+                        href={`/jobs/${job._id}`}
+                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        {job.title}
+                      </Link>
+                      {', '}
+                      <span className="text-gray-600">{town}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+
+          {/* Contact Information Section */}
+          {(company.website || company.contact?.email || company.contact?.officePhone || company.contact?.whatsapp || company.address) && (
+            <div className="border-t pt-6 mb-6">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4">Contact Information</h2>
+              
+              {formatAddress() && (
+                <div className="mb-4">
+                  <p className="text-gray-600">
+                    <span className="font-semibold">Location:</span> {formatAddress()}
+                  </p>
+                </div>
+              )}
+
+              {company.website && (
+                <div className="mb-4">
+                  <p className="text-gray-600">
+                    <span className="font-semibold">Website:</span>{' '}
+                    <a
+                      href={company.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      {company.website}
+                    </a>
+                  </p>
+                </div>
+              )}
+
+              {company.contact?.email && (
+                <div className="mb-4">
+                  <p className="text-gray-600">
+                    <span className="font-semibold">E-mail:</span>{' '}
+                    <a
+                      href={`mailto:${company.contact.email}`}
+                      className="text-blue-600 hover:underline"
+                    >
+                      {company.contact.email}
+                    </a>
+                  </p>
+                </div>
+              )}
+
+              {company.contact?.officePhone && (
+                <div className="mb-4">
+                  <p className="text-gray-600">
+                    <span className="font-semibold">Office Phone:</span>{' '}
+                    <a
+                      href={`tel:${company.contact.officePhone.replace(/\s/g, '')}`}
+                      className="text-blue-600 hover:underline"
+                    >
+                      {company.contact.officePhone}
+                    </a>
+                  </p>
+                </div>
+              )}
+
+              {company.contact?.whatsapp && (
+                <div className="mb-4">
+                  <p className="text-gray-600">
+                    <span className="font-semibold">WhatsApp:</span>{' '}
+                    <a
+                      href={`https://wa.me/${company.contact.whatsapp.replace(/[^\d]/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      {company.contact.whatsapp}
+                    </a>
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           {company.coordinates && <LocationMap coordinates={company.coordinates} companyName={company.name} />}
 
@@ -221,7 +485,8 @@ export default function CompanyPage() {
             (company.socialMedia.facebook || 
              company.socialMedia.instagram || 
              company.socialMedia.tiktok || 
-             company.socialMedia.youtube) && (
+             company.socialMedia.youtube ||
+             company.socialMedia.twitter) && (
               <div className="border-t pt-6">
                 <h2 className="text-2xl font-semibold text-gray-900 mb-4">Follow Us</h2>
                 <div className="flex gap-4 flex-wrap">
@@ -271,6 +536,18 @@ export default function CompanyPage() {
                       title="YouTube"
                     >
                       <YouTubeIcon />
+                    </a>
+                  )}
+                  {company.socialMedia.twitter && (
+                    <a
+                      href={company.socialMedia.twitter}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center w-12 h-12 text-gray-900 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all"
+                      aria-label="X (Twitter)"
+                      title="X (Twitter)"
+                    >
+                      <TwitterIcon />
                     </a>
                   )}
                 </div>

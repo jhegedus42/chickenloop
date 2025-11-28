@@ -10,26 +10,39 @@ export async function GET(request: NextRequest) {
     await connectDB();
 
     const jobs = await Job.find()
+      .lean() // Get plain JavaScript objects instead of Mongoose documents
       .populate('recruiter', 'name email')
       .populate('companyId', 'name')
       .sort({ createdAt: -1 });
 
-    const jobsWithData = jobs.map((job) => ({
-      id: job._id,
-      title: job.title,
-      description: job.description,
-      company: job.company,
-      location: job.location,
-      country: (job as any).country,
-      salary: job.salary,
-      type: job.type,
-      languages: (job as any).languages || [],
-      qualifications: (job as any).qualifications || [],
-      pictures: (job as any).pictures || [],
-      recruiter: job.recruiter,
-      createdAt: job.createdAt,
-      updatedAt: job.updatedAt,
-    }));
+    const jobsWithData = jobs.map((job: any) => {
+      // Access spam field - will be 'yes', 'no', or undefined (defaults to 'no')
+      const spamStatus = job.spam === 'yes' ? 'yes' : 'no';
+      return {
+        id: job._id,
+        title: job.title,
+        description: job.description,
+        company: job.company,
+        location: job.location,
+        country: job.country,
+        salary: job.salary,
+        type: job.type,
+        languages: job.languages || [],
+        qualifications: job.qualifications || [],
+        sports: job.sports || [],
+        occupationalAreas: job.occupationalAreas || [],
+        pictures: job.pictures || [],
+        spam: spamStatus,
+        published: job.published !== false, // Default to true if not explicitly false
+        applyByEmail: job.applyByEmail || false,
+        applyByWebsite: job.applyByWebsite || false,
+        applicationEmail: job.applicationEmail,
+        applicationWebsite: job.applicationWebsite,
+        recruiter: job.recruiter,
+        createdAt: job.createdAt,
+        updatedAt: job.updatedAt,
+      };
+    });
 
     return NextResponse.json({ jobs: jobsWithData }, { status: 200 });
   } catch (error: any) {

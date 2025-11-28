@@ -25,10 +25,12 @@ export async function GET(
         instagram: cleanedSocialMedia.instagram?.trim() || undefined,
         tiktok: cleanedSocialMedia.tiktok?.trim() || undefined,
         youtube: cleanedSocialMedia.youtube?.trim() || undefined,
+        twitter: cleanedSocialMedia.twitter?.trim() || undefined,
       };
       // If all fields are undefined, set to undefined
       if (!cleanedSocialMedia.facebook && !cleanedSocialMedia.instagram && 
-          !cleanedSocialMedia.tiktok && !cleanedSocialMedia.youtube) {
+          !cleanedSocialMedia.tiktok && !cleanedSocialMedia.youtube && 
+          !cleanedSocialMedia.twitter) {
         cleanedSocialMedia = undefined;
       }
     }
@@ -41,7 +43,12 @@ export async function GET(
         address: company.address,
         coordinates: company.coordinates,
         website: company.website,
+        contact: company.contact,
         socialMedia: cleanedSocialMedia,
+        offeredActivities: company.offeredActivities,
+        offeredServices: company.offeredServices,
+        logo: company.logo,
+        pictures: company.pictures,
         owner: company.owner,
         createdAt: company.createdAt,
         updatedAt: company.updatedAt,

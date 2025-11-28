@@ -54,7 +54,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    const { title, description, location, country, salary, type, company, languages, qualifications, pictures } = await request.json();
+    const { title, description, location, country, salary, type, company, languages, qualifications, sports, occupationalAreas, pictures, spam, published, applyByEmail, applyByWebsite, applicationEmail, applicationWebsite } = await request.json();
 
     if (title) job.title = title;
     if (description) job.description = description;
@@ -75,6 +75,12 @@ export async function PUT(
     if (qualifications !== undefined) {
       job.qualifications = qualifications || [];
     }
+    if (sports !== undefined) {
+      job.sports = sports || [];
+    }
+    if (occupationalAreas !== undefined) {
+      job.occupationalAreas = occupationalAreas || [];
+    }
     
     // Update pictures array (max 3)
     if (pictures !== undefined) {
@@ -85,6 +91,32 @@ export async function PUT(
         );
       }
       job.pictures = pictures || [];
+    }
+    
+    // Update spam flag (admin can clear spam flag)
+    if (spam !== undefined) {
+      if (spam === 'yes' || spam === 'no') {
+        job.spam = spam;
+      }
+    }
+    
+    // Update published flag (admin can publish/unpublish any job)
+    if (published !== undefined) {
+      (job as any).published = published === true;
+    }
+    
+    // Update application fields
+    if (applyByEmail !== undefined) {
+      (job as any).applyByEmail = applyByEmail === true;
+    }
+    if (applyByWebsite !== undefined) {
+      (job as any).applyByWebsite = applyByWebsite === true;
+    }
+    if (applicationEmail !== undefined) {
+      (job as any).applicationEmail = applicationEmail || undefined;
+    }
+    if (applicationWebsite !== undefined) {
+      (job as any).applicationWebsite = applicationWebsite || undefined;
     }
 
     await job.save();

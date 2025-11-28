@@ -11,3 +11,4 @@ export const OCCUPATIONAL_AREAS = [
   'Sales / Retail',
 ];
 
+

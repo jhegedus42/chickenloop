@@ -13,10 +13,34 @@ export async function apiRequest(
     credentials: 'include',
   });
 
-  const data = await response.json();
+  // Check if response is JSON before parsing
+  const contentType = response.headers.get('content-type');
+  let data;
+  
+  if (contentType && contentType.includes('application/json')) {
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      // If JSON parsing fails, try to get text
+      const text = await response.text();
+      throw new Error(text || 'Invalid JSON response');
+    }
+  } else {
+    // If not JSON, get as text
+    const text = await response.text();
+    if (!response.ok) {
+      throw new Error(text || 'An error occurred');
+    }
+    // Try to parse as JSON if it looks like JSON
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error(text || 'Invalid response format');
+    }
+  }
 
   if (!response.ok) {
-    throw new Error(data.error || 'An error occurred');
+    throw new Error(data.error || data.message || 'An error occurred');
   }
 
   return data;

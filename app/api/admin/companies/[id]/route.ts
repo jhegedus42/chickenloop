@@ -29,7 +29,11 @@ export async function GET(
         address: company.address,
         coordinates: company.coordinates,
         website: company.website,
+        contact: company.contact,
         socialMedia: company.socialMedia,
+        offeredActivities: company.offeredActivities,
+        offeredServices: company.offeredServices,
+        pictures: company.pictures,
         owner: company.owner,
         createdAt: company.createdAt,
         updatedAt: company.updatedAt,
@@ -65,7 +69,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Company not found' }, { status: 404 });
     }
 
-    const { name, description, address, coordinates, website, socialMedia } = await request.json();
+    const { name, description, address, coordinates, website, contact, socialMedia, offeredActivities, offeredServices, pictures } = await request.json();
 
     // Validate that coordinates are required for updates
     if (coordinates === undefined || coordinates === null || !coordinates.latitude || !coordinates.longitude) {
@@ -78,6 +82,15 @@ export async function PUT(
     if (name) company.name = name;
     if (description !== undefined) company.description = description;
     if (website !== undefined) company.website = website;
+    
+    // Update contact
+    if (contact !== undefined) {
+      if (!company.contact) company.contact = {};
+      if (contact.email !== undefined) company.contact.email = contact.email?.trim().toLowerCase() || undefined;
+      if (contact.officePhone !== undefined) company.contact.officePhone = contact.officePhone?.trim() || undefined;
+      if (contact.whatsapp !== undefined) company.contact.whatsapp = contact.whatsapp?.trim() || undefined;
+      company.markModified('contact');
+    }
     
     // Update nested objects properly - normalize empty strings to undefined
     if (address !== undefined) {
@@ -103,7 +116,23 @@ export async function PUT(
       if (socialMedia.instagram !== undefined) company.socialMedia.instagram = socialMedia.instagram?.trim() || undefined;
       if (socialMedia.tiktok !== undefined) company.socialMedia.tiktok = socialMedia.tiktok?.trim() || undefined;
       if (socialMedia.youtube !== undefined) company.socialMedia.youtube = socialMedia.youtube?.trim() || undefined;
+      if (socialMedia.twitter !== undefined) company.socialMedia.twitter = socialMedia.twitter?.trim() || undefined;
       company.markModified('socialMedia');
+    }
+
+    if (offeredActivities !== undefined) {
+      company.offeredActivities = offeredActivities || [];
+      company.markModified('offeredActivities');
+    }
+
+    if (offeredServices !== undefined) {
+      company.offeredServices = offeredServices || [];
+      company.markModified('offeredServices');
+    }
+
+    if (pictures !== undefined) {
+      company.pictures = pictures || [];
+      company.markModified('pictures');
     }
 
     await company.save();

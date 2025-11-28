@@ -4,7 +4,7 @@ import { join } from 'path';
 import { existsSync } from 'fs';
 import { requireRole } from '@/lib/auth';
 
-// POST - Upload job pictures (recruiters only)
+// POST - Upload company pictures (recruiters only)
 export async function POST(request: NextRequest) {
   try {
     const user = requireRole(request, ['recruiter']);
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'jobs');
+    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'companies');
     
     // Ensure uploads directory exists
     if (!existsSync(uploadsDir)) {
@@ -62,11 +62,11 @@ export async function POST(request: NextRequest) {
       const timestamp = Date.now();
       const randomStr = Math.random().toString(36).substring(2, 15);
       const extension = file.name.split('.').pop() || 'jpg';
-      const filename = `job-${timestamp}-${randomStr}.${extension}`;
+      const filename = `company-${timestamp}-${randomStr}.${extension}`;
       const filepath = join(uploadsDir, filename);
 
       await writeFile(filepath, buffer);
-      uploadedPaths.push(`/uploads/jobs/${filename}`);
+      uploadedPaths.push(`/uploads/companies/${filename}`);
     }
 
     return NextResponse.json(
@@ -89,7 +89,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-
-
 

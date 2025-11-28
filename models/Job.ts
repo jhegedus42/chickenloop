@@ -14,6 +14,12 @@ export interface IJob extends Document {
   sports?: string[]; // Array of sports/activity strings
   occupationalAreas?: string[];
   pictures?: string[]; // Array of image paths (max 3)
+  spam?: 'yes' | 'no'; // Spam flag: 'yes' if flagged as spam, 'no' otherwise
+  published?: boolean; // Published flag: true if published (visible to public), false if unpublished
+  applyByEmail?: boolean; // Whether applications can be submitted by email
+  applyByWebsite?: boolean; // Whether applications can be submitted via website
+  applicationEmail?: string; // Email address for applications
+  applicationWebsite?: string; // Website URL for applications
   recruiter: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -62,12 +68,6 @@ const JobSchema: Schema = new Schema(
     },
     languages: {
       type: [String],
-      validate: {
-        validator: function(v: string[]) {
-          return v.length <= 3;
-        },
-        message: 'A job can have at most 3 languages',
-      },
     },
     qualifications: {
       type: [String],
@@ -86,6 +86,32 @@ const JobSchema: Schema = new Schema(
         },
         message: 'A job can have at most 3 pictures',
       },
+    },
+    spam: {
+      type: String,
+      enum: ['yes', 'no'],
+      default: 'no',
+    },
+    published: {
+      type: Boolean,
+      default: true,
+    },
+    applyByEmail: {
+      type: Boolean,
+      default: false,
+    },
+    applyByWebsite: {
+      type: Boolean,
+      default: false,
+    },
+    applicationEmail: {
+      type: String,
+      trim: true,
+      lowercase: true,
+    },
+    applicationWebsite: {
+      type: String,
+      trim: true,
     },
   },
   {

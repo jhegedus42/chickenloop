@@ -15,6 +15,9 @@ interface Job {
   country?: string;
   salary?: string;
   type: string;
+  languages?: string[];
+  occupationalAreas?: string[];
+  sports?: string[];
   pictures?: string[];
   recruiter: {
     name: string;
@@ -85,23 +88,138 @@ function TimeAgoDisplay({ date }: { date: string }) {
 
 export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [allJobs, setAllJobs] = useState<Job[]>([]); // Store all jobs for filtering
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedCountry, setSelectedCountry] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedSport, setSelectedSport] = useState<string>('');
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('');
 
   useEffect(() => {
     // Load jobs regardless of authentication status
     loadJobs();
   }, []);
 
+  useEffect(() => {
+    // Filter jobs when any filter changes
+    let filtered = allJobs;
+
+    // Filter by country
+    if (selectedCountry) {
+      filtered = filtered.filter((job) => {
+        if (!job.country) return false;
+        return job.country.toUpperCase() === selectedCountry.toUpperCase();
+      });
+    }
+
+    // Filter by job category
+    if (selectedCategory) {
+      filtered = filtered.filter((job) => {
+        if (!job.occupationalAreas || job.occupationalAreas.length === 0) return false;
+        return job.occupationalAreas.includes(selectedCategory);
+      });
+    }
+
+    // Filter by sport/activity
+    if (selectedSport) {
+      filtered = filtered.filter((job) => {
+        if (!job.sports || job.sports.length === 0) return false;
+        return job.sports.includes(selectedSport);
+      });
+    }
+
+    // Filter by language
+    if (selectedLanguage) {
+      filtered = filtered.filter((job) => {
+        if (!job.languages || job.languages.length === 0) return false;
+        return job.languages.includes(selectedLanguage);
+      });
+    }
+
+    setJobs(filtered);
+  }, [selectedCountry, selectedCategory, selectedSport, selectedLanguage, allJobs]);
+
   const loadJobs = async () => {
     try {
       const data = await jobsApi.getAll();
-      setJobs(data.jobs || []);
+      const jobsList = data.jobs || [];
+      setAllJobs(jobsList);
+      setJobs(jobsList);
     } catch (err: any) {
       setError(err.message || 'Failed to load jobs');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Get unique countries from all jobs
+  const getUniqueCountries = (): Array<{ code: string; name: string }> => {
+    const countryMap = new Map<string, string>();
+    
+    allJobs.forEach((job) => {
+      if (job.country && job.country.trim()) {
+        const code = job.country.toUpperCase();
+        if (!countryMap.has(code)) {
+          countryMap.set(code, getCountryNameFromCode(code));
+        }
+      }
+    });
+
+    // Convert to array and sort by country name
+    const countries = Array.from(countryMap.entries())
+      .map(([code, name]) => ({ code, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    return countries;
+  };
+
+  // Get unique job categories from all jobs
+  const getUniqueCategories = (): string[] => {
+    const categorySet = new Set<string>();
+    
+    allJobs.forEach((job) => {
+      if (job.occupationalAreas && job.occupationalAreas.length > 0) {
+        job.occupationalAreas.forEach((category) => {
+          categorySet.add(category);
+        });
+      }
+    });
+
+    // Convert to array and sort alphabetically
+    return Array.from(categorySet).sort();
+  };
+
+  // Get unique sports/activities from all jobs
+  const getUniqueSports = (): string[] => {
+    const sportSet = new Set<string>();
+    
+    allJobs.forEach((job) => {
+      if (job.sports && job.sports.length > 0) {
+        job.sports.forEach((sport) => {
+          sportSet.add(sport);
+        });
+      }
+    });
+
+    // Convert to array and sort alphabetically
+    return Array.from(sportSet).sort();
+  };
+
+  // Get unique languages from all jobs
+  const getUniqueLanguages = (): string[] => {
+    const languageSet = new Set<string>();
+    
+    allJobs.forEach((job) => {
+      if (job.languages && job.languages.length > 0) {
+        job.languages.forEach((language) => {
+          languageSet.add(language);
+        });
+      }
+    });
+
+    // Convert to array and sort alphabetically
+    return Array.from(languageSet).sort();
   };
 
   if (loading) {
@@ -119,11 +237,136 @@ export default function JobsPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50">
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <h1 className="text-4xl font-bold text-gray-900 mb-8">Available Jobs</h1>
+        <div className="flex flex-col mb-8 gap-4">
+          <h1 className="text-4xl font-bold text-gray-900">Available Jobs</h1>
+          
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row items-end sm:items-center sm:justify-end gap-3 flex-wrap">
+            {/* Country Filter */}
+            <div className="flex items-center gap-3">
+              <label htmlFor="country-filter" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                Country:
+              </label>
+              <select
+                id="country-filter"
+                value={selectedCountry}
+                onChange={(e) => setSelectedCountry(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white min-w-[200px]"
+              >
+                <option value="">All Countries</option>
+                {getUniqueCountries().map((country) => (
+                  <option key={country.code} value={country.code}>
+                    {country.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Job Category Filter */}
+            <div className="flex items-center gap-3">
+              <label htmlFor="category-filter" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                Job Category:
+              </label>
+              <select
+                id="category-filter"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white min-w-[200px]"
+              >
+                <option value="">All Categories</option>
+                {getUniqueCategories().map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Sport Filter */}
+            <div className="flex items-center gap-3">
+              <label htmlFor="sport-filter" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                Sport:
+              </label>
+              <select
+                id="sport-filter"
+                value={selectedSport}
+                onChange={(e) => setSelectedSport(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white min-w-[200px]"
+              >
+                <option value="">All Sports</option>
+                {getUniqueSports().map((sport) => (
+                  <option key={sport} value={sport}>
+                    {sport}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Languages Filter */}
+            <div className="flex items-center gap-3">
+              <label htmlFor="language-filter" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                Language:
+              </label>
+              <select
+                id="language-filter"
+                value={selectedLanguage}
+                onChange={(e) => setSelectedLanguage(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white min-w-[200px]"
+              >
+                <option value="">All Languages</option>
+                {getUniqueLanguages().map((language) => (
+                  <option key={language} value={language}>
+                    {language}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Clear Filters Button */}
+            {(selectedCountry || selectedCategory || selectedSport || selectedLanguage) && (
+              <button
+                onClick={() => {
+                  setSelectedCountry('');
+                  setSelectedCategory('');
+                  setSelectedSport('');
+                  setSelectedLanguage('');
+                }}
+                className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 underline whitespace-nowrap"
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
+        </div>
 
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             {error}
+          </div>
+        )}
+
+        {(selectedCountry || selectedCategory || selectedSport || selectedLanguage) && (
+          <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded mb-4">
+            Showing jobs
+            {selectedCountry && (
+              <span> in: <strong>{getCountryNameFromCode(selectedCountry)}</strong></span>
+            )}
+            {selectedCategory && (
+              <span>
+                {selectedCountry ? ',' : ''} category: <strong>{selectedCategory}</strong>
+              </span>
+            )}
+            {selectedSport && (
+              <span>
+                {(selectedCountry || selectedCategory) ? ',' : ''} sport: <strong>{selectedSport}</strong>
+              </span>
+            )}
+            {selectedLanguage && (
+              <span>
+                {(selectedCountry || selectedCategory || selectedSport) ? ',' : ''} language: <strong>{selectedLanguage}</strong>
+              </span>
+            )}
+            {' '}({jobs.length} {jobs.length === 1 ? 'job' : 'jobs'})
           </div>
         )}
 

@@ -9,6 +9,8 @@ import {
   getCountryNameFromCode,
   normalizeCountryForStorage,
 } from '@/lib/countryUtils';
+import { OFFERED_ACTIVITIES_LIST } from '@/lib/offeredActivities';
+import { OFFERED_SERVICES_LIST } from '@/lib/offeredServices';
 import dynamic from 'next/dynamic';
 
 // Dynamically import map component to avoid SSR issues
@@ -58,15 +60,29 @@ export default function NewCompanyPage() {
     },
     coordinates: null as { latitude: number; longitude: number } | null,
     website: '',
+    contact: {
+      email: '',
+      officePhone: '',
+      whatsapp: '',
+    },
     socialMedia: {
       facebook: '',
       instagram: '',
       tiktok: '',
       youtube: '',
+      twitter: '',
     },
+    offeredActivities: [] as string[],
+    offeredServices: [] as string[],
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [selectedLogo, setSelectedLogo] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>('');
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [selectedPictures, setSelectedPictures] = useState<File[]>([]);
+  const [picturePreviews, setPicturePreviews] = useState<string[]>([]);
+  const [uploadingPictures, setUploadingPictures] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -170,6 +186,137 @@ export default function NewCompanyPage() {
     });
   };
 
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      setError(`Invalid file type: ${file.name}. Only images (JPEG, PNG, WEBP, GIF) are allowed.`);
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      setError(`File ${file.name} is too large. Maximum size is 5MB.`);
+      return;
+    }
+
+    setSelectedLogo(file);
+    setError('');
+
+    // Create preview URL
+    const preview = URL.createObjectURL(file);
+    setLogoPreview(preview);
+  };
+
+  const removeLogo = () => {
+    if (logoPreview) {
+      URL.revokeObjectURL(logoPreview);
+    }
+    setSelectedLogo(null);
+    setLogoPreview('');
+  };
+
+  const handlePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    
+    if (files.length + selectedPictures.length > 3) {
+      setError('Maximum 3 pictures allowed');
+      return;
+    }
+
+    // Validate file types and sizes
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+
+    for (const file of files) {
+      if (!validTypes.includes(file.type)) {
+        setError(`Invalid file type: ${file.name}. Only images (JPEG, PNG, WEBP, GIF) are allowed.`);
+        return;
+      }
+      if (file.size > maxSize) {
+        setError(`File ${file.name} is too large. Maximum size is 5MB.`);
+        return;
+      }
+    }
+
+    const newPictures = [...selectedPictures, ...files];
+    setSelectedPictures(newPictures);
+    setError('');
+
+    // Create preview URLs
+    const newPreviews = files.map(file => URL.createObjectURL(file));
+    setPicturePreviews([...picturePreviews, ...newPreviews]);
+  };
+
+  const removePicture = (index: number) => {
+    const newPictures = selectedPictures.filter((_, i) => i !== index);
+    const newPreviews = picturePreviews.filter((_, i) => i !== index);
+    
+    // Revoke the URL to free memory
+    URL.revokeObjectURL(picturePreviews[index]);
+    
+    setSelectedPictures(newPictures);
+    setPicturePreviews(newPreviews);
+  };
+
+  const uploadLogo = async (): Promise<string | null> => {
+    if (!selectedLogo) return null;
+
+    setUploadingLogo(true);
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append('logo', selectedLogo);
+
+      const response = await fetch('/api/company/upload-logo', {
+        method: 'POST',
+        body: uploadFormData,
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to upload logo');
+      }
+
+      return data.url || null;
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const uploadPictures = async (): Promise<string[]> => {
+    if (selectedPictures.length === 0) return [];
+
+    setUploadingPictures(true);
+    try {
+      const uploadFormData = new FormData();
+      selectedPictures.forEach((file) => {
+        uploadFormData.append('pictures', file);
+      });
+
+      const response = await fetch('/api/company/upload', {
+        method: 'POST',
+        body: uploadFormData,
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to upload pictures');
+      }
+
+      return data.paths || [];
+    } finally {
+      setUploadingPictures(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -183,6 +330,12 @@ export default function NewCompanyPage() {
     setLoading(true);
 
     try {
+      // Upload logo first
+      const logoUrl = await uploadLogo();
+      
+      // Upload pictures
+      const picturePaths = await uploadPictures();
+
       const normalizedCountry = normalizeCountryForStorage(formData.address.country);
       await companyApi.create({
         ...formData,
@@ -190,7 +343,14 @@ export default function NewCompanyPage() {
           ...formData.address,
           country: normalizedCountry || undefined,
         },
+        logo: logoUrl,
+        pictures: picturePaths,
       });
+
+      // Clean up preview URLs
+      if (logoPreview) URL.revokeObjectURL(logoPreview);
+      picturePreviews.forEach(url => URL.revokeObjectURL(url));
+
       router.push('/recruiter');
     } catch (err: any) {
       setError(err.message || 'Failed to create company');
@@ -250,6 +410,130 @@ export default function NewCompanyPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
               />
             </div>
+
+            {/* Offering Section */}
+            <div className="border-t pt-4 mt-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Offering</h3>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Offered Activities (Optional)
+                  </label>
+                  {formData.offeredActivities.length > 0 && (
+                    <div className="mb-3 flex flex-wrap gap-2">
+                      {formData.offeredActivities.map((activity) => (
+                        <span
+                          key={activity}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800"
+                        >
+                          {activity}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setFormData({
+                                ...formData,
+                                offeredActivities: formData.offeredActivities.filter((a) => a !== activity),
+                              })
+                            }
+                            className="ml-2 text-indigo-600 hover:text-indigo-800"
+                            aria-label={`Remove ${activity}`}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="max-h-56 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
+                    {OFFERED_ACTIVITIES_LIST.map((activity) => (
+                      <label
+                        key={activity}
+                        className="flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.offeredActivities.includes(activity)}
+                          onChange={() => {
+                            const exists = formData.offeredActivities.includes(activity);
+                            setFormData({
+                              ...formData,
+                              offeredActivities: exists
+                                ? formData.offeredActivities.filter((a) => a !== activity)
+                                : [...formData.offeredActivities, activity],
+                            });
+                          }}
+                          className="mr-3 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                        />
+                        <span className="text-sm text-gray-900">{activity}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Select any activities that your company offers (multiple selections allowed).
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Offered Services (Optional)
+                  </label>
+                  {formData.offeredServices.length > 0 && (
+                    <div className="mb-3 flex flex-wrap gap-2">
+                      {formData.offeredServices.map((service) => (
+                        <span
+                          key={service}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800"
+                        >
+                          {service}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setFormData({
+                                ...formData,
+                                offeredServices: formData.offeredServices.filter((s) => s !== service),
+                              })
+                            }
+                            className="ml-2 text-indigo-600 hover:text-indigo-800"
+                            aria-label={`Remove ${service}`}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="max-h-56 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
+                    {OFFERED_SERVICES_LIST.map((service) => (
+                      <label
+                        key={service}
+                        className="flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.offeredServices.includes(service)}
+                          onChange={() => {
+                            const exists = formData.offeredServices.includes(service);
+                            setFormData({
+                              ...formData,
+                              offeredServices: exists
+                                ? formData.offeredServices.filter((s) => s !== service)
+                                : [...formData.offeredServices, service],
+                            });
+                          }}
+                          className="mr-3 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                        />
+                        <span className="text-sm text-gray-900">{service}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Select any services that your company offers (multiple selections allowed).
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <div className="border-t pt-4 mt-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-3">Location</h3>
               
@@ -425,6 +709,86 @@ export default function NewCompanyPage() {
                 </div>
               )}
             </div>
+
+            {/* Contact Section */}
+            <div className="border-t pt-4 mt-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="website" className="block text-sm font-medium text-gray-700 mb-1">
+                    Website
+                  </label>
+                  <input
+                    id="website"
+                    type="url"
+                    value={formData.website}
+                    onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                    placeholder="https://example.com"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="contact-email" className="block text-sm font-medium text-gray-700 mb-1">
+                    E-mail
+                  </label>
+                  <input
+                    id="contact-email"
+                    type="email"
+                    value={formData.contact.email}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      contact: { ...formData.contact, email: e.target.value }
+                    })}
+                    placeholder="example@company.com"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="contact-office-phone" className="block text-sm font-medium text-gray-700 mb-1">
+                    Office Phone
+                  </label>
+                  <input
+                    id="contact-office-phone"
+                    type="tel"
+                    value={formData.contact.officePhone}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      contact: { ...formData.contact, officePhone: e.target.value }
+                    })}
+                    placeholder="+34 912345678"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Format: +[country code][number] (e.g., +34 912345678)
+                  </p>
+                </div>
+
+                <div>
+                  <label htmlFor="contact-whatsapp" className="block text-sm font-medium text-gray-700 mb-1">
+                    WhatsApp
+                  </label>
+                  <input
+                    id="contact-whatsapp"
+                    type="tel"
+                    value={formData.contact.whatsapp}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      contact: { ...formData.contact, whatsapp: e.target.value }
+                    })}
+                    placeholder="+34 912345678"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Format: +[country code][number] (e.g., +1 234 567 8900)
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Social Media Section */}
             <div className="border-t pt-4 mt-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-3">Social Media</h3>
               <div className="space-y-4">
@@ -500,28 +864,121 @@ export default function NewCompanyPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                   />
                 </div>
+                <div>
+                  <label htmlFor="twitter" className="block text-sm font-medium text-gray-700 mb-1">
+                    X (Twitter) URL
+                  </label>
+                  <input
+                    id="twitter"
+                    type="url"
+                    value={formData.socialMedia.twitter}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        socialMedia: { ...formData.socialMedia, twitter: e.target.value },
+                      })
+                    }
+                    placeholder="https://x.com/yourhandle"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  />
+                </div>
               </div>
             </div>
-            <div>
-              <label htmlFor="website" className="block text-sm font-medium text-gray-700 mb-1">
-                Website
-              </label>
-              <input
-                id="website"
-                type="url"
-                value={formData.website}
-                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                placeholder="https://example.com"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-              />
+
+            {/* Logo Section */}
+            <div className="border-t pt-4 mt-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Company Logo</h3>
+              
+              <div>
+                <label htmlFor="logo" className="block text-sm font-medium text-gray-700 mb-1">
+                  Upload Logo (Optional)
+                </label>
+                {logoPreview && (
+                  <div className="mb-4">
+                    <p className="text-sm text-gray-600 mb-2">Logo Preview:</p>
+                    <div className="relative inline-block group">
+                      <img
+                        src={logoPreview}
+                        alt="Company Logo Preview"
+                        className="w-32 h-32 object-contain rounded-lg border border-gray-300 bg-white p-2"
+                      />
+                      <button
+                        type="button"
+                        onClick={removeLogo}
+                        className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-sm font-bold"
+                        aria-label="Remove logo"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <input
+                  id="logo"
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                  onChange={handleLogoChange}
+                  disabled={uploadingLogo}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Maximum 5MB. Supported formats: JPEG, PNG, WEBP, GIF. Recommended: Square image (e.g., 200x200px)
+                </p>
+              </div>
             </div>
+
+            {/* Pictures Section */}
+            <div className="border-t pt-4 mt-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Pictures</h3>
+              
+              <div>
+                <label htmlFor="pictures" className="block text-sm font-medium text-gray-700 mb-1">
+                  Upload Pictures (Optional - up to 3)
+                </label>
+                <input
+                  id="pictures"
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                  multiple
+                  onChange={handlePictureChange}
+                  disabled={selectedPictures.length >= 3 || uploadingPictures}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Maximum 3 pictures, 5MB each. Supported formats: JPEG, PNG, WEBP, GIF
+                </p>
+                {selectedPictures.length > 0 && (
+                  <div className="mt-4 grid grid-cols-3 gap-4">
+                    {picturePreviews.map((preview, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={preview}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg border border-gray-300"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removePicture(index)}
+                          className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-sm font-bold"
+                          aria-label="Remove picture"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="flex gap-4">
               <button
                 type="submit"
                 disabled={loading}
                 className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                disabled={loading || uploadingPictures || uploadingLogo}
               >
-                {loading ? 'Creating...' : 'Create Company'}
+                {loading || uploadingPictures || uploadingLogo ? 'Creating...' : 'Create Company'}
               </button>
               <button
                 type="button"

@@ -7,7 +7,11 @@ import Navbar from '../components/Navbar';
 import { adminApi } from '@/lib/api';
 import { OFFICIAL_LANGUAGES } from '@/lib/languages';
 import { QUALIFICATIONS } from '@/lib/qualifications';
+import { OFFERED_ACTIVITIES_LIST } from '@/lib/offeredActivities';
+import { OFFERED_SERVICES_LIST } from '@/lib/offeredServices';
 import { getCountryNameFromCode } from '@/lib/countryUtils';
+import { SPORTS_LIST } from '@/lib/sports';
+import { OCCUPATIONAL_AREAS } from '@/lib/occupationalAreas';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 
@@ -49,11 +53,17 @@ interface Company {
     longitude: number;
   };
   website?: string;
+  contact?: {
+    email?: string;
+    officePhone?: string;
+    whatsapp?: string;
+  };
   socialMedia?: {
     facebook?: string;
     instagram?: string;
     tiktok?: string;
     youtube?: string;
+    twitter?: string;
   };
   owner: any;
   createdAt: string;
@@ -71,7 +81,15 @@ interface Job {
   type: string;
   languages?: string[];
   qualifications?: string[];
+  sports?: string[];
+  occupationalAreas?: string[];
   pictures?: string[];
+  spam?: 'yes' | 'no';
+  published?: boolean;
+  applyByEmail?: boolean;
+  applyByWebsite?: boolean;
+  applicationEmail?: string;
+  applicationWebsite?: string;
   recruiter: any;
   createdAt: string;
   updatedAt: string;
@@ -227,13 +245,25 @@ export default function AdminDashboard() {
     },
     coordinates: null as { latitude: number; longitude: number } | null,
     website: '',
+    contact: {
+      email: '',
+      officePhone: '',
+      whatsapp: '',
+    },
     socialMedia: {
       facebook: '',
       instagram: '',
       tiktok: '',
       youtube: '',
+      twitter: '',
     },
+      offeredActivities: [] as string[],
+      offeredServices: [] as string[],
   });
+  const [existingCompanyPictures, setExistingCompanyPictures] = useState<string[]>([]);
+  const [selectedCompanyPictures, setSelectedCompanyPictures] = useState<File[]>([]);
+  const [companyPicturePreviews, setCompanyPicturePreviews] = useState<string[]>([]);
+  const [uploadingCompanyPictures, setUploadingCompanyPictures] = useState(false);
   const [geocodingCompany, setGeocodingCompany] = useState(false);
   const [companySearchQuery, setCompanySearchQuery] = useState('');
   const [companySearchResults, setCompanySearchResults] = useState<any[]>([]);
@@ -253,7 +283,13 @@ export default function AdminDashboard() {
     type: 'full-time',
     languages: [] as string[],
     qualifications: [] as string[],
+    sports: [] as string[],
+    occupationalAreas: [] as string[],
     pictures: [] as string[],
+    applyByEmail: false,
+    applyByWebsite: false,
+    applicationEmail: '',
+    applicationWebsite: '',
   });
 
   useEffect(() => {
@@ -437,13 +473,22 @@ export default function AdminDashboard() {
       },
       coordinates: existingCoordinates,
       website: company.website || '',
+      contact: {
+        email: (company as any).contact?.email || '',
+        officePhone: (company as any).contact?.officePhone || '',
+        whatsapp: (company as any).contact?.whatsapp || '',
+      },
       socialMedia: {
         facebook: existingSocialMedia.facebook || '',
         instagram: existingSocialMedia.instagram || '',
         tiktok: existingSocialMedia.tiktok || '',
         youtube: existingSocialMedia.youtube || '',
+        twitter: existingSocialMedia.twitter || '',
       },
+      offeredActivities: (company as any).offeredActivities || [],
+      offeredServices: (company as any).offeredServices || [],
     });
+    setExistingCompanyPictures((company as any).pictures || []);
     
     // Initialize search query and map mount state
     setCompanySearchQuery('');
@@ -535,6 +580,84 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleCompanyPictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const totalPictures = existingCompanyPictures.length + selectedCompanyPictures.length + files.length;
+    
+    if (totalPictures > 3) {
+      setError('Maximum 3 pictures allowed (including existing ones)');
+      return;
+    }
+
+    // Validate file types and sizes
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+
+    for (const file of files) {
+      if (!validTypes.includes(file.type)) {
+        setError(`Invalid file type: ${file.name}. Only images (JPEG, PNG, WEBP, GIF) are allowed.`);
+        return;
+      }
+      if (file.size > maxSize) {
+        setError(`File ${file.name} is too large. Maximum size is 5MB.`);
+        return;
+      }
+    }
+
+    const newPictures = [...selectedCompanyPictures, ...files];
+    setSelectedCompanyPictures(newPictures);
+    setError('');
+
+    // Create preview URLs
+    const newPreviews = files.map(file => URL.createObjectURL(file));
+    setCompanyPicturePreviews([...companyPicturePreviews, ...newPreviews]);
+  };
+
+  const removeExistingCompanyPicture = (index: number) => {
+    const newPictures = existingCompanyPictures.filter((_, i) => i !== index);
+    setExistingCompanyPictures(newPictures);
+  };
+
+  const removeNewCompanyPicture = (index: number) => {
+    const newPictures = selectedCompanyPictures.filter((_, i) => i !== index);
+    const newPreviews = companyPicturePreviews.filter((_, i) => i !== index);
+    
+    // Revoke the URL to free memory
+    URL.revokeObjectURL(companyPicturePreviews[index]);
+    
+    setSelectedCompanyPictures(newPictures);
+    setCompanyPicturePreviews(newPreviews);
+  };
+
+  const uploadCompanyPictures = async (): Promise<string[]> => {
+    if (selectedCompanyPictures.length === 0) return existingCompanyPictures;
+
+    setUploadingCompanyPictures(true);
+    try {
+      const uploadFormData = new FormData();
+      selectedCompanyPictures.forEach((file) => {
+        uploadFormData.append('pictures', file);
+      });
+
+      const response = await fetch('/api/company/upload', {
+        method: 'POST',
+        body: uploadFormData,
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to upload pictures');
+      }
+
+      // Merge existing pictures with newly uploaded ones
+      return [...existingCompanyPictures, ...(data.paths || [])];
+    } finally {
+      setUploadingCompanyPictures(false);
+    }
+  };
+
   const handleUpdateCompany = async () => {
     if (!editingCompany) return;
 
@@ -546,7 +669,17 @@ export default function AdminDashboard() {
 
     setError('');
     try {
-      await adminApi.updateCompany(editingCompany.id, companyEditForm);
+      // Upload pictures first
+      const picturePaths = await uploadCompanyPictures();
+
+      await adminApi.updateCompany(editingCompany.id, {
+        ...companyEditForm,
+        pictures: picturePaths,
+      });
+
+      // Clean up preview URLs
+      companyPicturePreviews.forEach(url => URL.revokeObjectURL(url));
+
       setEditingCompany(null);
       loadCompanies();
     } catch (err: any) {
@@ -612,7 +745,13 @@ export default function AdminDashboard() {
       type: job.type,
       languages: job.languages || [],
       qualifications: job.qualifications || [],
+      sports: job.sports || [],
+      occupationalAreas: job.occupationalAreas || [],
       pictures: job.pictures || [],
+      applyByEmail: job.applyByEmail || false,
+      applyByWebsite: job.applyByWebsite || false,
+      applicationEmail: job.applicationEmail || '',
+      applicationWebsite: job.applicationWebsite || '',
     });
   };
 
@@ -622,6 +761,29 @@ export default function AdminDashboard() {
     try {
       await adminApi.updateJob(editingJob.id, jobEditForm);
       setEditingJob(null);
+      loadJobs();
+    } catch (err: any) {
+      alert(err.message || 'Failed to update job');
+    }
+  };
+
+  const handleClearSpam = async (jobId: string) => {
+    if (!confirm('Clear spam flag for this job?')) {
+      return;
+    }
+
+    try {
+      await adminApi.updateJob(jobId, { spam: 'no' });
+      loadJobs();
+      alert('Spam flag cleared successfully');
+    } catch (err: any) {
+      alert(err.message || 'Failed to clear spam flag');
+    }
+  };
+
+  const handleTogglePublish = async (jobId: string, currentPublished: boolean) => {
+    try {
+      await adminApi.updateJob(jobId, { published: !currentPublished });
       loadJobs();
     } catch (err: any) {
       alert(err.message || 'Failed to update job');
@@ -1242,6 +1404,204 @@ export default function AdminDashboard() {
                       : 'Select required qualifications (tap to select)'}
                   </p>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Job Category (Optional)
+                  </label>
+
+                  {jobEditForm.occupationalAreas.length > 0 && (
+                    <div className="mb-3 flex flex-wrap gap-2">
+                      {jobEditForm.occupationalAreas.map((area) => (
+                        <span
+                          key={area}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800"
+                        >
+                          {area}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setJobEditForm({
+                                ...jobEditForm,
+                                occupationalAreas: jobEditForm.occupationalAreas.filter((a) => a !== area),
+                              });
+                            }}
+                            className="ml-2 text-purple-600 hover:text-purple-800"
+                            aria-label={`Remove ${area}`}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="max-h-48 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
+                    {OCCUPATIONAL_AREAS.map((area) => {
+                      const isSelected = jobEditForm.occupationalAreas.includes(area);
+                      return (
+                        <label
+                          key={area}
+                          className="flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setJobEditForm({
+                                  ...jobEditForm,
+                                  occupationalAreas: [...jobEditForm.occupationalAreas, area],
+                                });
+                              } else {
+                                setJobEditForm({
+                                  ...jobEditForm,
+                                  occupationalAreas: jobEditForm.occupationalAreas.filter((a) => a !== area),
+                                });
+                              }
+                            }}
+                            className="mr-3 h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                          />
+                          <span className="text-sm text-gray-900">{area}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">Select job categories that describe this role.</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Sport / Activities (Optional)
+                  </label>
+
+                  {jobEditForm.sports.length > 0 && (
+                    <div className="mb-3 flex flex-wrap gap-2">
+                      {jobEditForm.sports.map((sport) => (
+                        <span
+                          key={sport}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800"
+                        >
+                          {sport}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setJobEditForm({
+                                ...jobEditForm,
+                                sports: jobEditForm.sports.filter((s) => s !== sport),
+                              });
+                            }}
+                            className="ml-2 text-indigo-600 hover:text-indigo-800"
+                            aria-label={`Remove ${sport}`}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="max-h-56 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
+                    {SPORTS_LIST.map((sport) => {
+                      const isSelected = jobEditForm.sports.includes(sport);
+
+                      return (
+                        <label
+                          key={sport}
+                          className="flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setJobEditForm({
+                                  ...jobEditForm,
+                                  sports: [...jobEditForm.sports, sport],
+                                });
+                              } else {
+                                setJobEditForm({
+                                  ...jobEditForm,
+                                  sports: jobEditForm.sports.filter((s) => s !== sport),
+                                });
+                              }
+                            }}
+                            className="mr-3 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                          />
+                          <span className="text-sm text-gray-900">{sport}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Select sport or activity categories (multiple selections allowed).
+                  </p>
+                </div>
+                <div className="border-t pt-6">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">How to Apply</h2>
+                  
+                  <div className="space-y-4">
+                    {/* By Email Checkbox */}
+                    <div className="flex items-start">
+                      <input
+                        type="checkbox"
+                        id="applyByEmail"
+                        checked={jobEditForm.applyByEmail}
+                        onChange={(e) => {
+                          setJobEditForm({
+                            ...jobEditForm,
+                            applyByEmail: e.target.checked,
+                            applicationEmail: e.target.checked ? (jobEditForm.applicationEmail || '') : '',
+                          });
+                        }}
+                        className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <div className="ml-3 flex-1">
+                        <label htmlFor="applyByEmail" className="block text-sm font-medium text-gray-700 mb-1">
+                          By email
+                        </label>
+                        {jobEditForm.applyByEmail && (
+                          <input
+                            type="email"
+                            value={jobEditForm.applicationEmail}
+                            onChange={(e) => setJobEditForm({ ...jobEditForm, applicationEmail: e.target.value })}
+                            placeholder="application@example.com"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Via Website Checkbox */}
+                    <div className="flex items-start">
+                      <input
+                        type="checkbox"
+                        id="applyByWebsite"
+                        checked={jobEditForm.applyByWebsite}
+                        onChange={(e) => {
+                          setJobEditForm({
+                            ...jobEditForm,
+                            applyByWebsite: e.target.checked,
+                            applicationWebsite: e.target.checked ? (jobEditForm.applicationWebsite || '') : '',
+                          });
+                        }}
+                        className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <div className="ml-3 flex-1">
+                        <label htmlFor="applyByWebsite" className="block text-sm font-medium text-gray-700 mb-1">
+                          Via our Website
+                        </label>
+                        {jobEditForm.applyByWebsite && (
+                          <input
+                            type="url"
+                            value={jobEditForm.applicationWebsite}
+                            onChange={(e) => setJobEditForm({ ...jobEditForm, applicationWebsite: e.target.value })}
+                            placeholder="https://example.com/apply"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 {jobEditForm.pictures && jobEditForm.pictures.length > 0 && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Pictures</label>
@@ -1303,13 +1663,10 @@ export default function AdminDashboard() {
                     Company
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Location
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Type
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Recruiter
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Spam Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
@@ -1318,7 +1675,7 @@ export default function AdminDashboard() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {jobs.map((job) => (
-                  <tr key={job.id}>
+                  <tr key={job.id} className={job.spam === 'yes' ? 'bg-red-50' : ''}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       <Link
                         href={`/jobs/${job.id}`}
@@ -1331,27 +1688,48 @@ export default function AdminDashboard() {
                       {job.company}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {job.location}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                        {job.type}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {typeof job.recruiter === 'object' && job.recruiter ? (
                         <span>{job.recruiter.name} ({job.recruiter.email})</span>
                       ) : (
                         <span>-</span>
                       )}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {job.spam === 'yes' ? (
+                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                          🚩 Flagged
+                        </span>
+                      ) : (
+                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                          OK
+                        </span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button
+                        onClick={() => handleTogglePublish(job.id, job.published !== false)}
+                        className={`mr-4 ${
+                          job.published !== false
+                            ? 'text-orange-600 hover:text-orange-900'
+                            : 'text-green-600 hover:text-green-900'
+                        }`}
+                      >
+                        {job.published !== false ? 'Unpublish' : 'Publish'}
+                      </button>
                       <button
                         onClick={() => handleEditJob(job)}
                         className="text-blue-600 hover:text-blue-900 mr-4"
                       >
                         Edit
                       </button>
+                      {job.spam === 'yes' && (
+                        <button
+                          onClick={() => handleClearSpam(job.id)}
+                          className="text-orange-600 hover:text-orange-900 mr-4"
+                        >
+                          Clear Spam
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDeleteJob(job.id)}
                         className="text-red-600 hover:text-red-900"
@@ -1399,6 +1777,130 @@ export default function AdminDashboard() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                   />
                 </div>
+
+                {/* Offering Section */}
+                <div className="border-t pt-4 mt-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Offering</h3>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Offered Activities (Optional)
+                      </label>
+                      {companyEditForm.offeredActivities.length > 0 && (
+                        <div className="mb-3 flex flex-wrap gap-2">
+                          {companyEditForm.offeredActivities.map((activity) => (
+                            <span
+                              key={activity}
+                              className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800"
+                            >
+                              {activity}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setCompanyEditForm({
+                                    ...companyEditForm,
+                                    offeredActivities: companyEditForm.offeredActivities.filter((a) => a !== activity),
+                                  })
+                                }
+                                className="ml-2 text-indigo-600 hover:text-indigo-800"
+                                aria-label={`Remove ${activity}`}
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="max-h-56 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
+                        {OFFERED_ACTIVITIES_LIST.map((activity) => (
+                          <label
+                            key={activity}
+                            className="flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={companyEditForm.offeredActivities.includes(activity)}
+                              onChange={() => {
+                                const exists = companyEditForm.offeredActivities.includes(activity);
+                                setCompanyEditForm({
+                                  ...companyEditForm,
+                                  offeredActivities: exists
+                                    ? companyEditForm.offeredActivities.filter((a) => a !== activity)
+                                    : [...companyEditForm.offeredActivities, activity],
+                                });
+                              }}
+                              className="mr-3 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                            />
+                            <span className="text-sm text-gray-900">{activity}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Select any activities that the company offers (multiple selections allowed).
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Offered Services (Optional)
+                      </label>
+                      {companyEditForm.offeredServices.length > 0 && (
+                        <div className="mb-3 flex flex-wrap gap-2">
+                          {companyEditForm.offeredServices.map((service) => (
+                            <span
+                              key={service}
+                              className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800"
+                            >
+                              {service}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setCompanyEditForm({
+                                    ...companyEditForm,
+                                    offeredServices: companyEditForm.offeredServices.filter((s) => s !== service),
+                                  })
+                                }
+                                className="ml-2 text-indigo-600 hover:text-indigo-800"
+                                aria-label={`Remove ${service}`}
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="max-h-56 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
+                        {OFFERED_SERVICES_LIST.map((service) => (
+                          <label
+                            key={service}
+                            className="flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={companyEditForm.offeredServices.includes(service)}
+                              onChange={() => {
+                                const exists = companyEditForm.offeredServices.includes(service);
+                                setCompanyEditForm({
+                                  ...companyEditForm,
+                                  offeredServices: exists
+                                    ? companyEditForm.offeredServices.filter((s) => s !== service)
+                                    : [...companyEditForm.offeredServices, service],
+                                });
+                              }}
+                              className="mr-3 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                            />
+                            <span className="text-sm text-gray-900">{service}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Select any services that the company offers (multiple selections allowed).
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="border-t pt-4 mt-4">
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">Location</h3>
                   
@@ -1524,6 +2026,82 @@ export default function AdminDashboard() {
                     </div>
                   )}
                 </div>
+
+                {/* Contact Section */}
+                <div className="border-t pt-4 mt-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact</h3>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                      <input
+                        type="url"
+                        value={companyEditForm.website}
+                        onChange={(e) => setCompanyEditForm({ ...companyEditForm, website: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="admin-contact-email" className="block text-sm font-medium text-gray-700 mb-1">
+                        E-mail
+                      </label>
+                      <input
+                        id="admin-contact-email"
+                        type="email"
+                        value={companyEditForm.contact.email}
+                        onChange={(e) => setCompanyEditForm({ 
+                          ...companyEditForm, 
+                          contact: { ...companyEditForm.contact, email: e.target.value }
+                        })}
+                        placeholder="example@company.com"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="admin-contact-office-phone" className="block text-sm font-medium text-gray-700 mb-1">
+                        Office Phone
+                      </label>
+                      <input
+                        id="admin-contact-office-phone"
+                        type="tel"
+                        value={companyEditForm.contact.officePhone}
+                        onChange={(e) => setCompanyEditForm({ 
+                          ...companyEditForm, 
+                          contact: { ...companyEditForm.contact, officePhone: e.target.value }
+                        })}
+                        placeholder="+34 912345678"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Format: +[country code][number] (e.g., +1 234 567 8900)
+                      </p>
+                    </div>
+
+                    <div>
+                      <label htmlFor="admin-contact-whatsapp" className="block text-sm font-medium text-gray-700 mb-1">
+                        WhatsApp
+                      </label>
+                      <input
+                        id="admin-contact-whatsapp"
+                        type="tel"
+                        value={companyEditForm.contact.whatsapp}
+                        onChange={(e) => setCompanyEditForm({ 
+                          ...companyEditForm, 
+                          contact: { ...companyEditForm.contact, whatsapp: e.target.value }
+                        })}
+                        placeholder="+34 912345678"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Format: +[country code][number] (e.g., +1 234 567 8900)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Social Media Section */}
                 <div className="border-t pt-4 mt-4">
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">Social Media</h3>
                   <div className="space-y-4">
@@ -1587,23 +2165,95 @@ export default function AdminDashboard() {
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                       />
                     </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">X (Twitter) URL</label>
+                      <input
+                        type="url"
+                        value={companyEditForm.socialMedia.twitter}
+                        onChange={(e) =>
+                          setCompanyEditForm({
+                            ...companyEditForm,
+                            socialMedia: { ...companyEditForm.socialMedia, twitter: e.target.value },
+                          })
+                        }
+                        placeholder="https://x.com/yourhandle"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      />
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
-                  <input
-                    type="url"
-                    value={companyEditForm.website}
-                    onChange={(e) => setCompanyEditForm({ ...companyEditForm, website: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                  />
+
+                {/* Pictures Section */}
+                <div className="border-t pt-4 mt-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Pictures</h3>
+                  
+                  <div>
+                    <label htmlFor="admin-company-pictures" className="block text-sm font-medium text-gray-700 mb-1">
+                      Upload Pictures (Optional - up to 3)
+                    </label>
+                    {(existingCompanyPictures.length > 0 || companyPicturePreviews.length > 0) && (
+                      <div className="mb-4">
+                        <p className="text-sm text-gray-600 mb-2">Current Pictures:</p>
+                        <div className="grid grid-cols-3 gap-4">
+                          {existingCompanyPictures.map((picture, index) => (
+                            <div key={`existing-${index}`} className="relative group">
+                              <img
+                                src={picture}
+                                alt={`Existing ${index + 1}`}
+                                className="w-full h-32 object-cover rounded-lg border border-gray-300"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeExistingCompanyPicture(index)}
+                                className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-sm font-bold"
+                                aria-label="Remove picture"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                          {companyPicturePreviews.map((preview, index) => (
+                            <div key={`new-${index}`} className="relative group">
+                              <img
+                                src={preview}
+                                alt={`Preview ${index + 1}`}
+                                className="w-full h-32 object-cover rounded-lg border border-gray-300"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeNewCompanyPicture(index)}
+                                className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-sm font-bold"
+                                aria-label="Remove picture"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <input
+                      id="admin-company-pictures"
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                      multiple
+                      onChange={handleCompanyPictureChange}
+                      disabled={existingCompanyPictures.length + selectedCompanyPictures.length >= 3 || uploadingCompanyPictures}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                    <p className="text-sm text-gray-500 mt-1">
+                      Maximum 3 pictures total (including existing ones), 5MB each. Supported formats: JPEG, PNG, WEBP, GIF
+                    </p>
+                  </div>
                 </div>
+
                 <div className="flex gap-4">
                   <button
                     onClick={handleUpdateCompany}
-                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 font-semibold"
+                    disabled={uploadingCompanyPictures}
+                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Update
+                    {uploadingCompanyPictures ? 'Updating...' : 'Update'}
                   </button>
                   <button
                     onClick={() => setEditingCompany(null)}

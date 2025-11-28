@@ -20,6 +20,14 @@ export async function GET(
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
+    // Check if job is published (unpublished jobs are hidden from public)
+    // Show jobs where published is true OR undefined (default is true)
+    // Hide only jobs where published is explicitly false
+    const jobPublished = (job as any).published;
+    if (jobPublished === false) {
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+    }
+
     // Convert to plain object and ensure all fields are included, including country
     const jobObject = job.toObject();
     // Handle country field - normalize if it exists, ensure field is always present
@@ -64,7 +72,7 @@ export async function PUT(
       );
     }
 
-    const { title, description, company, location, country, salary, type, languages, qualifications, sports, occupationalAreas, pictures } = await request.json();
+    const { title, description, company, location, country, salary, type, languages, qualifications, sports, occupationalAreas, pictures, published, applyByEmail, applyByWebsite, applicationEmail, applicationWebsite } = await request.json();
 
     if (title) job.title = title;
     if (description) job.description = description;
@@ -77,13 +85,8 @@ export async function PUT(
     if (salary !== undefined) job.salary = salary;
     if (type) job.type = type;
     if (languages !== undefined) {
-      if (Array.isArray(languages) && languages.length > 3) {
-        return NextResponse.json(
-          { error: 'Maximum 3 languages allowed' },
-          { status: 400 }
-        );
-      }
       job.languages = languages || [];
+      job.markModified('languages');
     }
     if (qualifications !== undefined) {
       job.qualifications = qualifications || [];
@@ -102,6 +105,25 @@ export async function PUT(
         );
       }
       job.pictures = pictures || [];
+    }
+    
+    // Update published flag (recruiters can publish/unpublish their own jobs)
+    if (published !== undefined) {
+      (job as any).published = published === true;
+    }
+    
+    // Update application fields
+    if (applyByEmail !== undefined) {
+      (job as any).applyByEmail = applyByEmail === true;
+    }
+    if (applyByWebsite !== undefined) {
+      (job as any).applyByWebsite = applyByWebsite === true;
+    }
+    if (applicationEmail !== undefined) {
+      (job as any).applicationEmail = applicationEmail || undefined;
+    }
+    if (applicationWebsite !== undefined) {
+      (job as any).applicationWebsite = applicationWebsite || undefined;
     }
 
     await job.save();

@@ -9,6 +9,7 @@ import Link from 'next/link';
 
 interface CompanyInfo {
   id?: string;
+  _id?: string;
   name?: string;
   description?: string;
   address?: {
@@ -24,6 +25,7 @@ interface CompanyInfo {
     instagram?: string;
     tiktok?: string;
     youtube?: string;
+    twitter?: string;
   };
 }
 
@@ -37,6 +39,7 @@ interface Job {
   salary?: string;
   type: string;
   languages?: string[];
+  occupationalAreas?: string[];
   qualifications?: string[];
   pictures?: string[];
   recruiter: {
@@ -46,6 +49,11 @@ interface Job {
   createdAt: string;
   updatedAt?: string;
   companyId?: CompanyInfo;
+  spam?: 'yes' | 'no';
+  applyByEmail?: boolean;
+  applyByWebsite?: boolean;
+  applicationEmail?: string;
+  applicationWebsite?: string;
 }
 
 // Component to handle date formatting (prevents hydration mismatch)
@@ -84,29 +92,6 @@ function formatCompanyAddress(address?: CompanyInfo['address']): string | null {
   return parts.length > 0 ? parts.join(' · ') : null;
 }
 
-const SOCIAL_ICONS: Record<string, React.ReactElement> = {
-  facebook: (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
-      <path d="M13.5 9.5h2.31l.35-2.35h-2.66V5.26c0-.68.19-1.15 1.18-1.15h1.49V2.08c-.26-.03-1.15-.11-2.18-.11-2.16 0-3.64 1.32-3.64 3.75v2.28H8.5v2.35h2.3v7h2.7v-7z" />
-    </svg>
-  ),
-  instagram: (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
-      <path d="M7 2C4.24 2 2 4.24 2 7v10c0 2.76 2.24 5 5 5h10c2.76 0 5-2.24 5-5V7c0-2.76-2.24-5-5-5H7zm10 2c1.65 0 3 1.35 3 3v10c0 1.65-1.35 3-3 3H7c-1.65 0-3-1.35-3-3V7c0-1.65 1.35-3 3-3h10zm-5 2.5c-2.49 0-4.5 2.01-4.5 4.5S9.51 16.5 12 16.5 16.5 14.49 16.5 12 14.49 7.5 12 7.5zm0 2c1.38 0 2.5 1.12 2.5 2.5S13.38 14.5 12 14.5 9.5 13.38 9.5 12 10.62 9.5 12 9.5zM17.5 6.25a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5z"/>
-    </svg>
-  ),
-  tiktok: (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
-      <path d="M17.25 4.5h-1.04c-.2 0-.36.16-.36.36s.16.36.36.36h.54v3.33c0 1.71-.86 2.5-2.46 2.5-1.43 0-2.34-.88-2.34-2.58V6.42c0-.2-.16-.36-.36-.36s-.36.16-.36.36v5.56c0 2.92 1.76 4.56 4.47 4.56 2.22 0 3.84-1.08 4.41-3.22h1.13v-4.74c0-.2-.16-.36-.36-.36s-.36.16-.36.36v.59c-.66-.28-1.26-.46-1.92-.54V4.86c0-.2-.16-.36-.36-.36z"/>
-    </svg>
-  ),
-  youtube: (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
-      <path d="M19.63 4.36a3.01 3.01 0 0 0-2.12-2.12C15.61 1.5 12 1.5 12 1.5s-3.61 0-5.51.74a3.01 3.01 0 0 0-2.12 2.12C3.5 6.24 3.5 12 3.5 12s0 5.76.87 7.64a3.01 3.01 0 0 0 2.12 2.12c1.9.74 5.51.74 5.51.74s3.61 0 5.51-.74a3.01 3.01 0 0 0 2.12-2.12c.87-1.88.87-7.64.87-7.64s0-5.76-.87-7.64zM10 15.5v-7l6 3.5-6 3.5z"/>
-    </svg>
-  ),
-};
-
 export default function JobDetailPage() {
   const params = useParams();
   const jobId = params.id as string;
@@ -115,6 +100,8 @@ export default function JobDetailPage() {
   const [error, setError] = useState('');
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [reportingSpam, setReportingSpam] = useState(false);
+  const [spamReported, setSpamReported] = useState(false);
 
   useEffect(() => {
     // Load job regardless of authentication status
@@ -127,10 +114,36 @@ export default function JobDetailPage() {
     try {
       const data = await jobsApi.getOne(jobId);
       setJob(data.job);
+      // Check if job is already flagged as spam
+      if (data.job.spam === 'yes') {
+        setSpamReported(true);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load job');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleReportSpam = async () => {
+    if (!job || spamReported) return;
+    
+    setReportingSpam(true);
+    try {
+      const response = await fetch(`/api/jobs/${jobId}/report-spam`, {
+        method: 'POST',
+      });
+      
+      if (response.ok) {
+        setSpamReported(true);
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to report spam. Please try again.');
+      }
+    } catch (err: any) {
+      alert('Failed to report spam. Please try again.');
+    } finally {
+      setReportingSpam(false);
     }
   };
 
@@ -224,7 +237,7 @@ export default function JobDetailPage() {
                 <div className="mt-4 flex flex-wrap items-center gap-3">
                   <div className="flex items-center text-gray-600">
                     <span className="mr-2">🌐</span>
-                    <span className="font-medium">Languages Required:</span>
+                    <span className="font-medium">Languages:</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {job.languages.map((language, index) => (
@@ -239,12 +252,32 @@ export default function JobDetailPage() {
                 </div>
               )}
               
+              {/* Job Categories - in Job Details section */}
+              {job.occupationalAreas && job.occupationalAreas.length > 0 && (
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <div className="flex items-center text-gray-600">
+                    <span className="mr-2">💼</span>
+                    <span className="font-medium">Job Category:</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {job.occupationalAreas.map((area, index) => (
+                      <span
+                        key={index}
+                        className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium"
+                      >
+                        {area}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
               {/* Required Qualifications - in Job Details section */}
               {job.qualifications && job.qualifications.length > 0 && (
                 <div className="mt-4 flex flex-wrap items-center gap-3">
                   <div className="flex items-center text-gray-600">
                     <span className="mr-2">📜</span>
-                    <span className="font-medium">Required Qualifications:</span>
+                    <span className="font-medium">Qualifications:</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {job.qualifications.map((qualification, index) => (
@@ -349,12 +382,13 @@ export default function JobDetailPage() {
                 )}
                 {formatCompanyAddress(job.companyId.address) && (
                   <p className="text-sm text-gray-600 mb-1">
-                    Location: {formatCompanyAddress(job.companyId.address)}
+                    <span className="font-semibold text-gray-600">Location:</span>{' '}
+                    {formatCompanyAddress(job.companyId.address)}
                   </p>
                 )}
                 {job.companyId.website && (
                   <p className="text-sm text-gray-600 mb-1">
-                    Website:{' '}
+                    <span className="font-semibold text-gray-600">Website:</span>{' '}
                     <a
                       href={job.companyId.website}
                       target="_blank"
@@ -365,48 +399,84 @@ export default function JobDetailPage() {
                     </a>
                   </p>
                 )}
-                {(() => {
-                  const socialEntries = job.companyId.socialMedia
-                    ? Object.entries(job.companyId.socialMedia).filter(([, value]) => Boolean(value))
-                    : [];
-                  if (socialEntries.length === 0) {
-                    return null;
-                  }
-                  const companyNameText =
-                    job.companyId.name && job.companyId.name.trim()
-                      ? `${job.companyId.name.trim()}`
-                      : 'us';
-                  return (
-                    <div className="flex flex-wrap items-center gap-3 mt-3 text-sm text-blue-600">
-                      <span className="font-semibold text-gray-600">
-                        Follow {companyNameText} on:
-                      </span>
-                      {socialEntries.map(([platform, url]) => (
-                        <a
-                          key={platform}
-                          href={url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex items-center gap-1 hover:underline"
-                        >
-                          <span aria-hidden="true">{SOCIAL_ICONS[platform] || '🌐'}</span>
-                          <span className="text-blue-600">
-                            {platform.charAt(0).toUpperCase() + platform.slice(1)}
-                          </span>
-                        </a>
-                      ))}
-                    </div>
-                  );
-                })()}
+                {job.companyId && (job.companyId.id || job.companyId._id) && (
+                  <div className="mt-4 text-right">
+                    <Link
+                      href={`/companies/${job.companyId.id || (typeof job.companyId._id === 'string' ? job.companyId._id : String(job.companyId._id))}`}
+                      className="inline-block px-4 py-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 font-semibold transition-colors"
+                    >
+                      More Company Details
+                    </Link>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Posted Info */}
+            {/* How to Apply Section */}
+            {(job.applyByEmail || job.applyByWebsite) && (
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-3">How to Apply</h2>
+                <div className="space-y-3">
+                  {job.applyByEmail && job.applicationEmail && (
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg">📧</span>
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <span className="font-medium">By email:</span>
+                        <a
+                          href={`mailto:${job.applicationEmail}`}
+                          className="text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                          {job.applicationEmail}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  {job.applyByWebsite && job.applicationWebsite && (
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg">🌐</span>
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <span className="font-medium">Via our Website:</span>
+                        <a
+                          href={job.applicationWebsite}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                          {job.applicationWebsite}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Posted Info and Report Spam Button - Two Column Layout */}
             <div className="pt-6 border-t border-gray-200">
-              <p className="text-sm text-gray-500">
-                Posted by: <span className="font-semibold">{job.recruiter.name}</span> ({job.recruiter.email})
-              </p>
-              <FormattedDate date={job.createdAt} />
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                {/* Left Column - Posted Info */}
+                <div className="flex-1">
+                  <p className="text-sm text-gray-500">
+                    Posted by: <span className="font-semibold">{job.recruiter.name}</span>
+                  </p>
+                  <FormattedDate date={job.createdAt} />
+                </div>
+                
+                {/* Right Column - Report Spam Button */}
+                <div className="flex-shrink-0">
+                  <button
+                    onClick={handleReportSpam}
+                    disabled={reportingSpam || spamReported}
+                    className={`px-4 py-2 text-sm rounded-lg font-medium transition-colors ${
+                      spamReported
+                        ? 'bg-red-100 text-red-700 cursor-not-allowed'
+                        : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                    }`}
+                  >
+                    {spamReported ? '✓ Reported as Spam' : reportingSpam ? 'Reporting...' : '🚩 Report as Spam'}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

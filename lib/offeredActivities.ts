@@ -1,8 +1,8 @@
-export const SPORTS_LIST = [
+export const OFFERED_ACTIVITIES_LIST = [
   'canoeing',
-  'canyoning',
   'catamaran',
   'e-foil',
+  'canyoning',
   'flyboarding',
   'hydrofoil kite surfing',
   'hydrofoil surfing',
@@ -14,14 +14,13 @@ export const SPORTS_LIST = [
   'sailing',
   'scuba-diving',
   'snorkeling',
-  'Paddle boarding (SUP)',
+  'paddle boarding (SUP)',
   'surfing',
   'wakeboarding',
   'water-skiing',
   'windsurfing',
   'wing foiling',
   'yachting',
-  'Other (see job description)',
+  'other (see company description)',
 ];
-
 
