@@ -33,6 +33,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Update lastOnline timestamp
+    user.lastOnline = new Date();
+    await user.save();
+
     const token = generateToken(user);
 
     const response = NextResponse.json(

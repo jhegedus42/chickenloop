@@ -36,6 +36,14 @@ export default function Navbar() {
               >
                 Jobs
               </Link>
+              {user && (user.role === 'recruiter' || user.role === 'admin') && (
+                <Link
+                  href="/cvs"
+                  className="px-3 py-2 rounded hover:bg-blue-700"
+                >
+                  CVs
+                </Link>
+              )}
               {user ? (
                 <>
                   <Link
