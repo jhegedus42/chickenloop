@@ -29,6 +29,8 @@ export async function GET(request: NextRequest) {
         type: job.type,
         languages: job.languages || [],
         qualifications: job.qualifications || [],
+        sports: job.sports || [],
+        occupationalAreas: job.occupationalAreas || [],
         pictures: job.pictures || [],
         spam: spamStatus,
         published: job.published !== false, // Default to true if not explicitly false

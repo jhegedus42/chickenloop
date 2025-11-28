@@ -10,6 +10,8 @@ import { QUALIFICATIONS } from '@/lib/qualifications';
 import { OFFERED_ACTIVITIES_LIST } from '@/lib/offeredActivities';
 import { OFFERED_SERVICES_LIST } from '@/lib/offeredServices';
 import { getCountryNameFromCode } from '@/lib/countryUtils';
+import { SPORTS_LIST } from '@/lib/sports';
+import { OCCUPATIONAL_AREAS } from '@/lib/occupationalAreas';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 
@@ -79,9 +81,15 @@ interface Job {
   type: string;
   languages?: string[];
   qualifications?: string[];
+  sports?: string[];
+  occupationalAreas?: string[];
   pictures?: string[];
   spam?: 'yes' | 'no';
   published?: boolean;
+  applyByEmail?: boolean;
+  applyByWebsite?: boolean;
+  applicationEmail?: string;
+  applicationWebsite?: string;
   recruiter: any;
   createdAt: string;
   updatedAt: string;
@@ -275,7 +283,13 @@ export default function AdminDashboard() {
     type: 'full-time',
     languages: [] as string[],
     qualifications: [] as string[],
+    sports: [] as string[],
+    occupationalAreas: [] as string[],
     pictures: [] as string[],
+    applyByEmail: false,
+    applyByWebsite: false,
+    applicationEmail: '',
+    applicationWebsite: '',
   });
 
   useEffect(() => {
@@ -731,7 +745,13 @@ export default function AdminDashboard() {
       type: job.type,
       languages: job.languages || [],
       qualifications: job.qualifications || [],
+      sports: job.sports || [],
+      occupationalAreas: job.occupationalAreas || [],
       pictures: job.pictures || [],
+      applyByEmail: job.applyByEmail || false,
+      applyByWebsite: job.applyByWebsite || false,
+      applicationEmail: job.applicationEmail || '',
+      applicationWebsite: job.applicationWebsite || '',
     });
   };
 
@@ -1383,6 +1403,204 @@ export default function AdminDashboard() {
                       ? `${jobEditForm.qualifications.length} qualification(s) selected`
                       : 'Select required qualifications (tap to select)'}
                   </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Job Category (Optional)
+                  </label>
+
+                  {jobEditForm.occupationalAreas.length > 0 && (
+                    <div className="mb-3 flex flex-wrap gap-2">
+                      {jobEditForm.occupationalAreas.map((area) => (
+                        <span
+                          key={area}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800"
+                        >
+                          {area}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setJobEditForm({
+                                ...jobEditForm,
+                                occupationalAreas: jobEditForm.occupationalAreas.filter((a) => a !== area),
+                              });
+                            }}
+                            className="ml-2 text-purple-600 hover:text-purple-800"
+                            aria-label={`Remove ${area}`}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="max-h-48 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
+                    {OCCUPATIONAL_AREAS.map((area) => {
+                      const isSelected = jobEditForm.occupationalAreas.includes(area);
+                      return (
+                        <label
+                          key={area}
+                          className="flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setJobEditForm({
+                                  ...jobEditForm,
+                                  occupationalAreas: [...jobEditForm.occupationalAreas, area],
+                                });
+                              } else {
+                                setJobEditForm({
+                                  ...jobEditForm,
+                                  occupationalAreas: jobEditForm.occupationalAreas.filter((a) => a !== area),
+                                });
+                              }
+                            }}
+                            className="mr-3 h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                          />
+                          <span className="text-sm text-gray-900">{area}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">Select job categories that describe this role.</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Sport / Activities (Optional)
+                  </label>
+
+                  {jobEditForm.sports.length > 0 && (
+                    <div className="mb-3 flex flex-wrap gap-2">
+                      {jobEditForm.sports.map((sport) => (
+                        <span
+                          key={sport}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800"
+                        >
+                          {sport}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setJobEditForm({
+                                ...jobEditForm,
+                                sports: jobEditForm.sports.filter((s) => s !== sport),
+                              });
+                            }}
+                            className="ml-2 text-indigo-600 hover:text-indigo-800"
+                            aria-label={`Remove ${sport}`}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="max-h-56 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
+                    {SPORTS_LIST.map((sport) => {
+                      const isSelected = jobEditForm.sports.includes(sport);
+
+                      return (
+                        <label
+                          key={sport}
+                          className="flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setJobEditForm({
+                                  ...jobEditForm,
+                                  sports: [...jobEditForm.sports, sport],
+                                });
+                              } else {
+                                setJobEditForm({
+                                  ...jobEditForm,
+                                  sports: jobEditForm.sports.filter((s) => s !== sport),
+                                });
+                              }
+                            }}
+                            className="mr-3 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                          />
+                          <span className="text-sm text-gray-900">{sport}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Select sport or activity categories (multiple selections allowed).
+                  </p>
+                </div>
+                <div className="border-t pt-6">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">How to Apply</h2>
+                  
+                  <div className="space-y-4">
+                    {/* By Email Checkbox */}
+                    <div className="flex items-start">
+                      <input
+                        type="checkbox"
+                        id="applyByEmail"
+                        checked={jobEditForm.applyByEmail}
+                        onChange={(e) => {
+                          setJobEditForm({
+                            ...jobEditForm,
+                            applyByEmail: e.target.checked,
+                            applicationEmail: e.target.checked ? (jobEditForm.applicationEmail || '') : '',
+                          });
+                        }}
+                        className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <div className="ml-3 flex-1">
+                        <label htmlFor="applyByEmail" className="block text-sm font-medium text-gray-700 mb-1">
+                          By email
+                        </label>
+                        {jobEditForm.applyByEmail && (
+                          <input
+                            type="email"
+                            value={jobEditForm.applicationEmail}
+                            onChange={(e) => setJobEditForm({ ...jobEditForm, applicationEmail: e.target.value })}
+                            placeholder="application@example.com"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Via Website Checkbox */}
+                    <div className="flex items-start">
+                      <input
+                        type="checkbox"
+                        id="applyByWebsite"
+                        checked={jobEditForm.applyByWebsite}
+                        onChange={(e) => {
+                          setJobEditForm({
+                            ...jobEditForm,
+                            applyByWebsite: e.target.checked,
+                            applicationWebsite: e.target.checked ? (jobEditForm.applicationWebsite || '') : '',
+                          });
+                        }}
+                        className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <div className="ml-3 flex-1">
+                        <label htmlFor="applyByWebsite" className="block text-sm font-medium text-gray-700 mb-1">
+                          Via our Website
+                        </label>
+                        {jobEditForm.applyByWebsite && (
+                          <input
+                            type="url"
+                            value={jobEditForm.applicationWebsite}
+                            onChange={(e) => setJobEditForm({ ...jobEditForm, applicationWebsite: e.target.value })}
+                            placeholder="https://example.com/apply"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 {jobEditForm.pictures && jobEditForm.pictures.length > 0 && (
                   <div>

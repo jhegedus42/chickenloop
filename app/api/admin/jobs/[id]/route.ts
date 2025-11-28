@@ -54,7 +54,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    const { title, description, location, country, salary, type, company, languages, qualifications, pictures, spam, published, applyByEmail, applyByWebsite, applicationEmail, applicationWebsite } = await request.json();
+    const { title, description, location, country, salary, type, company, languages, qualifications, sports, occupationalAreas, pictures, spam, published, applyByEmail, applyByWebsite, applicationEmail, applicationWebsite } = await request.json();
 
     if (title) job.title = title;
     if (description) job.description = description;
@@ -74,6 +74,12 @@ export async function PUT(
     }
     if (qualifications !== undefined) {
       job.qualifications = qualifications || [];
+    }
+    if (sports !== undefined) {
+      job.sports = sports || [];
+    }
+    if (occupationalAreas !== undefined) {
+      job.occupationalAreas = occupationalAreas || [];
     }
     
     // Update pictures array (max 3)
