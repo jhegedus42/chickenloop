@@ -123,11 +123,21 @@ const TwitterIcon = () => (
   </svg>
 );
 
+interface Job {
+  _id: string;
+  title: string;
+  location: string;
+  companyId?: string | { _id?: string; id?: string };
+}
+
 export default function CompanyPage() {
   const params = useParams();
   const [company, setCompany] = useState<Company | null>(null);
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
   useEffect(() => {
     const loadCompany = async () => {
@@ -140,6 +150,11 @@ export default function CompanyPage() {
         }
         
         setCompany(data.company);
+        
+        // Load jobs for this company
+        if (data.company?.id) {
+          loadCompanyJobs(data.company.id);
+        }
       } catch (err: any) {
         setError(err.message || 'Failed to load company');
       } finally {
@@ -151,6 +166,29 @@ export default function CompanyPage() {
       loadCompany();
     }
   }, [params.id]);
+
+  const loadCompanyJobs = async (companyId: string) => {
+    try {
+      const response = await fetch('/api/jobs');
+      const data = await response.json();
+      
+      if (response.ok && data.jobs) {
+        // Filter jobs by companyId
+        const companyJobs = data.jobs.filter((job: Job) => {
+          if (!job.companyId) return false;
+          // Handle both string and object companyId
+          const jobCompanyId = typeof job.companyId === 'string' 
+            ? job.companyId 
+            : job.companyId._id || job.companyId.id;
+          return jobCompanyId === companyId || jobCompanyId?.toString() === companyId;
+        });
+        setJobs(companyJobs);
+      }
+    } catch (err) {
+      // Silently fail - jobs are optional
+      console.error('Failed to load company jobs:', err);
+    }
+  };
 
   if (loading) {
     return (
@@ -223,13 +261,74 @@ export default function CompanyPage() {
               <h2 className="text-2xl font-semibold text-gray-900 mb-4">Pictures</h2>
               <div className="grid grid-cols-3 gap-2">
                 {company.pictures.map((picture, index) => (
-                  <img
+                  <button
                     key={index}
-                    src={picture}
-                    alt={`${company.name} - Image ${index + 1}`}
-                    className="w-full h-48 object-cover rounded-lg border border-gray-300"
-                  />
+                    onClick={() => {
+                      setLightboxIndex(index);
+                      setIsLightboxOpen(true);
+                    }}
+                    className="w-full h-48 overflow-hidden rounded-lg border border-gray-300 p-0"
+                    type="button"
+                  >
+                    <img
+                      src={picture}
+                      alt={`${company.name} - Image ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Lightbox for Pictures */}
+          {isLightboxOpen && company?.pictures && company.pictures.length > 0 && (
+            <div
+              className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
+              onClick={() => setIsLightboxOpen(false)}
+            >
+              <div
+                className="relative max-w-3xl w-full mx-auto"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <img
+                  src={company.pictures[lightboxIndex]}
+                  alt={`${company.name} - Image ${lightboxIndex + 1}`}
+                  className="w-full h-[70vh] object-contain bg-black"
+                />
+                {company.pictures && company.pictures.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setLightboxIndex((prev) =>
+                          prev === 0 ? (company.pictures?.length ?? 1) - 1 : prev - 1
+                        )
+                      }
+                      className="absolute top-1/2 -translate-y-1/2 left-2 bg-white/80 text-gray-900 rounded-full p-2"
+                    >
+                      ‹
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setLightboxIndex((prev) =>
+                          prev === (company.pictures?.length ?? 1) - 1 ? 0 : prev + 1
+                        )
+                      }
+                      className="absolute top-1/2 -translate-y-1/2 right-2 bg-white/80 text-gray-900 rounded-full p-2"
+                    >
+                      ›
+                    </button>
+                  </>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsLightboxOpen(false)}
+                  className="absolute top-2 right-2 bg-white/80 text-gray-900 rounded-full p-2"
+                >
+                  ✕
+                </button>
               </div>
             </div>
           )}
@@ -273,6 +372,33 @@ export default function CompanyPage() {
               </div>
             </div>
           ) : null}
+
+          {/* Job Openings Section */}
+          {jobs.length > 0 && (
+            <div className="border-t pt-6 mb-6">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4">Job Openings</h2>
+              <ul className="list-disc list-inside space-y-2">
+                {jobs.map((job) => {
+                  // Extract town from location (assuming format like "Town, Country" or just "Town")
+                  const locationParts = job.location.split(',').map((part: string) => part.trim());
+                  const town = locationParts[0] || job.location;
+                  
+                  return (
+                    <li key={job._id} className="text-gray-700">
+                      <Link
+                        href={`/jobs/${job._id}`}
+                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        {job.title}
+                      </Link>
+                      {', '}
+                      <span className="text-gray-600">{town}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
 
           {/* Contact Information Section */}
           {(company.website || company.contact?.email || company.contact?.officePhone || company.contact?.whatsapp || company.address) && (
