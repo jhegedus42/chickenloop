@@ -150,54 +150,81 @@ export default function RecruiterDashboard() {
             </Link>
           </div>
         ) : (
-          <div className="grid gap-6">
-            {jobs.map((job) => (
-              <div key={job._id} className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">{job.title}</h2>
-                    <p className="text-lg text-gray-600 mb-2">{job.company}</p>
-                    <p className="text-gray-600 mb-2">{job.location}</p>
-                    <p className="text-sm text-gray-500 mb-4">{job.type}</p>
-                    {job.salary && (
-                      <p className="text-gray-700 font-semibold mb-4">Salary: {job.salary}</p>
-                    )}
-                    <p className="text-gray-700 mb-4">{job.description}</p>
-                    {job.pictures && job.pictures.length > 0 && (
-                      <div className="mb-4">
-                        <div className="grid grid-cols-3 gap-2">
-                          {job.pictures.map((picture, index) => (
-                            <img
-                              key={index}
-                              src={picture}
-                              alt={`${job.title} - Image ${index + 1}`}
-                              className="w-full h-32 object-cover rounded-lg border border-gray-300"
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    <p className="text-sm text-gray-400">
-                      Posted: {new Date(job.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="flex gap-2 ml-4">
-                    <Link
-                      href={`/recruiter/jobs/${job._id}/edit`}
-                      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                    >
-                      Edit
-                    </Link>
-                    <button
-                      onClick={() => handleDelete(job._id)}
-                      className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Title
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Company
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Location
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Type
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Salary
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Posted
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {jobs.map((job) => (
+                    <tr key={job._id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <Link
+                          href={`/jobs/${job._id}`}
+                          className="text-blue-600 hover:text-blue-900 hover:underline"
+                        >
+                          {job.title}
+                        </Link>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {job.company}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {job.location}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                          {job.type}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {job.salary || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(job.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <Link
+                          href={`/recruiter/jobs/${job._id}/edit`}
+                          className="text-blue-600 hover:text-blue-900 mr-4"
+                        >
+                          Edit
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(job._id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </main>
