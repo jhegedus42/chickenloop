@@ -106,9 +106,15 @@ export default function JobSeekerDashboard() {
             {cv ? (
               <div>
                 <p className="text-gray-600 mb-4">
-                  You have a CV. You can edit or delete it.
+                  You have a CV. You can view, edit or delete it.
                 </p>
                 <div className="flex gap-4">
+                  <Link
+                    href="/job-seeker/cv/view"
+                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                  >
+                    View CV
+                  </Link>
                   <Link
                     href="/job-seeker/cv/edit"
                     className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"

@@ -5,6 +5,8 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Navbar from '../../../components/Navbar';
 import { cvApi } from '@/lib/api';
+import { QUALIFICATIONS } from '@/lib/qualifications';
+import { SPORTS_LIST } from '@/lib/sports';
 
 export default function EditCVPage() {
   const { user, loading: authLoading } = useAuth();
@@ -19,10 +21,16 @@ export default function EditCVPage() {
     education: [{ institution: '', degree: '', field: '', startDate: '', endDate: '' }],
     skills: [''],
     certifications: [''],
+    professionalCertifications: [] as string[],
+    experienceAndSkill: [] as string[],
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [existingPictures, setExistingPictures] = useState<string[]>([]);
+  const [selectedPictures, setSelectedPictures] = useState<File[]>([]);
+  const [picturePreviews, setPicturePreviews] = useState<string[]>([]);
+  const [uploadingPictures, setUploadingPictures] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -52,11 +60,92 @@ export default function EditCVPage() {
         education: cv.education && cv.education.length > 0 ? cv.education : [{ institution: '', degree: '', field: '', startDate: '', endDate: '' }],
         skills: cv.skills && cv.skills.length > 0 ? cv.skills : [''],
         certifications: cv.certifications && cv.certifications.length > 0 ? cv.certifications : [''],
+        professionalCertifications: cv.professionalCertifications || [],
+        experienceAndSkill: cv.experienceAndSkill || [],
       });
+      setExistingPictures(cv.pictures || []);
     } catch (err: any) {
       setError(err.message || 'Failed to load CV');
     } finally {
       setFetching(false);
+    }
+  };
+
+  const handlePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const totalPictures = existingPictures.length + selectedPictures.length + files.length;
+    
+    if (totalPictures > 3) {
+      setError('Maximum 3 pictures allowed (including existing ones)');
+      return;
+    }
+
+    // Validate file types and sizes
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+
+    for (const file of files) {
+      if (!validTypes.includes(file.type)) {
+        setError(`Invalid file type: ${file.name}. Only images (JPEG, PNG, WEBP, GIF) are allowed.`);
+        return;
+      }
+      if (file.size > maxSize) {
+        setError(`File ${file.name} is too large. Maximum size is 5MB.`);
+        return;
+      }
+    }
+
+    const newPictures = [...selectedPictures, ...files];
+    setSelectedPictures(newPictures);
+    setError('');
+
+    // Create preview URLs
+    const newPreviews = files.map(file => URL.createObjectURL(file));
+    setPicturePreviews([...picturePreviews, ...newPreviews]);
+  };
+
+  const removeExistingPicture = (index: number) => {
+    const newPictures = existingPictures.filter((_, i) => i !== index);
+    setExistingPictures(newPictures);
+  };
+
+  const removeNewPicture = (index: number) => {
+    const newPictures = selectedPictures.filter((_, i) => i !== index);
+    const newPreviews = picturePreviews.filter((_, i) => i !== index);
+    
+    // Revoke the URL to free memory
+    URL.revokeObjectURL(picturePreviews[index]);
+    
+    setSelectedPictures(newPictures);
+    setPicturePreviews(newPreviews);
+  };
+
+  const uploadPictures = async (): Promise<string[]> => {
+    if (selectedPictures.length === 0) return existingPictures;
+
+    setUploadingPictures(true);
+    try {
+      const uploadFormData = new FormData();
+      selectedPictures.forEach((file) => {
+        uploadFormData.append('pictures', file);
+      });
+
+      const response = await fetch('/api/cv/upload', {
+        method: 'POST',
+        body: uploadFormData,
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to upload pictures');
+      }
+
+      // Merge existing pictures with newly uploaded ones
+      return [...existingPictures, ...(data.paths || [])];
+    } finally {
+      setUploadingPictures(false);
     }
   };
 
@@ -66,12 +155,18 @@ export default function EditCVPage() {
     setLoading(true);
 
     try {
+      // Upload pictures first
+      const picturePaths = await uploadPictures();
+
       const data = {
         ...formData,
         experience: formData.experience.filter((exp) => exp.company && exp.position),
         education: formData.education.filter((edu) => edu.institution && edu.degree),
         skills: formData.skills.filter((skill) => skill.trim() !== ''),
         certifications: formData.certifications.filter((cert) => cert.trim() !== ''),
+        professionalCertifications: formData.professionalCertifications || [],
+        experienceAndSkill: formData.experienceAndSkill || [],
+        pictures: picturePaths,
       };
       await cvApi.update(data);
       router.push('/job-seeker');
@@ -196,7 +291,7 @@ export default function EditCVPage() {
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                 />
               </div>
               <div>
@@ -209,7 +304,7 @@ export default function EditCVPage() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                 />
               </div>
             </div>
@@ -223,19 +318,19 @@ export default function EditCVPage() {
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                 />
               </div>
               <div>
                 <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
-                  Address
+                  Address (town, county)
                 </label>
                 <input
                   id="address"
                   type="text"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                 />
               </div>
             </div>
@@ -248,7 +343,7 @@ export default function EditCVPage() {
                 value={formData.summary}
                 onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
               />
             </div>
 
@@ -270,35 +365,41 @@ export default function EditCVPage() {
                       placeholder="Company"
                       value={exp.company}
                       onChange={(e) => updateExperience(index, 'company', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                     />
                     <input
                       placeholder="Position"
                       value={exp.position}
                       onChange={(e) => updateExperience(index, 'position', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                     />
                   </div>
                   <div className="grid md:grid-cols-2 gap-4 mb-4">
-                    <input
-                      placeholder="Start Date"
-                      value={exp.startDate}
-                      onChange={(e) => updateExperience(index, 'startDate', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <input
-                      placeholder="End Date (or leave blank if current)"
-                      value={exp.endDate}
-                      onChange={(e) => updateExperience(index, 'endDate', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Start Date</label>
+                      <input
+                        type="date"
+                        value={exp.startDate}
+                        onChange={(e) => updateExperience(index, 'startDate', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">End Date (leave blank if current)</label>
+                      <input
+                        type="date"
+                        value={exp.endDate}
+                        onChange={(e) => updateExperience(index, 'endDate', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      />
+                    </div>
                   </div>
                   <textarea
                     placeholder="Description"
                     value={exp.description}
                     onChange={(e) => updateExperience(index, 'description', e.target.value)}
                     rows={2}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4 text-gray-900"
                   />
                   {formData.experience.length > 1 && (
                     <button
@@ -331,13 +432,13 @@ export default function EditCVPage() {
                       placeholder="Institution"
                       value={edu.institution}
                       onChange={(e) => updateEducation(index, 'institution', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                     />
                     <input
                       placeholder="Degree"
                       value={edu.degree}
                       onChange={(e) => updateEducation(index, 'degree', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                     />
                   </div>
                   <div className="grid md:grid-cols-3 gap-4 mb-4">
@@ -345,20 +446,26 @@ export default function EditCVPage() {
                       placeholder="Field of Study"
                       value={edu.field}
                       onChange={(e) => updateEducation(index, 'field', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                     />
-                    <input
-                      placeholder="Start Date"
-                      value={edu.startDate}
-                      onChange={(e) => updateEducation(index, 'startDate', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <input
-                      placeholder="End Date"
-                      value={edu.endDate}
-                      onChange={(e) => updateEducation(index, 'endDate', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Start Date</label>
+                      <input
+                        type="date"
+                        value={edu.startDate}
+                        onChange={(e) => updateEducation(index, 'startDate', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">End Date</label>
+                      <input
+                        type="date"
+                        value={edu.endDate}
+                        onChange={(e) => updateEducation(index, 'endDate', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      />
+                    </div>
                   </div>
                   {formData.education.length > 1 && (
                     <button
@@ -374,8 +481,74 @@ export default function EditCVPage() {
             </div>
 
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Sports Experiences and Skills
+              </label>
+              {formData.experienceAndSkill.length > 0 && (
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {formData.experienceAndSkill.map((item) => (
+                    <span
+                      key={item}
+                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800"
+                    >
+                      {item}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFormData({
+                            ...formData,
+                            experienceAndSkill: formData.experienceAndSkill.filter((s) => s !== item),
+                          })
+                        }
+                        className="ml-2 text-indigo-600 hover:text-indigo-800"
+                        aria-label={`Remove ${item}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="max-h-56 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
+                {SPORTS_LIST.filter((sport) => sport !== 'Other (see job description)').map((sport) => {
+                  const isSelected = formData.experienceAndSkill.includes(sport);
+
+                  return (
+                    <label
+                      key={sport}
+                      className="flex items-center py-2 px-2 rounded hover:bg-gray-50 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setFormData({
+                              ...formData,
+                              experienceAndSkill: [...formData.experienceAndSkill, sport],
+                            });
+                          } else {
+                            setFormData({
+                              ...formData,
+                              experienceAndSkill: formData.experienceAndSkill.filter((s) => s !== sport),
+                            });
+                          }
+                        }}
+                        className="mr-3 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className="text-sm text-gray-900">{sport}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Select any sport or activity that applies (multiple selections allowed).
+              </p>
+            </div>
+
+            <div>
               <div className="flex justify-between items-center mb-4">
-                <label className="block text-sm font-medium text-gray-700">Skills</label>
+                <label className="block text-sm font-medium text-gray-700">Other Skills (one per field)</label>
                 <button
                   type="button"
                   onClick={addSkill}
@@ -391,7 +564,7 @@ export default function EditCVPage() {
                       placeholder="Skill"
                       value={skill}
                       onChange={(e) => updateSkill(index, e.target.value)}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                     />
                     {formData.skills.length > 1 && (
                       <button
@@ -408,8 +581,86 @@ export default function EditCVPage() {
             </div>
 
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Professional Certifications
+              </label>
+              
+              {/* Selected Professional Certifications Display */}
+              {formData.professionalCertifications.length > 0 && (
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {formData.professionalCertifications.map((cert) => (
+                    <span
+                      key={cert}
+                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800"
+                    >
+                      {cert}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFormData({
+                            ...formData,
+                            professionalCertifications: formData.professionalCertifications.filter((c) => c !== cert),
+                          })
+                        }
+                        className="ml-2 text-green-600 hover:text-green-800"
+                        aria-label={`Remove ${cert}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Professional Certifications Checkbox List with Subheaders */}
+              <div className="max-h-64 overflow-y-auto border border-gray-300 rounded-md p-3 bg-white">
+                {QUALIFICATIONS.map((category, categoryIndex) => (
+                  <div key={categoryIndex} className="mb-4 last:mb-0">
+                    {/* Subheader - Non-selectable */}
+                    <div className="sticky top-0 bg-gray-100 px-2 py-2 mb-2 rounded font-semibold text-sm text-gray-700 border-b border-gray-200">
+                      {category.header}
+                    </div>
+                    {/* Certification Items */}
+                    {category.items.map((qual) => {
+                      const isSelected = formData.professionalCertifications.includes(qual);
+                      
+                      return (
+                        <label
+                          key={qual}
+                          className="flex items-center py-2 px-2 ml-4 rounded hover:bg-gray-50 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {
+                              const exists = formData.professionalCertifications.includes(qual);
+                              setFormData({
+                                ...formData,
+                                professionalCertifications: exists
+                                  ? formData.professionalCertifications.filter((c) => c !== qual)
+                                  : [...formData.professionalCertifications, qual],
+                              });
+                            }}
+                            className="mr-3 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                          />
+                          <span className="text-sm text-gray-900">{qual}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+              
+              <p className="text-xs text-gray-500 mt-2">
+                {formData.professionalCertifications.length > 0
+                  ? `${formData.professionalCertifications.length} certification(s) selected`
+                  : 'Select professional certifications (tap to select)'}
+              </p>
+            </div>
+
+            <div>
               <div className="flex justify-between items-center mb-4">
-                <label className="block text-sm font-medium text-gray-700">Certifications</label>
+                <label className="block text-sm font-medium text-gray-700">Other Certifications (one per field)</label>
                 <button
                   type="button"
                   onClick={addCertification}
@@ -425,7 +676,7 @@ export default function EditCVPage() {
                       placeholder="Certification"
                       value={cert}
                       onChange={(e) => updateCertification(index, e.target.value)}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                     />
                     {formData.certifications.length > 1 && (
                       <button
@@ -441,13 +692,87 @@ export default function EditCVPage() {
               </div>
             </div>
 
+            {/* Pictures Section */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Pictures (up to 3)
+              </label>
+              <div className="space-y-4">
+                {/* Existing Pictures */}
+                {existingPictures.length > 0 && (
+                  <div className="flex flex-wrap gap-4">
+                    {existingPictures.map((picture, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={picture}
+                          alt={`CV picture ${index + 1}`}
+                          className="w-32 h-32 object-cover rounded-lg border border-gray-300"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeExistingPicture(index)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* New Picture Previews */}
+                {picturePreviews.length > 0 && (
+                  <div className="flex flex-wrap gap-4">
+                    {picturePreviews.map((preview, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={preview}
+                          alt={`Preview ${index + 1}`}
+                          className="w-32 h-32 object-cover rounded-lg border border-gray-300"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeNewPicture(index)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Upload Input */}
+                <div>
+                  {existingPictures.length + selectedPictures.length < 3 ? (
+                    <>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                        multiple
+                        onChange={handlePictureChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Maximum 3 pictures. Each file must be less than 5MB.
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-600">
+                      Maximum of 3 pictures reached. Remove a picture to add a new one.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <div className="flex gap-4">
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || uploadingPictures}
                 className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
               >
-                {loading ? 'Updating...' : 'Update CV'}
+                {loading || uploadingPictures ? 'Updating...' : 'Update CV'}
               </button>
               <button
                 type="button"

@@ -55,6 +55,9 @@ export async function POST(request: NextRequest) {
       education,
       skills,
       certifications,
+      professionalCertifications,
+      experienceAndSkill,
+      pictures,
     } = await request.json();
 
     if (!fullName || !email) {
@@ -74,6 +77,9 @@ export async function POST(request: NextRequest) {
       education: education || [],
       skills: skills || [],
       certifications: certifications || [],
+      professionalCertifications: professionalCertifications || [],
+      experienceAndSkill: experienceAndSkill || [],
+      pictures: pictures || [],
       jobSeeker: user.userId,
     });
 
@@ -117,6 +123,9 @@ export async function PUT(request: NextRequest) {
       education,
       skills,
       certifications,
+      professionalCertifications,
+      experienceAndSkill,
+      pictures,
     } = await request.json();
 
     if (fullName) cv.fullName = fullName;
@@ -128,6 +137,18 @@ export async function PUT(request: NextRequest) {
     if (education !== undefined) cv.education = education;
     if (skills !== undefined) cv.skills = skills;
     if (certifications !== undefined) cv.certifications = certifications;
+    if (professionalCertifications !== undefined) {
+      cv.professionalCertifications = professionalCertifications || [];
+      cv.markModified('professionalCertifications');
+    }
+    if (experienceAndSkill !== undefined) {
+      cv.experienceAndSkill = experienceAndSkill || [];
+      cv.markModified('experienceAndSkill');
+    }
+    if (pictures !== undefined) {
+      cv.pictures = pictures || [];
+      cv.markModified('pictures');
+    }
 
     await cv.save();
 
