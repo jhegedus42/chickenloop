@@ -30,6 +30,10 @@ export default function EditJobPage() {
     qualifications: [] as string[],
     sports: [] as string[],
     occupationalAreas: [] as string[],
+    applyByEmail: false,
+    applyByWebsite: false,
+    applicationEmail: '',
+    applicationWebsite: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -93,6 +97,10 @@ export default function EditJobPage() {
         qualifications: (job as any).qualifications || [],
         sports: (job as any).sports || [],
         occupationalAreas: (job as any).occupationalAreas || [],
+        applyByEmail: (job as any).applyByEmail || false,
+        applyByWebsite: (job as any).applyByWebsite || false,
+        applicationEmail: (job as any).applicationEmail || (companyData?.contact?.email || ''),
+        applicationWebsite: (job as any).applicationWebsite || (companyData?.website || ''),
       });
       setExistingPictures((job as any).pictures || []);
     } catch (err: any) {
@@ -687,6 +695,76 @@ export default function EditJobPage() {
                 </div>
               )}
             </div>
+
+            {/* How to Apply Section */}
+            <div className="border-t pt-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">How to Apply</h2>
+              
+              <div className="space-y-4">
+                {/* By Email Checkbox */}
+                <div className="flex items-start">
+                  <input
+                    type="checkbox"
+                    id="applyByEmail"
+                    checked={formData.applyByEmail}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        applyByEmail: e.target.checked,
+                        applicationEmail: e.target.checked ? (formData.applicationEmail || company?.contact?.email || '') : '',
+                      });
+                    }}
+                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <div className="ml-3 flex-1">
+                    <label htmlFor="applyByEmail" className="block text-sm font-medium text-gray-700 mb-1">
+                      By email
+                    </label>
+                    {formData.applyByEmail && (
+                      <input
+                        type="email"
+                        value={formData.applicationEmail}
+                        onChange={(e) => setFormData({ ...formData, applicationEmail: e.target.value })}
+                        placeholder="application@example.com"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* Via Website Checkbox */}
+                <div className="flex items-start">
+                  <input
+                    type="checkbox"
+                    id="applyByWebsite"
+                    checked={formData.applyByWebsite}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        applyByWebsite: e.target.checked,
+                        applicationWebsite: e.target.checked ? (formData.applicationWebsite || company?.website || '') : '',
+                      });
+                    }}
+                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <div className="ml-3 flex-1">
+                    <label htmlFor="applyByWebsite" className="block text-sm font-medium text-gray-700 mb-1">
+                      Via our Website
+                    </label>
+                    {formData.applyByWebsite && (
+                      <input
+                        type="url"
+                        value={formData.applicationWebsite}
+                        onChange={(e) => setFormData({ ...formData, applicationWebsite: e.target.value })}
+                        placeholder="https://example.com/apply"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="flex gap-4">
               <button
                 type="submit"

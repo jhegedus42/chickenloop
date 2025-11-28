@@ -32,6 +32,10 @@ export async function GET(request: NextRequest) {
         pictures: job.pictures || [],
         spam: spamStatus,
         published: job.published !== false, // Default to true if not explicitly false
+        applyByEmail: job.applyByEmail || false,
+        applyByWebsite: job.applyByWebsite || false,
+        applicationEmail: job.applicationEmail,
+        applicationWebsite: job.applicationWebsite,
         recruiter: job.recruiter,
         createdAt: job.createdAt,
         updatedAt: job.updatedAt,

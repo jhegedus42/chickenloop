@@ -16,6 +16,10 @@ export interface IJob extends Document {
   pictures?: string[]; // Array of image paths (max 3)
   spam?: 'yes' | 'no'; // Spam flag: 'yes' if flagged as spam, 'no' otherwise
   published?: boolean; // Published flag: true if published (visible to public), false if unpublished
+  applyByEmail?: boolean; // Whether applications can be submitted by email
+  applyByWebsite?: boolean; // Whether applications can be submitted via website
+  applicationEmail?: string; // Email address for applications
+  applicationWebsite?: string; // Website URL for applications
   recruiter: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -91,6 +95,23 @@ const JobSchema: Schema = new Schema(
     published: {
       type: Boolean,
       default: true,
+    },
+    applyByEmail: {
+      type: Boolean,
+      default: false,
+    },
+    applyByWebsite: {
+      type: Boolean,
+      default: false,
+    },
+    applicationEmail: {
+      type: String,
+      trim: true,
+      lowercase: true,
+    },
+    applicationWebsite: {
+      type: String,
+      trim: true,
     },
   },
   {

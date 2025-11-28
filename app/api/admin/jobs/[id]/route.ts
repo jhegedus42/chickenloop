@@ -54,7 +54,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    const { title, description, location, country, salary, type, company, languages, qualifications, pictures, spam, published } = await request.json();
+    const { title, description, location, country, salary, type, company, languages, qualifications, pictures, spam, published, applyByEmail, applyByWebsite, applicationEmail, applicationWebsite } = await request.json();
 
     if (title) job.title = title;
     if (description) job.description = description;
@@ -97,6 +97,20 @@ export async function PUT(
     // Update published flag (admin can publish/unpublish any job)
     if (published !== undefined) {
       (job as any).published = published === true;
+    }
+    
+    // Update application fields
+    if (applyByEmail !== undefined) {
+      (job as any).applyByEmail = applyByEmail === true;
+    }
+    if (applyByWebsite !== undefined) {
+      (job as any).applyByWebsite = applyByWebsite === true;
+    }
+    if (applicationEmail !== undefined) {
+      (job as any).applicationEmail = applicationEmail || undefined;
+    }
+    if (applicationWebsite !== undefined) {
+      (job as any).applicationWebsite = applicationWebsite || undefined;
     }
 
     await job.save();

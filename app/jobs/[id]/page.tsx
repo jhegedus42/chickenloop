@@ -50,6 +50,10 @@ interface Job {
   updatedAt?: string;
   companyId?: CompanyInfo;
   spam?: 'yes' | 'no';
+  applyByEmail?: boolean;
+  applyByWebsite?: boolean;
+  applicationEmail?: string;
+  applicationWebsite?: string;
 }
 
 // Component to handle date formatting (prevents hydration mismatch)
@@ -396,15 +400,54 @@ export default function JobDetailPage() {
                   </p>
                 )}
                 {job.companyId && (job.companyId.id || job.companyId._id) && (
-                  <div className="mt-4">
+                  <div className="mt-4 text-right">
                     <Link
                       href={`/companies/${job.companyId.id || (typeof job.companyId._id === 'string' ? job.companyId._id : String(job.companyId._id))}`}
-                      className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-colors"
+                      className="inline-block px-4 py-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 font-semibold transition-colors"
                     >
                       More Company Details
                     </Link>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* How to Apply Section */}
+            {(job.applyByEmail || job.applyByWebsite) && (
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-3">How to Apply</h2>
+                <div className="space-y-3">
+                  {job.applyByEmail && job.applicationEmail && (
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg">📧</span>
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <span className="font-medium">By email:</span>
+                        <a
+                          href={`mailto:${job.applicationEmail}`}
+                          className="text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                          {job.applicationEmail}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  {job.applyByWebsite && job.applicationWebsite && (
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg">🌐</span>
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <span className="font-medium">Via our Website:</span>
+                        <a
+                          href={job.applicationWebsite}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                          {job.applicationWebsite}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

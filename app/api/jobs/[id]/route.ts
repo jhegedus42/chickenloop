@@ -72,7 +72,7 @@ export async function PUT(
       );
     }
 
-    const { title, description, company, location, country, salary, type, languages, qualifications, sports, occupationalAreas, pictures, published } = await request.json();
+    const { title, description, company, location, country, salary, type, languages, qualifications, sports, occupationalAreas, pictures, published, applyByEmail, applyByWebsite, applicationEmail, applicationWebsite } = await request.json();
 
     if (title) job.title = title;
     if (description) job.description = description;
@@ -110,6 +110,20 @@ export async function PUT(
     // Update published flag (recruiters can publish/unpublish their own jobs)
     if (published !== undefined) {
       (job as any).published = published === true;
+    }
+    
+    // Update application fields
+    if (applyByEmail !== undefined) {
+      (job as any).applyByEmail = applyByEmail === true;
+    }
+    if (applyByWebsite !== undefined) {
+      (job as any).applyByWebsite = applyByWebsite === true;
+    }
+    if (applicationEmail !== undefined) {
+      (job as any).applicationEmail = applicationEmail || undefined;
+    }
+    if (applicationWebsite !== undefined) {
+      (job as any).applicationWebsite = applicationWebsite || undefined;
     }
 
     await job.save();
