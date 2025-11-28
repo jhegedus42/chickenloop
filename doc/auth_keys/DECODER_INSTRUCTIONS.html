@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ollama Key Decoder Instructions</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            color: #333;
+            background-color: #f9f9f9;
+        }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
+        h2 { margin-top: 2rem; color: #444; }
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 1rem;
+            border-radius: 4px;
+            font-family: "Monaco", "Consolas", monospace;
+            overflow-x: auto;
+            position: relative;
+        }
+        .value {
+            font-family: "Monaco", "Consolas", monospace;
+            background: #eee;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            color: #c7254e;
+        }
+        button {
+            background: #0070f3;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        button:hover { background: #0051a2; }
+        .note {
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Decoder Instructions</h1>
+        <p>These instructions explain how to recover the original API key from the encrypted string.</p>
+
+        <h2>1. The Data</h2>
+        <p><strong>Algorithm:</strong> AES-256-CBC (with PBKDF2, 10000 iterations)</p>
+        
+        <p><strong>Encrypted Key:</strong></p>
+        <div class="code-block" id="encoded-key">U2FsdGVkX18WXzL5W4cCy5T9QyoXslM4r5Bdft4tAxhyo73p8YIqHDKMFs4XqMi/olK6t64zzUS/t28MMMs32TBrZmyHMOmrOCFw99Cwgec=</div>
+        <button onclick="copyToClipboard('encoded-key')">Copy</button>
+
+        <p><strong>Password:</strong></p>
+        <div class="code-block" id="password">Kamujelszo42</div>
+        <button onclick="copyToClipboard('password')">Copy</button>
+
+        <h2>2. How to Decode (Terminal)</h2>
+        <p>Run the following command in your terminal (requires <code>openssl</code> installed):</p>
+
+        <div class="code-block" id="command">
+echo "U2FsdGVkX18WXzL5W4cCy5T9QyoXslM4r5Bdft4tAxhyo73p8YIqHDKMFs4XqMi/olK6t64zzUS/t28MMMs32TBrZmyHMOmrOCFw99Cwgec=" | openssl enc -d -aes-256-cbc -pbkdf2 -salt -k "Kamujelszo42" -a -iter 10000</div>
+        <br>
+        <button onclick="copyToClipboard('command')">Copy Command</button>
+
+        <div class="note">
+            <strong>Note:</strong> If you are on an older version of OpenSSL (before 1.1.1) that doesn't support <code>-iter</code>, you may need to upgrade or use a compatible tool.
+        </div>
+    </div>
+
+    <script>
+        function copyToClipboard(elementId) {
+            const text = document.getElementById(elementId).innerText.trim();
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+    </script>
+</body>
+</html>
+
