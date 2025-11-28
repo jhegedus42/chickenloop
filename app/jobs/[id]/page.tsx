@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Navbar from '../../components/Navbar';
 import { jobsApi } from '@/lib/api';
 import { getCountryNameFromCode } from '@/lib/countryUtils';
+import { useAuth } from '../../contexts/AuthContext';
 import Link from 'next/link';
 
 interface CompanyInfo {
@@ -94,6 +95,7 @@ function formatCompanyAddress(address?: CompanyInfo['address']): string | null {
 
 export default function JobDetailPage() {
   const params = useParams();
+  const { user } = useAuth();
   const jobId = params.id as string;
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
@@ -102,6 +104,9 @@ export default function JobDetailPage() {
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [reportingSpam, setReportingSpam] = useState(false);
   const [spamReported, setSpamReported] = useState(false);
+  const [isFavourite, setIsFavourite] = useState(false);
+  const [togglingFavourite, setTogglingFavourite] = useState(false);
+  const [checkingFavourite, setCheckingFavourite] = useState(false);
 
   useEffect(() => {
     // Load job regardless of authentication status
@@ -109,6 +114,13 @@ export default function JobDetailPage() {
       loadJob();
     }
   }, [jobId]);
+
+  useEffect(() => {
+    // Check if job is in favourites when user is logged in as job seeker
+    if (user && user.role === 'job-seeker' && jobId) {
+      checkFavouriteStatus();
+    }
+  }, [user, jobId]);
 
   const loadJob = async () => {
     try {
@@ -122,6 +134,34 @@ export default function JobDetailPage() {
       setError(err.message || 'Failed to load job');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkFavouriteStatus = async () => {
+    if (!user || user.role !== 'job-seeker') return;
+    
+    setCheckingFavourite(true);
+    try {
+      const data = await jobsApi.checkFavourite(jobId);
+      setIsFavourite(data.isFavourite);
+    } catch (err: any) {
+      // Silently fail - not critical
+    } finally {
+      setCheckingFavourite(false);
+    }
+  };
+
+  const handleToggleFavourite = async () => {
+    if (!user || user.role !== 'job-seeker' || togglingFavourite) return;
+    
+    setTogglingFavourite(true);
+    try {
+      const data = await jobsApi.toggleFavourite(jobId);
+      setIsFavourite(data.isFavourite);
+    } catch (err: any) {
+      alert(err.message || 'Failed to update favourites. Please try again.');
+    } finally {
+      setTogglingFavourite(false);
     }
   };
 
@@ -451,7 +491,7 @@ export default function JobDetailPage() {
               </div>
             )}
 
-            {/* Posted Info and Report Spam Button - Two Column Layout */}
+            {/* Posted Info, Favourites, and Report Spam Button - Layout */}
             <div className="pt-6 border-t border-gray-200">
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 {/* Left Column - Posted Info */}
@@ -462,8 +502,40 @@ export default function JobDetailPage() {
                   <FormattedDate date={job.createdAt} />
                 </div>
                 
-                {/* Right Column - Report Spam Button */}
-                <div className="flex-shrink-0">
+                {/* Right Column - Favourites and Report Spam Buttons */}
+                <div className="flex-shrink-0 flex flex-col sm:flex-row gap-3">
+                  {/* Add to Favourites Button */}
+                  {user && user.role === 'job-seeker' ? (
+                    <button
+                      onClick={handleToggleFavourite}
+                      disabled={togglingFavourite || checkingFavourite}
+                      className={`px-4 py-2 text-sm rounded-lg font-medium transition-colors ${
+                        isFavourite
+                          ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                          : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                      }`}
+                    >
+                      {togglingFavourite
+                        ? '...'
+                        : isFavourite
+                        ? '★ In Favourites'
+                        : '☆ Add to Favourites'}
+                    </button>
+                  ) : (
+                    <div className="px-4 py-2 text-xs text-gray-600 bg-gray-100 rounded-lg max-w-xs">
+                      <span>Please </span>
+                      <Link href="/login" className="text-blue-600 hover:underline">
+                        log in
+                      </Link>
+                      <span> or </span>
+                      <Link href="/register" className="text-blue-600 hover:underline">
+                        register
+                      </Link>
+                      <span> as Job Seeker to add favourites</span>
+                    </div>
+                  )}
+                  
+                  {/* Report Spam Button */}
                   <button
                     onClick={handleReportSpam}
                     disabled={reportingSpam || spamReported}

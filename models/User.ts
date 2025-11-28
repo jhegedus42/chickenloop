@@ -5,6 +5,7 @@ export interface IUser extends Document {
   password: string;
   role: 'recruiter' | 'job-seeker' | 'admin';
   name: string;
+  favouriteJobs?: mongoose.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -31,6 +32,10 @@ const UserSchema: Schema = new Schema(
       type: String,
       required: true,
     },
+    favouriteJobs: [{
+      type: Schema.Types.ObjectId,
+      ref: 'Job',
+    }],
   },
   {
     timestamps: true,

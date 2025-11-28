@@ -25,7 +25,7 @@ interface Job {
 export default function JobSeekerDashboard() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [jobs, setJobs] = useState<Job[]>([]);
+  const [favouriteJobs, setFavouriteJobs] = useState<Job[]>([]);
   const [cv, setCv] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -46,11 +46,11 @@ export default function JobSeekerDashboard() {
 
   const loadData = async () => {
     try {
-      const [jobsData, cvData] = await Promise.all([
-        jobsApi.getAll().catch(() => ({ jobs: [] })),
+      const [favouritesData, cvData] = await Promise.all([
+        jobsApi.getFavourites().catch(() => ({ jobs: [] })),
         cvApi.get().catch(() => null),
       ]);
-      setJobs(jobsData.jobs || []);
+      setFavouriteJobs(favouritesData.jobs || []);
       setCv(cvData?.cv || null);
     } catch (err: any) {
       setError(err.message || 'Failed to load data');
@@ -67,6 +67,19 @@ export default function JobSeekerDashboard() {
       setCv(null);
     } catch (err: any) {
       alert(err.message || 'Failed to delete CV');
+    }
+  };
+
+  const handleRemoveFavourite = async (jobId: string) => {
+    if (!confirm('Remove this job from your favourites?')) return;
+
+    try {
+      await jobsApi.toggleFavourite(jobId);
+      // Reload favourites to update the list
+      const favouritesData = await jobsApi.getFavourites().catch(() => ({ jobs: [] }));
+      setFavouriteJobs(favouritesData.jobs || []);
+    } catch (err: any) {
+      alert(err.message || 'Failed to remove from favourites');
     }
   };
 
@@ -124,38 +137,86 @@ export default function JobSeekerDashboard() {
           </div>
         </div>
 
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-6">Available Jobs</h2>
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-              {error}
-            </div>
-          )}
-
-          {jobs.length === 0 ? (
+        {/* Favourite Jobs Section */}
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-gray-900 mb-6">My Favourite Jobs</h2>
+          {favouriteJobs.length === 0 ? (
             <div className="bg-white rounded-lg shadow-md p-8 text-center">
-              <p className="text-gray-600">No jobs available at the moment.</p>
+              <p className="text-gray-600">You haven't added any jobs to your favourites yet.</p>
+              <p className="text-gray-500 text-sm mt-2">
+                Click "Add to Favourites" on any job listing to save it here.
+              </p>
             </div>
           ) : (
-            <div className="grid gap-6">
-              {jobs.map((job) => (
-                <div key={job._id} className="bg-white rounded-lg shadow-md p-6">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">{job.title}</h3>
-                  <p className="text-lg text-gray-600 mb-2">{job.company}</p>
-                  <p className="text-gray-600 mb-2">{job.location}</p>
-                  <p className="text-sm text-gray-500 mb-2">{job.type}</p>
-                  {job.salary && (
-                    <p className="text-gray-700 font-semibold mb-4">Salary: {job.salary}</p>
-                  )}
-                  <p className="text-gray-700 mb-4">{job.description}</p>
-                  <p className="text-sm text-gray-400 mb-2">
-                    Posted by: {job.recruiter.name} ({job.recruiter.email})
-                  </p>
-                  <p className="text-sm text-gray-400">
-                    Posted: {new Date(job.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-              ))}
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Title
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Company
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Location
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Type
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Salary
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Posted
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {favouriteJobs.map((job) => (
+                      <tr key={job._id}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          <Link
+                            href={`/jobs/${job._id}`}
+                            className="text-blue-600 hover:text-blue-900 hover:underline"
+                          >
+                            {job.title}
+                          </Link>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {job.company}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {job.location}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                            {job.type}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {job.salary || '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(job.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <button
+                            onClick={() => handleRemoveFavourite(job._id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            Remove
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>

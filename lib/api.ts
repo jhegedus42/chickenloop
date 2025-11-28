@@ -68,6 +68,12 @@ export const jobsApi = {
   getAll: () => apiRequest('/jobs'),
   getOne: (id: string) => apiRequest(`/jobs/${id}`),
   getMyJobs: () => apiRequest('/jobs/my'),
+  getFavourites: () => apiRequest('/jobs/favourites'),
+  toggleFavourite: (id: string) =>
+    apiRequest(`/jobs/${id}/favourite`, {
+      method: 'POST',
+    }),
+  checkFavourite: (id: string) => apiRequest(`/jobs/${id}/favourite`),
   create: (data: any) =>
     apiRequest('/jobs', {
       method: 'POST',
