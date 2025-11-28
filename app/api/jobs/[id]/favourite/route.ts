@@ -31,15 +31,15 @@ export async function POST(
       userData.favouriteJobs = [];
     }
 
-    const jobId = job._id;
+    const jobId = job._id as any;
     const isFavourite = userData.favouriteJobs.some(
-      (favId) => favId.toString() === jobId.toString()
+      (favId: any) => favId.toString() === jobId.toString()
     );
 
     if (isFavourite) {
       // Remove from favourites
       userData.favouriteJobs = userData.favouriteJobs.filter(
-        (favId) => favId.toString() !== jobId.toString()
+        (favId: any) => favId.toString() !== jobId.toString()
       );
     } else {
       // Add to favourites
@@ -90,7 +90,7 @@ export async function GET(
     }
 
     const isFavourite = userData.favouriteJobs.some(
-      (favId) => favId.toString() === id
+      (favId: any) => favId.toString() === id
     );
 
     return NextResponse.json({ isFavourite }, { status: 200 });
