@@ -9,8 +9,15 @@ export async function GET(request: NextRequest) {
   try {
     await connectDB();
 
-    // Get all jobs (spam jobs remain visible for admin review)
-    const jobs = await Job.find()
+    // Get only published jobs (unpublished jobs are hidden from public)
+    // Include jobs where published is true OR undefined (default is true)
+    // Exclude only jobs where published is explicitly false
+    const jobs = await Job.find({ 
+      $or: [
+        { published: true },
+        { published: { $exists: false } }
+      ]
+    })
       .populate('recruiter', 'name email')
       .sort({ createdAt: -1 });
 
@@ -73,6 +80,7 @@ export async function POST(request: NextRequest) {
       occupationalAreas: occupationalAreas || [],
       pictures: pictures || [],
       recruiter: user.userId,
+      published: true, // New jobs are published by default
     });
 
     const populatedJob = await Job.findById(job._id).populate('recruiter', 'name email');

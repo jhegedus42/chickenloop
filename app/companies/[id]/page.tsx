@@ -173,14 +173,18 @@ export default function CompanyPage() {
       const data = await response.json();
       
       if (response.ok && data.jobs) {
-        // Filter jobs by companyId
+        // Filter jobs by companyId and only include published jobs
         const companyJobs = data.jobs.filter((job: Job) => {
           if (!job.companyId) return false;
           // Handle both string and object companyId
           const jobCompanyId = typeof job.companyId === 'string' 
             ? job.companyId 
             : job.companyId._id || job.companyId.id;
-          return jobCompanyId === companyId || jobCompanyId?.toString() === companyId;
+          const matchesCompany = jobCompanyId === companyId || jobCompanyId?.toString() === companyId;
+          // Only include published jobs (published is true OR undefined, exclude false)
+          const jobPublished = (job as any).published;
+          const isPublished = jobPublished !== false; // true or undefined means published
+          return matchesCompany && isPublished;
         });
         setJobs(companyJobs);
       }

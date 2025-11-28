@@ -16,6 +16,7 @@ interface Job {
   salary?: string;
   type: string;
   pictures?: string[];
+  published?: boolean;
   createdAt: string;
 }
 
@@ -58,7 +59,12 @@ export default function RecruiterDashboard() {
   const loadJobs = async () => {
     try {
       const data = await jobsApi.getMyJobs();
-      setJobs(data.jobs);
+      // Ensure published field is properly set (default to true if undefined, preserve false)
+      const jobsWithPublished = data.jobs.map((job: Job) => ({
+        ...job,
+        published: job.published === undefined ? true : job.published,
+      }));
+      setJobs(jobsWithPublished);
     } catch (err: any) {
       setError(err.message || 'Failed to load jobs');
     } finally {
@@ -74,6 +80,17 @@ export default function RecruiterDashboard() {
       setJobs(jobs.filter((job) => job._id !== id));
     } catch (err: any) {
       alert(err.message || 'Failed to delete job');
+    }
+  };
+
+  const handleTogglePublish = async (id: string, currentPublished: boolean) => {
+    try {
+      const newPublishedStatus = !currentPublished;
+      await jobsApi.update(id, { published: newPublishedStatus });
+      // Reload jobs to ensure we have the latest state from the server
+      await loadJobs();
+    } catch (err: any) {
+      alert(err.message || 'Failed to update job');
     }
   };
 
@@ -207,6 +224,16 @@ export default function RecruiterDashboard() {
                         {new Date(job.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button
+                          onClick={() => handleTogglePublish(job._id, job.published === true)}
+                          className={`mr-4 ${
+                            job.published === true
+                              ? 'text-orange-600 hover:text-orange-900'
+                              : 'text-green-600 hover:text-green-900'
+                          }`}
+                        >
+                          {job.published === true ? 'Unpublish' : 'Publish'}
+                        </button>
                         <Link
                           href={`/recruiter/jobs/${job._id}/edit`}
                           className="text-blue-600 hover:text-blue-900 mr-4"

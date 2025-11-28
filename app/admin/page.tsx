@@ -81,6 +81,7 @@ interface Job {
   qualifications?: string[];
   pictures?: string[];
   spam?: 'yes' | 'no';
+  published?: boolean;
   recruiter: any;
   createdAt: string;
   updatedAt: string;
@@ -760,6 +761,15 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleTogglePublish = async (jobId: string, currentPublished: boolean) => {
+    try {
+      await adminApi.updateJob(jobId, { published: !currentPublished });
+      loadJobs();
+    } catch (err: any) {
+      alert(err.message || 'Failed to update job');
+    }
+  };
+
   const handleDeleteJob = async (jobId: string) => {
     if (!confirm('Are you sure you want to delete this job?')) return;
 
@@ -1435,12 +1445,6 @@ export default function AdminDashboard() {
                     Company
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Location
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Type
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Recruiter
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1466,14 +1470,6 @@ export default function AdminDashboard() {
                       {job.company}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {job.location}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                        {job.type}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {typeof job.recruiter === 'object' && job.recruiter ? (
                         <span>{job.recruiter.name} ({job.recruiter.email})</span>
                       ) : (
@@ -1492,6 +1488,16 @@ export default function AdminDashboard() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button
+                        onClick={() => handleTogglePublish(job.id, job.published !== false)}
+                        className={`mr-4 ${
+                          job.published !== false
+                            ? 'text-orange-600 hover:text-orange-900'
+                            : 'text-green-600 hover:text-green-900'
+                        }`}
+                      >
+                        {job.published !== false ? 'Unpublish' : 'Publish'}
+                      </button>
                       <button
                         onClick={() => handleEditJob(job)}
                         className="text-blue-600 hover:text-blue-900 mr-4"

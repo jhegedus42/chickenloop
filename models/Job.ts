@@ -15,6 +15,7 @@ export interface IJob extends Document {
   occupationalAreas?: string[];
   pictures?: string[]; // Array of image paths (max 3)
   spam?: 'yes' | 'no'; // Spam flag: 'yes' if flagged as spam, 'no' otherwise
+  published?: boolean; // Published flag: true if published (visible to public), false if unpublished
   recruiter: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -86,6 +87,10 @@ const JobSchema: Schema = new Schema(
       type: String,
       enum: ['yes', 'no'],
       default: 'no',
+    },
+    published: {
+      type: Boolean,
+      default: true,
     },
   },
   {

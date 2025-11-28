@@ -29,12 +29,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Get audit logs
-    const auditLogs = await AuditLog.find(query)
+    const auditLogsDocs = await AuditLog.find(query)
       .sort({ createdAt: -1 })
       .limit(limit)
       .skip(offset)
-      .populate('userId', 'name email')
-      .lean();
+      .populate('userId', 'name email');
+
+    // Convert to plain objects
+    const auditLogs = auditLogsDocs.map((log) => log.toObject());
 
     // Get total count for pagination
     const total = await AuditLog.countDocuments(query);
@@ -49,15 +51,26 @@ export async function GET(request: NextRequest) {
       { status: 200 }
     );
   } catch (error: any) {
+    console.error('Audit logs API error:', error);
+    
+    // Ensure we always return JSON, even for unexpected errors
     if (error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (error.message === 'Forbidden') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
+    
+    // Return JSON error response
+    const errorMessage = error?.message || error?.toString() || 'Internal server error';
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
+      { error: errorMessage },
+      { 
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      }
     );
   }
 }
