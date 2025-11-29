@@ -1,4 +1,5 @@
 'use client';
+// Force Vercel rebuild
 
 import { useEffect, useState } from 'react';
 import Navbar from '../components/Navbar';
@@ -70,7 +71,7 @@ function TimeAgoDisplay({ date }: { date: string }) {
   useEffect(() => {
     setMounted(true);
     setTimeAgo(getTimeAgo(date));
-    
+
     // Update every minute
     const interval = setInterval(() => {
       setTimeAgo(getTimeAgo(date));
@@ -154,14 +155,14 @@ export default function CVsPage() {
 
   const loadCVs = async () => {
     try {
-      const response = await fetch('/api/cvs', {
+      const response = await fetch('/api/candidates-list', {
         credentials: 'include',
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to load CVs');
       }
-      
+
       const data = await response.json();
       setAllCvs(data.cvs || []);
       setCvs(data.cvs || []);
@@ -367,17 +368,17 @@ export default function CVsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {cvs.map((cv) => {
               // Get the first picture, or use a placeholder
-              const firstPicture = cv.pictures && cv.pictures.length > 0 
-                ? cv.pictures[0] 
+              const firstPicture = cv.pictures && cv.pictures.length > 0
+                ? cv.pictures[0]
                 : null;
-              
+
               // Get user's last online date
               const lastOnlineDate = cv.jobSeeker?.lastOnline;
 
               return (
                 <Link
                   key={cv._id}
-                  href={`/cvs/${cv._id}`}
+                  href={`/candidates/${cv._id}`}
                   className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer block"
                 >
                   {/* CV Picture */}

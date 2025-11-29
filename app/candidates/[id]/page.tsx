@@ -70,7 +70,7 @@ export default function CVDetailPage() {
 
   const loadCV = async () => {
     try {
-      const response = await fetch(`/api/cvs/${cvId}`, {
+      const response = await fetch(`/api/candidates-list/${cvId}`, {
         credentials: 'include',
       });
 
@@ -108,7 +108,7 @@ export default function CVDetailPage() {
               {error || 'CV not found'}
             </div>
             <Link
-              href="/cvs"
+              href="/candidates"
               className="text-blue-600 hover:text-blue-800 hover:underline"
             >
               ← Back to CVs
@@ -127,7 +127,7 @@ export default function CVDetailPage() {
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold text-gray-900">{cv.fullName}</h1>
             <Link
-              href="/cvs"
+              href="/candidates"
               className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300"
             >
               Back to CVs
@@ -198,8 +198,8 @@ export default function CVDetailPage() {
                         {exp.startDate && exp.endDate
                           ? `${exp.startDate} - ${exp.endDate}`
                           : exp.startDate
-                          ? `Since ${exp.startDate}`
-                          : '-'}
+                            ? `Since ${exp.startDate}`
+                            : '-'}
                       </div>
                     </div>
                     {exp.description && (
@@ -228,8 +228,8 @@ export default function CVDetailPage() {
                         {edu.startDate && edu.endDate
                           ? `${edu.startDate} - ${edu.endDate}`
                           : edu.startDate
-                          ? `Since ${edu.startDate}`
-                          : '-'}
+                            ? `Since ${edu.startDate}`
+                            : '-'}
                       </div>
                     </div>
                   </div>
@@ -241,35 +241,35 @@ export default function CVDetailPage() {
           {/* Skills */}
           {((cv.skills && cv.skills.length > 0 && cv.skills.some((s: string) => s.trim() !== '')) ||
             (cv.experienceAndSkill && cv.experienceAndSkill.length > 0)) && (
-            <div className="mb-6 pb-6 border-b border-gray-200">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Skills</h2>
-              <div className="flex flex-wrap gap-2">
-                {/* Sports Experiences and Skills */}
-                {cv.experienceAndSkill &&
-                  cv.experienceAndSkill.length > 0 &&
-                  cv.experienceAndSkill.map((item: string, index: number) => (
-                    <span
-                      key={`sport-${index}`}
-                      className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
-                    >
-                      {item}
-                    </span>
-                  ))}
-                {/* Other Skills */}
-                {cv.skills &&
-                  cv.skills
-                    .filter((skill: string) => skill.trim() !== '')
-                    .map((skill: string, index: number) => (
+              <div className="mb-6 pb-6 border-b border-gray-200">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Skills</h2>
+                <div className="flex flex-wrap gap-2">
+                  {/* Sports Experiences and Skills */}
+                  {cv.experienceAndSkill &&
+                    cv.experienceAndSkill.length > 0 &&
+                    cv.experienceAndSkill.map((item: string, index: number) => (
                       <span
-                        key={`skill-${index}`}
+                        key={`sport-${index}`}
                         className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
                       >
-                        {skill}
+                        {item}
                       </span>
                     ))}
+                  {/* Other Skills */}
+                  {cv.skills &&
+                    cv.skills
+                      .filter((skill: string) => skill.trim() !== '')
+                      .map((skill: string, index: number) => (
+                        <span
+                          key={`skill-${index}`}
+                          className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
           {/* Languages */}
           {cv.languages && cv.languages.length > 0 && (
