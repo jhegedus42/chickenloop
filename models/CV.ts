@@ -27,6 +27,7 @@ export interface ICV extends Document {
   languages?: string[];
   lookingForWorkInAreas?: string[];
   pictures?: string[];
+  published?: boolean;
   jobSeeker: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -76,6 +77,10 @@ const CVSchema: Schema = new Schema(
     languages: [String],
     lookingForWorkInAreas: [String],
     pictures: [String],
+    published: {
+      type: Boolean,
+      default: true,
+    },
     jobSeeker: {
       type: Schema.Types.ObjectId,
       ref: 'User',
@@ -88,6 +93,9 @@ const CVSchema: Schema = new Schema(
 );
 
 const CV: Model<ICV> = mongoose.models.CV || mongoose.model<ICV>('CV', CVSchema);
+
+// Create index on createdAt for efficient sorting
+CVSchema.index({ createdAt: -1 });
 
 export default CV;
 

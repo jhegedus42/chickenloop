@@ -218,6 +218,17 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'users' | 'companies' | 'jobs' | 'audit-logs'>('users');
+  const [usersPage, setUsersPage] = useState<number>(1);
+  const [companiesPage, setCompaniesPage] = useState<number>(1);
+  const [jobsPage, setJobsPage] = useState<number>(1);
+  const entriesPerPage = 20;
+
+  // Reset pagination when switching tabs
+  useEffect(() => {
+    setUsersPage(1);
+    setCompaniesPage(1);
+    setJobsPage(1);
+  }, [activeTab]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [auditLogsLoading, setAuditLogsLoading] = useState(false);
   const [auditLogsTotal, setAuditLogsTotal] = useState(0);
@@ -1013,7 +1024,13 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {users.map((userData) => (
+                {(() => {
+                  const totalPages = Math.ceil(users.length / entriesPerPage);
+                  const indexOfLastEntry = usersPage * entriesPerPage;
+                  const indexOfFirstEntry = indexOfLastEntry - entriesPerPage;
+                  const currentUsers = users.slice(indexOfFirstEntry, indexOfLastEntry);
+                  
+                  return currentUsers.map((userData) => (
                   <tr key={userData.id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {userData.name}
@@ -1055,7 +1072,8 @@ export default function AdminDashboard() {
                       </button>
                     </td>
                   </tr>
-                ))}
+                  ));
+                })()}
               </tbody>
             </table>
           </div>
@@ -1066,6 +1084,80 @@ export default function AdminDashboard() {
                 <p className="text-gray-600">No users found.</p>
               </div>
             )}
+
+            {/* Users Pagination */}
+            {users.length > entriesPerPage && (() => {
+              const totalPages = Math.ceil(users.length / entriesPerPage);
+              const indexOfLastEntry = usersPage * entriesPerPage;
+              const indexOfFirstEntry = indexOfLastEntry - entriesPerPage;
+              
+              return (
+                <div className="mt-4 flex items-center justify-between">
+                  <div className="text-sm text-gray-600">
+                    Showing {indexOfFirstEntry + 1} to {Math.min(indexOfLastEntry, users.length)} of {users.length} users
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setUsersPage((prev) => Math.max(prev - 1, 1))}
+                      disabled={usersPage === 1}
+                      className={`px-4 py-2 rounded-md font-medium ${
+                        usersPage === 1
+                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
+                    >
+                      Previous
+                    </button>
+                    
+                    <div className="flex gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                        if (
+                          page === 1 ||
+                          page === totalPages ||
+                          (page >= usersPage - 1 && page <= usersPage + 1)
+                        ) {
+                          return (
+                            <button
+                              key={page}
+                              onClick={() => setUsersPage(page)}
+                              className={`px-3 py-2 rounded-md font-medium ${
+                                usersPage === page
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          );
+                        } else if (
+                          page === usersPage - 2 ||
+                          page === usersPage + 2
+                        ) {
+                          return (
+                            <span key={page} className="px-2 py-2 text-gray-500">
+                              ...
+                            </span>
+                          );
+                        }
+                        return null;
+                      })}
+                    </div>
+
+                    <button
+                      onClick={() => setUsersPage((prev) => Math.min(prev + 1, totalPages))}
+                      disabled={usersPage === totalPages}
+                      className={`px-4 py-2 rounded-md font-medium ${
+                        usersPage === totalPages
+                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </>
         )}
 
@@ -1095,7 +1187,13 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {companies.map((company) => (
+                {(() => {
+                  const totalPages = Math.ceil(companies.length / entriesPerPage);
+                  const indexOfLastEntry = companiesPage * entriesPerPage;
+                  const indexOfFirstEntry = indexOfLastEntry - entriesPerPage;
+                  const currentCompanies = companies.slice(indexOfFirstEntry, indexOfLastEntry);
+                  
+                  return currentCompanies.map((company) => (
                   <tr key={company.id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       <Link 
@@ -1141,7 +1239,8 @@ export default function AdminDashboard() {
                       </button>
                     </td>
                   </tr>
-                ))}
+                  ));
+                })()}
               </tbody>
             </table>
           </div>
@@ -1152,6 +1251,80 @@ export default function AdminDashboard() {
                 <p className="text-gray-600">No companies found.</p>
               </div>
             )}
+
+            {/* Companies Pagination */}
+            {companies.length > entriesPerPage && (() => {
+              const totalPages = Math.ceil(companies.length / entriesPerPage);
+              const indexOfLastEntry = companiesPage * entriesPerPage;
+              const indexOfFirstEntry = indexOfLastEntry - entriesPerPage;
+              
+              return (
+                <div className="mt-4 flex items-center justify-between">
+                  <div className="text-sm text-gray-600">
+                    Showing {indexOfFirstEntry + 1} to {Math.min(indexOfLastEntry, companies.length)} of {companies.length} companies
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCompaniesPage((prev) => Math.max(prev - 1, 1))}
+                      disabled={companiesPage === 1}
+                      className={`px-4 py-2 rounded-md font-medium ${
+                        companiesPage === 1
+                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
+                    >
+                      Previous
+                    </button>
+                    
+                    <div className="flex gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                        if (
+                          page === 1 ||
+                          page === totalPages ||
+                          (page >= companiesPage - 1 && page <= companiesPage + 1)
+                        ) {
+                          return (
+                            <button
+                              key={page}
+                              onClick={() => setCompaniesPage(page)}
+                              className={`px-3 py-2 rounded-md font-medium ${
+                                companiesPage === page
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          );
+                        } else if (
+                          page === companiesPage - 2 ||
+                          page === companiesPage + 2
+                        ) {
+                          return (
+                            <span key={page} className="px-2 py-2 text-gray-500">
+                              ...
+                            </span>
+                          );
+                        }
+                        return null;
+                      })}
+                    </div>
+
+                    <button
+                      onClick={() => setCompaniesPage((prev) => Math.min(prev + 1, totalPages))}
+                      disabled={companiesPage === totalPages}
+                      className={`px-4 py-2 rounded-md font-medium ${
+                        companiesPage === totalPages
+                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </>
         )}
 
@@ -1674,7 +1847,13 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {jobs.map((job) => (
+                {(() => {
+                  const totalPages = Math.ceil(jobs.length / entriesPerPage);
+                  const indexOfLastEntry = jobsPage * entriesPerPage;
+                  const indexOfFirstEntry = indexOfLastEntry - entriesPerPage;
+                  const currentJobs = jobs.slice(indexOfFirstEntry, indexOfLastEntry);
+                  
+                  return currentJobs.map((job) => (
                   <tr key={job.id} className={job.spam === 'yes' ? 'bg-red-50' : ''}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       <Link
@@ -1738,7 +1917,8 @@ export default function AdminDashboard() {
                       </button>
                     </td>
                   </tr>
-                ))}
+                  ));
+                })()}
               </tbody>
             </table>
           </div>
@@ -1749,6 +1929,80 @@ export default function AdminDashboard() {
                 <p className="text-gray-600">No jobs found.</p>
               </div>
             )}
+
+            {/* Jobs Pagination */}
+            {jobs.length > entriesPerPage && (() => {
+              const totalPages = Math.ceil(jobs.length / entriesPerPage);
+              const indexOfLastEntry = jobsPage * entriesPerPage;
+              const indexOfFirstEntry = indexOfLastEntry - entriesPerPage;
+              
+              return (
+                <div className="mt-4 flex items-center justify-between">
+                  <div className="text-sm text-gray-600">
+                    Showing {indexOfFirstEntry + 1} to {Math.min(indexOfLastEntry, jobs.length)} of {jobs.length} jobs
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setJobsPage((prev) => Math.max(prev - 1, 1))}
+                      disabled={jobsPage === 1}
+                      className={`px-4 py-2 rounded-md font-medium ${
+                        jobsPage === 1
+                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
+                    >
+                      Previous
+                    </button>
+                    
+                    <div className="flex gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                        if (
+                          page === 1 ||
+                          page === totalPages ||
+                          (page >= jobsPage - 1 && page <= jobsPage + 1)
+                        ) {
+                          return (
+                            <button
+                              key={page}
+                              onClick={() => setJobsPage(page)}
+                              className={`px-3 py-2 rounded-md font-medium ${
+                                jobsPage === page
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          );
+                        } else if (
+                          page === jobsPage - 2 ||
+                          page === jobsPage + 2
+                        ) {
+                          return (
+                            <span key={page} className="px-2 py-2 text-gray-500">
+                              ...
+                            </span>
+                          );
+                        }
+                        return null;
+                      })}
+                    </div>
+
+                    <button
+                      onClick={() => setJobsPage((prev) => Math.min(prev + 1, totalPages))}
+                      disabled={jobsPage === totalPages}
+                      className={`px-4 py-2 rounded-md font-medium ${
+                        jobsPage === totalPages
+                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </>
         )}
 

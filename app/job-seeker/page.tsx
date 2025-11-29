@@ -29,6 +29,7 @@ export default function JobSeekerDashboard() {
   const [cv, setCv] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [togglingPublish, setTogglingPublish] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -83,6 +84,22 @@ export default function JobSeekerDashboard() {
     }
   };
 
+  const handleTogglePublish = async () => {
+    setTogglingPublish(true);
+    try {
+      const response = await cvApi.togglePublish();
+      // Reload CV to get updated published status
+      const cvData = await cvApi.get().catch(() => null);
+      if (cvData?.cv) {
+        setCv(cvData.cv);
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to toggle CV visibility');
+    } finally {
+      setTogglingPublish(false);
+    }
+  };
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50">
@@ -108,7 +125,7 @@ export default function JobSeekerDashboard() {
                 <p className="text-gray-600 mb-4">
                   You have a CV. You can view, edit or delete it.
                 </p>
-                <div className="flex gap-4">
+                <div className="flex gap-4 flex-wrap">
                   <Link
                     href="/job-seeker/cv/view"
                     className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
@@ -122,12 +139,28 @@ export default function JobSeekerDashboard() {
                     Edit CV
                   </Link>
                   <button
+                    onClick={handleTogglePublish}
+                    disabled={togglingPublish}
+                    className={`px-4 py-2 rounded font-medium transition-colors ${
+                      cv.published === false
+                        ? 'bg-orange-600 text-white hover:bg-orange-700'
+                        : 'bg-gray-600 text-white hover:bg-gray-700'
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    {togglingPublish ? 'Updating...' : (cv.published === false ? 'Show CV' : 'Hide CV')}
+                  </button>
+                  <button
                     onClick={handleDeleteCV}
                     className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
                   >
                     Delete CV
                   </button>
                 </div>
+                {cv.published === false && (
+                  <p className="text-sm text-orange-600 mt-2">
+                    Your CV is currently hidden and will not be visible to recruiters.
+                  </p>
+                )}
               </div>
             ) : (
               <div>

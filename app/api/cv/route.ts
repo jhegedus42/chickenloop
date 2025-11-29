@@ -84,6 +84,7 @@ export async function POST(request: NextRequest) {
       languages: languages || [],
       lookingForWorkInAreas: lookingForWorkInAreas || [],
       pictures: pictures || [],
+      published: true, // New CVs are published by default
       jobSeeker: user.userId,
     });
 

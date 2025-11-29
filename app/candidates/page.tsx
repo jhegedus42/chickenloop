@@ -99,6 +99,8 @@ export default function CVsPage() {
   const [selectedWorkArea, setSelectedWorkArea] = useState<string>('');
   const [selectedSport, setSelectedSport] = useState<string>('');
   const [selectedCertification, setSelectedCertification] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const cvsPerPage = 20;
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -151,6 +153,8 @@ export default function CVsPage() {
     }
 
     setCvs(filtered);
+    // Reset to page 1 when filters change
+    setCurrentPage(1);
   }, [selectedLanguage, selectedWorkArea, selectedSport, selectedCertification, allCvs]);
 
   const loadCVs = async () => {
@@ -160,13 +164,23 @@ export default function CVsPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to load CVs');
+        // Try to get error message from response
+        let errorMessage = 'Failed to load CVs';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // If response is not JSON, use status text
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
       setAllCvs(data.cvs || []);
       setCvs(data.cvs || []);
     } catch (err: any) {
+      console.error('Error loading CVs:', err);
       setError(err.message || 'Failed to load CVs');
     } finally {
       setLoading(false);
@@ -248,7 +262,9 @@ export default function CVsPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50">
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <h1 className="text-4xl font-bold text-gray-900 mb-8">Job Candidates</h1>
+        <h1 className="text-4xl font-bold text-gray-900 mb-8">
+          We have {cvs.length} {cvs.length === 1 ? 'candidate' : 'candidates'} meeting these criteria
+        </h1>
         
         {/* Filters */}
         <div className="flex flex-col sm:flex-row items-end sm:items-center sm:justify-end mb-8 gap-3 flex-wrap">
@@ -365,8 +381,18 @@ export default function CVsPage() {
             <p className="text-gray-500 mt-2">Check back later for new candidates!</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {cvs.map((cv) => {
+          <>
+            {/* Calculate pagination */}
+            {(() => {
+              const totalPages = Math.ceil(cvs.length / cvsPerPage);
+              const indexOfLastCv = currentPage * cvsPerPage;
+              const indexOfFirstCv = indexOfLastCv - cvsPerPage;
+              const currentCvs = cvs.slice(indexOfFirstCv, indexOfLastCv);
+
+              return (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {currentCvs.map((cv) => {
               // Get the first picture, or use a placeholder
               const firstPicture = cv.pictures && cv.pictures.length > 0
                 ? cv.pictures[0]
@@ -488,7 +514,82 @@ export default function CVsPage() {
               );
             })}
           </div>
-        )}
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="mt-8 flex items-center justify-center gap-2">
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className={`px-4 py-2 rounded-md font-medium ${
+                  currentPage === 1
+                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+              >
+                Previous
+              </button>
+              
+              <div className="flex gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                  // Show first page, last page, current page, and pages around current
+                  if (
+                    page === 1 ||
+                    page === totalPages ||
+                    (page >= currentPage - 1 && page <= currentPage + 1)
+                  ) {
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`px-3 py-2 rounded-md font-medium ${
+                          currentPage === page
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    );
+                  } else if (
+                    page === currentPage - 2 ||
+                    page === currentPage + 2
+                  ) {
+                    return (
+                      <span key={page} className="px-2 py-2 text-gray-500">
+                        ...
+                      </span>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className={`px-4 py-2 rounded-md font-medium ${
+                  currentPage === totalPages
+                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+              >
+                Next
+              </button>
+            </div>
+          )}
+
+          {/* Page info */}
+          {totalPages > 1 && (
+            <div className="mt-4 text-center text-sm text-gray-600">
+              Showing {indexOfFirstCv + 1} to {Math.min(indexOfLastCv, cvs.length)} of {cvs.length} candidates
+            </div>
+          )}
+        </>
+      );
+    })()}
+  </>
+  )}
       </main>
     </div>
   );

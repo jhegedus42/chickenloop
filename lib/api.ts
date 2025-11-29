@@ -106,6 +106,10 @@ export const cvApi = {
     apiRequest('/cv', {
       method: 'DELETE',
     }),
+  togglePublish: () =>
+    apiRequest('/cv/toggle-publish', {
+      method: 'POST',
+    }),
 };
 
 export const companyApi = {

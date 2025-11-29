@@ -13,9 +13,22 @@ export async function GET(request: NextRequest) {
     await connectDB();
     console.log('API: /api/candidates-list - DB connected');
 
-    const cvs = await CV.find()
+    // Get only published CVs (unpublished CVs are hidden from recruiters/admins)
+    // Include CVs where published is true OR undefined (default is true)
+    // Exclude only CVs where published is explicitly false
+    // Use find with populate and sort in memory to avoid MongoDB sort memory limit
+    const cvsRaw = await CV.find({
+      published: { $ne: false }
+    })
       .populate('jobSeeker', 'name email lastOnline')
-      .sort({ createdAt: -1 });
+      .lean();
+    
+    // Sort in memory after fetching (avoids MongoDB sort memory limit)
+    const cvs = cvsRaw.sort((a: any, b: any) => {
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
+      return dateB - dateA; // Descending order
+    });
 
     console.log(`API: /api/candidates-list - Found ${cvs.length} CVs`);
 
