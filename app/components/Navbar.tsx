@@ -41,7 +41,7 @@ export default function Navbar() {
                   href="/cvs"
                   className="px-3 py-2 rounded hover:bg-blue-700"
                 >
-                  CVs
+                  Candidates
                 </Link>
               )}
               {user ? (

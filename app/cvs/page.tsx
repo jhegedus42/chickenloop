@@ -142,7 +142,7 @@ export default function CVsPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50">
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <h1 className="text-4xl font-bold text-gray-900 mb-8">Available CVs</h1>
+        <h1 className="text-4xl font-bold text-gray-900 mb-8">Job Candidates</h1>
 
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -265,11 +265,14 @@ export default function CVsPage() {
                           <span className="font-medium text-gray-800">{cv.address}</span>
                         </p>
                       )}
-                      {lastOnlineDate ? (
-                        <TimeAgoDisplay date={lastOnlineDate} />
-                      ) : (
-                        <span className="text-xs text-gray-500">Never logged in</span>
-                      )}
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-gray-500">Last logged in:</span>
+                        {lastOnlineDate ? (
+                          <TimeAgoDisplay date={lastOnlineDate} />
+                        ) : (
+                          <span className="text-xs text-gray-500">Never</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </Link>
