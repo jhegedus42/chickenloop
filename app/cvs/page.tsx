@@ -91,8 +91,13 @@ export default function CVsPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [cvs, setCvs] = useState<CV[]>([]);
+  const [allCvs, setAllCvs] = useState<CV[]>([]); // Store all CVs for filtering
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('');
+  const [selectedWorkArea, setSelectedWorkArea] = useState<string>('');
+  const [selectedSport, setSelectedSport] = useState<string>('');
+  const [selectedCertification, setSelectedCertification] = useState<string>('');
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -108,6 +113,45 @@ export default function CVsPage() {
     }
   }, [user]);
 
+  useEffect(() => {
+    // Filter CVs when any filter changes
+    let filtered = allCvs;
+
+    // Filter by language
+    if (selectedLanguage) {
+      filtered = filtered.filter((cv) => {
+        if (!cv.languages || cv.languages.length === 0) return false;
+        return cv.languages.includes(selectedLanguage);
+      });
+    }
+
+    // Filter by work area
+    if (selectedWorkArea) {
+      filtered = filtered.filter((cv) => {
+        if (!cv.lookingForWorkInAreas || cv.lookingForWorkInAreas.length === 0) return false;
+        return cv.lookingForWorkInAreas.includes(selectedWorkArea);
+      });
+    }
+
+    // Filter by sport/experience
+    if (selectedSport) {
+      filtered = filtered.filter((cv) => {
+        if (!cv.experienceAndSkill || cv.experienceAndSkill.length === 0) return false;
+        return cv.experienceAndSkill.includes(selectedSport);
+      });
+    }
+
+    // Filter by professional certification
+    if (selectedCertification) {
+      filtered = filtered.filter((cv) => {
+        if (!cv.professionalCertifications || cv.professionalCertifications.length === 0) return false;
+        return cv.professionalCertifications.includes(selectedCertification);
+      });
+    }
+
+    setCvs(filtered);
+  }, [selectedLanguage, selectedWorkArea, selectedSport, selectedCertification, allCvs]);
+
   const loadCVs = async () => {
     try {
       const response = await fetch('/api/cvs', {
@@ -119,12 +163,73 @@ export default function CVsPage() {
       }
       
       const data = await response.json();
+      setAllCvs(data.cvs || []);
       setCvs(data.cvs || []);
     } catch (err: any) {
       setError(err.message || 'Failed to load CVs');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Get unique languages from all CVs
+  const getUniqueLanguages = (): string[] => {
+    const languageSet = new Set<string>();
+    
+    allCvs.forEach((cv) => {
+      if (cv.languages && cv.languages.length > 0) {
+        cv.languages.forEach((language) => {
+          languageSet.add(language);
+        });
+      }
+    });
+
+    return Array.from(languageSet).sort();
+  };
+
+  // Get unique work areas from all CVs
+  const getUniqueWorkAreas = (): string[] => {
+    const workAreaSet = new Set<string>();
+    
+    allCvs.forEach((cv) => {
+      if (cv.lookingForWorkInAreas && cv.lookingForWorkInAreas.length > 0) {
+        cv.lookingForWorkInAreas.forEach((area) => {
+          workAreaSet.add(area);
+        });
+      }
+    });
+
+    return Array.from(workAreaSet).sort();
+  };
+
+  // Get unique sports/experiences from all CVs
+  const getUniqueSports = (): string[] => {
+    const sportSet = new Set<string>();
+    
+    allCvs.forEach((cv) => {
+      if (cv.experienceAndSkill && cv.experienceAndSkill.length > 0) {
+        cv.experienceAndSkill.forEach((sport) => {
+          sportSet.add(sport);
+        });
+      }
+    });
+
+    return Array.from(sportSet).sort();
+  };
+
+  // Get unique professional certifications from all CVs
+  const getUniqueCertifications = (): string[] => {
+    const certSet = new Set<string>();
+    
+    allCvs.forEach((cv) => {
+      if (cv.professionalCertifications && cv.professionalCertifications.length > 0) {
+        cv.professionalCertifications.forEach((cert) => {
+          certSet.add(cert);
+        });
+      }
+    });
+
+    return Array.from(certSet).sort();
   };
 
   if (authLoading || loading) {
@@ -143,10 +248,113 @@ export default function CVsPage() {
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <h1 className="text-4xl font-bold text-gray-900 mb-8">Job Candidates</h1>
+        
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row items-end sm:items-center sm:justify-end mb-8 gap-3 flex-wrap">
+            {/* Language Filter */}
+            <select
+              id="language-filter"
+              value={selectedLanguage}
+              onChange={(e) => setSelectedLanguage(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white min-w-[200px]"
+            >
+              <option value="">All Languages</option>
+              {getUniqueLanguages().map((language) => (
+                <option key={language} value={language}>
+                  {language}
+                </option>
+              ))}
+            </select>
+
+            {/* Work Area Filter */}
+            <select
+              id="workarea-filter"
+              value={selectedWorkArea}
+              onChange={(e) => setSelectedWorkArea(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white min-w-[200px]"
+            >
+              <option value="">All Work Areas</option>
+              {getUniqueWorkAreas().map((area) => (
+                <option key={area} value={area}>
+                  {area}
+                </option>
+              ))}
+            </select>
+
+            {/* Sports Experiences Filter */}
+            <select
+              id="sport-filter"
+              value={selectedSport}
+              onChange={(e) => setSelectedSport(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white min-w-[200px]"
+            >
+              <option value="">All Sports</option>
+              {getUniqueSports().map((sport) => (
+                <option key={sport} value={sport}>
+                  {sport}
+                </option>
+              ))}
+            </select>
+
+            {/* Professional Certifications Filter */}
+            <select
+              id="certification-filter"
+              value={selectedCertification}
+              onChange={(e) => setSelectedCertification(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white min-w-[200px]"
+            >
+              <option value="">All Certifications</option>
+              {getUniqueCertifications().map((cert) => (
+                <option key={cert} value={cert}>
+                  {cert}
+                </option>
+              ))}
+            </select>
+
+            {/* Clear Filters Button */}
+            {(selectedLanguage || selectedWorkArea || selectedSport || selectedCertification) && (
+              <button
+                onClick={() => {
+                  setSelectedLanguage('');
+                  setSelectedWorkArea('');
+                  setSelectedSport('');
+                  setSelectedCertification('');
+                }}
+                className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 underline whitespace-nowrap"
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
 
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             {error}
+          </div>
+        )}
+
+        {(selectedLanguage || selectedWorkArea || selectedSport || selectedCertification) && (
+          <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded mb-4">
+            Showing candidates
+            {selectedLanguage && (
+              <span> with language: <strong>{selectedLanguage}</strong></span>
+            )}
+            {selectedWorkArea && (
+              <span>
+                {selectedLanguage ? ',' : ''} work area: <strong>{selectedWorkArea}</strong>
+              </span>
+            )}
+            {selectedSport && (
+              <span>
+                {(selectedLanguage || selectedWorkArea) ? ',' : ''} sports experience: <strong>{selectedSport}</strong>
+              </span>
+            )}
+            {selectedCertification && (
+              <span>
+                {(selectedLanguage || selectedWorkArea || selectedSport) ? ',' : ''} certification: <strong>{selectedCertification}</strong>
+              </span>
+            )}
+            {' '}({cvs.length} {cvs.length === 1 ? 'candidate' : 'candidates'})
           </div>
         )}
 
