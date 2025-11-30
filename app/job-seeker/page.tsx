@@ -160,7 +160,8 @@ export default function JobSeekerDashboard() {
             {cv ? (
               <div>
                 <p className="text-gray-600 mb-4">
-                  You have a CV. You can view, edit or delete it.
+                  You have created a CV.<br />
+                  Your CV is only visible to registered recruiters.
                 </p>
                 <div className="flex gap-4 flex-wrap">
                   <Link
@@ -195,7 +196,7 @@ export default function JobSeekerDashboard() {
                 </div>
                 {cv.published === false && (
                   <p className="text-sm text-orange-600 mt-2">
-                    Your CV is currently hidden and will not be visible to recruiters.
+                    Your CV is currently hidden, nobody except from you can see it.
                   </p>
                 )}
               </div>
