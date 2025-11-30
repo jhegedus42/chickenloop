@@ -16,6 +16,7 @@
     "leaflet": "^1.9.4",
     "mongoose": "^8.19.4",
     "next": "16.0.3",
+    "nodemailer": "^7.0.11",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-leaflet": "^5.0.0"
@@ -25,6 +26,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
+    "@types/nodemailer": "^7.0.4",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

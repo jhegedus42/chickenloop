@@ -953,6 +953,52 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* Summary Section */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Job Seekers</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">
+                  {users.filter((u) => u.role === 'job-seeker').length}
+                </p>
+              </div>
+              <div className="text-blue-500 text-4xl">👥</div>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Recruiters</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">
+                  {users.filter((u) => u.role === 'recruiter').length}
+                </p>
+              </div>
+              <div className="text-green-500 text-4xl">💼</div>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">CVs</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">
+                  {users.filter((u) => u.role === 'job-seeker' && u.cv).length}
+                </p>
+              </div>
+              <div className="text-purple-500 text-4xl">📄</div>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-orange-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Jobs</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">{jobs.length}</p>
+              </div>
+              <div className="text-orange-500 text-4xl">📋</div>
+            </div>
+          </div>
+        </div>
+
         {/* Tab Navigation */}
         <div className="border-b border-gray-200 mb-6">
           <nav className="-mb-px flex space-x-8">

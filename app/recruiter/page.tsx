@@ -123,7 +123,12 @@ export default function RecruiterDashboard() {
           setSubmitMessage('');
         }, 2000);
       } else {
-        setSubmitMessage(data.error || 'Failed to send message. Please try again.');
+        // If email service is not configured, show fallback message
+        if (data.fallback) {
+          setSubmitMessage('Email service is not configured. Please contact us directly at hello@chickenloop.com');
+        } else {
+          setSubmitMessage(data.error || 'Failed to send message. Please try again.');
+        }
       }
     } catch (err: any) {
       setSubmitMessage('Failed to send message. Please try again.');
