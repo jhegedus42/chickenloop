@@ -90,6 +90,7 @@ interface Job {
   applyByWebsite?: boolean;
   applicationEmail?: string;
   applicationWebsite?: string;
+  visitCount?: number;
   recruiter: any;
   createdAt: string;
   updatedAt: string;
@@ -1842,6 +1843,9 @@ export default function AdminDashboard() {
                     Spam Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Visits
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -1883,6 +1887,9 @@ export default function AdminDashboard() {
                           OK
                         </span>
                       )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {job.visitCount || 0}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button

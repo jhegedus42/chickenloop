@@ -43,3 +43,5 @@ echo ""
 echo "To test, make a small change and commit it."
 echo "The memory file will be updated automatically."
 
+
+

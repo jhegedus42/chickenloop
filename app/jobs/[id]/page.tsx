@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Navbar from '../../components/Navbar';
 import { jobsApi } from '@/lib/api';
@@ -107,10 +107,13 @@ export default function JobDetailPage() {
   const [isFavourite, setIsFavourite] = useState(false);
   const [togglingFavourite, setTogglingFavourite] = useState(false);
   const [checkingFavourite, setCheckingFavourite] = useState(false);
+  const hasLoadedRef = useRef<string | null>(null);
 
   useEffect(() => {
     // Load job regardless of authentication status
-    if (jobId) {
+    // Use ref to prevent double loading in React Strict Mode
+    if (jobId && hasLoadedRef.current !== jobId) {
+      hasLoadedRef.current = jobId;
       loadJob();
     }
   }, [jobId]);

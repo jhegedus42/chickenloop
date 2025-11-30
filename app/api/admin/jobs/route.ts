@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
         applyByWebsite: job.applyByWebsite || false,
         applicationEmail: job.applicationEmail,
         applicationWebsite: job.applicationWebsite,
+        visitCount: job.visitCount || 0,
         recruiter: job.recruiter,
         createdAt: job.createdAt,
         updatedAt: job.updatedAt,

@@ -28,8 +28,21 @@ export async function GET(
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
+    // Increment visit count atomically using MongoDB's $inc operator
+    // This prevents race conditions and double counting
+    await Job.findByIdAndUpdate(id, { $inc: { visitCount: 1 } });
+    
+    // Reload the job to get the updated visit count
+    const updatedJob = await Job.findById(id)
+      .populate('recruiter', 'name email')
+      .populate('companyId');
+    
+    if (!updatedJob) {
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+    }
+
     // Convert to plain object and ensure all fields are included, including country
-    const jobObject = job.toObject();
+    const jobObject = updatedJob.toObject();
     // Handle country field - normalize if it exists, ensure field is always present
     const countryValue = jobObject.country != null && typeof jobObject.country === 'string'
       ? (jobObject.country.trim() ? jobObject.country.trim().toUpperCase() : null)

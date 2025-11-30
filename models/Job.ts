@@ -20,6 +20,7 @@ export interface IJob extends Document {
   applyByWebsite?: boolean; // Whether applications can be submitted via website
   applicationEmail?: string; // Email address for applications
   applicationWebsite?: string; // Website URL for applications
+  visitCount?: number; // Number of times the job details page has been visited
   recruiter: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -112,6 +113,10 @@ const JobSchema: Schema = new Schema(
     applicationWebsite: {
       type: String,
       trim: true,
+    },
+    visitCount: {
+      type: Number,
+      default: 0,
     },
   },
   {

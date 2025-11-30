@@ -24,3 +24,5 @@ export const OFFERED_ACTIVITIES_LIST = [
   'other (see company description)',
 ];
 
+
+
