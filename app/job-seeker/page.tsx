@@ -30,6 +30,10 @@ export default function JobSeekerDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [togglingPublish, setTogglingPublish] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState('');
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -97,6 +101,39 @@ export default function JobSeekerDashboard() {
       alert(err.message || 'Failed to toggle CV visibility');
     } finally {
       setTogglingPublish(false);
+    }
+  };
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setSubmitMessage('');
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(contactForm),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSubmitMessage(data.message || 'Thank you for your feedback!');
+        setContactForm({ name: '', email: '', message: '' });
+        setTimeout(() => {
+          setShowContactModal(false);
+          setSubmitMessage('');
+        }, 2000);
+      } else {
+        setSubmitMessage(data.error || 'Failed to send message. Please try again.');
+      }
+    } catch (err: any) {
+      setSubmitMessage('Failed to send message. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -259,6 +296,107 @@ export default function JobSeekerDashboard() {
             </div>
           )}
         </div>
+
+        {/* Feedback Section - Bottom Right */}
+        <div className="fixed bottom-6 right-6 bg-white rounded-lg shadow-lg p-4 max-w-sm border border-gray-200 z-50">
+          <p className="text-sm text-gray-700 mb-3">
+            Do you have Feedback or Feature Requests?<br />
+            We love to hear from you!
+          </p>
+          <button
+            onClick={() => {
+              setContactForm({ 
+                name: user?.name || '', 
+                email: user?.email || '', 
+                message: '' 
+              });
+              setShowContactModal(true);
+            }}
+            className="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-semibold text-sm text-center w-full"
+          >
+            Send Mail to Site Admin
+          </button>
+        </div>
+
+        {/* Contact Modal */}
+        {showContactModal && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={() => !submitting && setShowContactModal(false)}
+          >
+            <div 
+              className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="text-2xl font-bold mb-4 text-gray-900">Contact Us</h2>
+              <form onSubmit={handleContactSubmit}>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={contactForm.name}
+                    onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email *
+                  </label>
+                  <input
+                    type="email"
+                    value={contactForm.email}
+                    onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Message *
+                  </label>
+                  <textarea
+                    value={contactForm.message}
+                    onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
+                    required
+                    rows={5}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    placeholder="Tell us your feedback or feature request..."
+                  />
+                </div>
+                {submitMessage && (
+                  <div className={`mb-4 p-3 rounded-md ${
+                    submitMessage.includes('Thank you') 
+                      ? 'bg-green-100 text-green-700' 
+                      : 'bg-red-100 text-red-700'
+                  }`}>
+                    {submitMessage}
+                  </div>
+                )}
+                <div className="flex gap-3">
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {submitting ? 'Sending...' : 'Send Message'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowContactModal(false)}
+                    disabled={submitting}
+                    className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
