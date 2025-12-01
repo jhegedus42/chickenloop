@@ -36,6 +36,7 @@ export default function NewJobPage() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [company, setCompany] = useState<any>(null);
   const [companyLoading, setCompanyLoading] = useState(true);
   const [selectedPictures, setSelectedPictures] = useState<File[]>([]);
@@ -187,7 +188,13 @@ export default function NewJobPage() {
       // Clean up preview URLs
       picturePreviews.forEach(url => URL.revokeObjectURL(url));
 
-      router.push('/recruiter');
+      // Show success modal
+      setShowSuccessModal(true);
+      
+      // Redirect after 3 seconds
+      setTimeout(() => {
+        router.push('/recruiter');
+      }, 3000);
     } catch (err: any) {
       setError(err.message || 'Failed to create job');
     } finally {
@@ -726,6 +733,33 @@ export default function NewJobPage() {
           </form>
         </div>
       </main>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
+            <div className="mb-4 flex justify-center items-center" style={{ minHeight: '200px' }}>
+              <img
+                src="/success-chicken.gif"
+                alt="Success"
+                className="max-w-xs w-auto h-auto"
+                style={{ maxHeight: '300px', display: 'block', objectFit: 'contain' }}
+                onLoad={() => console.log('Success GIF loaded')}
+                onError={(e) => {
+                  console.error('Failed to load success GIF:', e);
+                  // Keep the image element but it won't display if file doesn't exist
+                }}
+              />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              Your Job has been posted successfully
+            </h2>
+            <p className="text-gray-600 mb-4">
+              Redirecting to your dashboard...
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
