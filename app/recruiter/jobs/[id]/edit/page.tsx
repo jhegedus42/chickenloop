@@ -708,6 +708,9 @@ export default function EditJobPage() {
                   </div>
                 </div>
               )}
+              <p className="text-sm text-red-600 mt-2 font-medium">
+                Job posts without picture will be less visible and shown below posts with pictures
+              </p>
             </div>
 
             {/* How to Apply Section */}
