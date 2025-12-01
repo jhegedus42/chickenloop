@@ -126,6 +126,23 @@ export const companyApi = {
     }),
 };
 
+export const accountApi = {
+  update: (data: { name?: string; email?: string }) =>
+    apiRequest('/account', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  changePassword: (data: { currentPassword: string; newPassword: string }) =>
+    apiRequest('/account/change-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  delete: () =>
+    apiRequest('/account', {
+      method: 'DELETE',
+    }),
+};
+
 export const adminApi = {
   getUsers: () => apiRequest('/admin/users'),
   getUser: (id: string) => apiRequest(`/admin/users/${id}`),

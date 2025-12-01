@@ -28,6 +28,7 @@ export default function RecruiterDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [hasCompany, setHasCompany] = useState<boolean | null>(null);
+  const [companyName, setCompanyName] = useState<string>('');
   const [showContactModal, setShowContactModal] = useState(false);
   const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' });
   const [submitting, setSubmitting] = useState(false);
@@ -50,8 +51,9 @@ export default function RecruiterDashboard() {
 
   const checkCompany = async () => {
     try {
-      await companyApi.get();
+      const data = await companyApi.get();
       setHasCompany(true);
+      setCompanyName(data.company?.name || '');
     } catch (err: any) {
       if (err.message.includes('not found')) {
         setHasCompany(false);
@@ -176,7 +178,9 @@ export default function RecruiterDashboard() {
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex flex-wrap justify-between items-center gap-3 mb-8">
-          <h1 className="text-4xl font-bold text-gray-900">My Job Postings</h1>
+          <h1 className="text-4xl font-bold text-gray-900">
+            {companyName ? `${companyName} Recruiter Dashboard` : 'Recruiter Dashboard'}
+          </h1>
           <div className="flex flex-wrap gap-3">
             <Link
               href="/recruiter/company/edit"
@@ -199,98 +203,132 @@ export default function RecruiterDashboard() {
           </div>
         )}
 
-        {jobs.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-md p-8 text-center">
-            <p className="text-gray-600 mb-4">You haven't posted any jobs yet.</p>
-            <Link
-              href="/recruiter/jobs/new"
-              className="text-blue-600 hover:underline font-semibold"
-            >
-              Post your first job →
-            </Link>
-          </div>
-        ) : (
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Title
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Location
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Type
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Posted
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Visits
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {jobs.map((job) => (
-                    <tr key={job._id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        <Link
-                          href={`/jobs/${job._id}`}
-                          className="text-blue-600 hover:text-blue-900 hover:underline"
-                        >
-                          {job.title}
-                        </Link>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {job.location}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                          {job.type}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(job.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {job.visitCount || 0}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button
-                          onClick={() => handleTogglePublish(job._id, job.published === true)}
-                          className={`mr-4 ${
-                            job.published === true
-                              ? 'text-orange-600 hover:text-orange-900'
-                              : 'text-green-600 hover:text-green-900'
-                          }`}
-                        >
-                          {job.published === true ? 'Unpublish' : 'Publish'}
-                        </button>
-                        <Link
-                          href={`/recruiter/jobs/${job._id}/edit`}
-                          className="text-blue-600 hover:text-blue-900 mr-4"
-                        >
-                          Edit
-                        </Link>
-                        <button
-                          onClick={() => handleDelete(job._id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Delete
-                        </button>
-                      </td>
+        {/* My Job Postings Section */}
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-gray-900 mb-6">My Job Postings</h2>
+          {jobs.length === 0 ? (
+            <div className="bg-white rounded-lg shadow-md p-8 text-center">
+              <p className="text-gray-600 mb-4">You haven't posted any jobs yet.</p>
+              <Link
+                href="/recruiter/jobs/new"
+                className="text-blue-600 hover:underline font-semibold"
+              >
+                Post your first job →
+              </Link>
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Title
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Location
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Type
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Posted
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Visits
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {jobs.map((job) => (
+                      <tr key={job._id}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          <Link
+                            href={`/jobs/${job._id}`}
+                            className="text-blue-600 hover:text-blue-900 hover:underline"
+                          >
+                            {job.title}
+                          </Link>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {job.location}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                            {job.type}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(job.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {job.visitCount || 0}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <button
+                            onClick={() => handleTogglePublish(job._id, job.published === true)}
+                            className={`mr-4 ${
+                              job.published === true
+                                ? 'text-orange-600 hover:text-orange-900'
+                                : 'text-green-600 hover:text-green-900'
+                            }`}
+                          >
+                            {job.published === true ? 'Unpublish' : 'Publish'}
+                          </button>
+                          <Link
+                            href={`/recruiter/jobs/${job._id}/edit`}
+                            className="text-blue-600 hover:text-blue-900 mr-4"
+                          >
+                            Edit
+                          </Link>
+                          <button
+                            onClick={() => handleDelete(job._id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* My Account Section */}
+        <div className="mb-8">
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 className="text-2xl font-bold mb-4 text-gray-900">My Account</h2>
+            <p className="text-gray-600 mb-4">
+              Manage your account settings and preferences.
+            </p>
+            <div className="flex gap-4 flex-wrap">
+              <Link
+                href="/recruiter/account/edit"
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              >
+                Edit Account
+              </Link>
+              <Link
+                href="/recruiter/account/change-password"
+                className="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700"
+              >
+                Change Password
+              </Link>
+              <Link
+                href="/recruiter/account/delete"
+                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+              >
+                Delete Account
+              </Link>
             </div>
           </div>
-        )}
+        </div>
 
         {/* Feedback Section - Bottom Right */}
         <div className="fixed bottom-6 right-6 bg-white rounded-lg shadow-lg p-4 max-w-sm border border-gray-200 z-50">

@@ -219,6 +219,36 @@ export default function JobSeekerDashboard() {
           </div>
         </div>
 
+        {/* My Account Section */}
+        <div className="mb-8">
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 className="text-2xl font-bold mb-4 text-gray-900">My Account</h2>
+            <p className="text-gray-600 mb-4">
+              Manage your account settings and preferences.
+            </p>
+            <div className="flex gap-4 flex-wrap">
+              <Link
+                href="/job-seeker/account/edit"
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              >
+                Edit Account
+              </Link>
+              <Link
+                href="/job-seeker/account/change-password"
+                className="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700"
+              >
+                Change Password
+              </Link>
+              <Link
+                href="/job-seeker/account/delete"
+                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+              >
+                Delete Account
+              </Link>
+            </div>
+          </div>
+        </div>
+
         {/* Favourite Jobs Section */}
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-6">My Favourite Jobs</h2>
