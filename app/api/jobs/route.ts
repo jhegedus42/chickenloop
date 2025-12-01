@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { title, description, location, country, salary, type, languages, qualifications, sports, occupationalAreas, pictures, applyByEmail, applyByWebsite, applicationEmail, applicationWebsite } = await request.json();
+    const { title, description, location, country, salary, type, languages, qualifications, sports, occupationalAreas, pictures, applyByEmail, applyByWebsite, applyByWhatsApp, applicationEmail, applicationWebsite, applicationWhatsApp } = await request.json();
 
     if (!title || !description || !location || !type) {
       return NextResponse.json(
@@ -81,8 +81,10 @@ export async function POST(request: NextRequest) {
       pictures: pictures || [],
       applyByEmail: applyByEmail || false,
       applyByWebsite: applyByWebsite || false,
+      applyByWhatsApp: applyByWhatsApp || false,
       applicationEmail: applicationEmail || undefined,
       applicationWebsite: applicationWebsite || undefined,
+      applicationWhatsApp: applicationWhatsApp || undefined,
       recruiter: user.userId,
       published: true, // New jobs are published by default
     });

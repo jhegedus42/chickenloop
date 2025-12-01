@@ -18,8 +18,10 @@ export interface IJob extends Document {
   published?: boolean; // Published flag: true if published (visible to public), false if unpublished
   applyByEmail?: boolean; // Whether applications can be submitted by email
   applyByWebsite?: boolean; // Whether applications can be submitted via website
+  applyByWhatsApp?: boolean; // Whether applications can be submitted by WhatsApp
   applicationEmail?: string; // Email address for applications
   applicationWebsite?: string; // Website URL for applications
+  applicationWhatsApp?: string; // WhatsApp phone number for applications (international format)
   visitCount?: number; // Number of times the job details page has been visited
   recruiter: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -105,12 +107,20 @@ const JobSchema: Schema = new Schema(
       type: Boolean,
       default: false,
     },
+    applyByWhatsApp: {
+      type: Boolean,
+      default: false,
+    },
     applicationEmail: {
       type: String,
       trim: true,
       lowercase: true,
     },
     applicationWebsite: {
+      type: String,
+      trim: true,
+    },
+    applicationWhatsApp: {
       type: String,
       trim: true,
     },

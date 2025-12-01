@@ -32,8 +32,10 @@ export default function EditJobPage() {
     occupationalAreas: [] as string[],
     applyByEmail: false,
     applyByWebsite: false,
+    applyByWhatsApp: false,
     applicationEmail: '',
     applicationWebsite: '',
+    applicationWhatsApp: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -100,8 +102,10 @@ export default function EditJobPage() {
         occupationalAreas: (job as any).occupationalAreas || [],
         applyByEmail: (job as any).applyByEmail || false,
         applyByWebsite: (job as any).applyByWebsite || false,
+        applyByWhatsApp: (job as any).applyByWhatsApp || false,
         applicationEmail: (job as any).applicationEmail || (companyData?.contact?.email || ''),
         applicationWebsite: (job as any).applicationWebsite || (companyData?.website || ''),
+        applicationWhatsApp: (job as any).applicationWhatsApp || '',
       });
       setExistingPictures((job as any).pictures || []);
     } catch (err: any) {
@@ -767,6 +771,37 @@ export default function EditJobPage() {
                         value={formData.applicationWebsite}
                         onChange={(e) => setFormData({ ...formData, applicationWebsite: e.target.value })}
                         placeholder="https://example.com/apply"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* By WhatsApp Checkbox */}
+                <div className="flex items-start">
+                  <input
+                    type="checkbox"
+                    id="applyByWhatsApp"
+                    checked={formData.applyByWhatsApp}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        applyByWhatsApp: e.target.checked,
+                        applicationWhatsApp: e.target.checked ? (formData.applicationWhatsApp || '') : '',
+                      });
+                    }}
+                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <div className="ml-3 flex-1">
+                    <label htmlFor="applyByWhatsApp" className="block text-sm font-medium text-gray-700 mb-1">
+                      By WhatsApp
+                    </label>
+                    {formData.applyByWhatsApp && (
+                      <input
+                        type="tel"
+                        value={formData.applicationWhatsApp}
+                        onChange={(e) => setFormData({ ...formData, applicationWhatsApp: e.target.value })}
+                        placeholder="+1234567890"
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                       />
                     )}

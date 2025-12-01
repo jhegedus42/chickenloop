@@ -85,7 +85,7 @@ export async function PUT(
       );
     }
 
-    const { title, description, company, location, country, salary, type, languages, qualifications, sports, occupationalAreas, pictures, published, applyByEmail, applyByWebsite, applicationEmail, applicationWebsite } = await request.json();
+    const { title, description, company, location, country, salary, type, languages, qualifications, sports, occupationalAreas, pictures, published, applyByEmail, applyByWebsite, applyByWhatsApp, applicationEmail, applicationWebsite, applicationWhatsApp } = await request.json();
 
     if (title) job.title = title;
     if (description) job.description = description;
@@ -132,11 +132,17 @@ export async function PUT(
     if (applyByWebsite !== undefined) {
       (job as any).applyByWebsite = applyByWebsite === true;
     }
+    if (applyByWhatsApp !== undefined) {
+      (job as any).applyByWhatsApp = applyByWhatsApp === true;
+    }
     if (applicationEmail !== undefined) {
       (job as any).applicationEmail = applicationEmail || undefined;
     }
     if (applicationWebsite !== undefined) {
       (job as any).applicationWebsite = applicationWebsite || undefined;
+    }
+    if (applicationWhatsApp !== undefined) {
+      (job as any).applicationWhatsApp = applicationWhatsApp || undefined;
     }
 
     await job.save();

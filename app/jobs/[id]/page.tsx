@@ -53,8 +53,10 @@ interface Job {
   spam?: 'yes' | 'no';
   applyByEmail?: boolean;
   applyByWebsite?: boolean;
+  applyByWhatsApp?: boolean;
   applicationEmail?: string;
   applicationWebsite?: string;
+  applicationWhatsApp?: string;
 }
 
 // Component to handle date formatting (prevents hydration mismatch)
@@ -456,7 +458,7 @@ export default function JobDetailPage() {
             )}
 
             {/* How to Apply Section */}
-            {(job.applyByEmail || job.applyByWebsite) && (
+            {(job.applyByEmail || job.applyByWebsite || job.applyByWhatsApp) && (
               <div className="mb-6">
                 <h2 className="text-2xl font-bold text-gray-900 mb-3">How to Apply</h2>
                 <div className="space-y-3">
@@ -486,6 +488,22 @@ export default function JobDetailPage() {
                           className="text-blue-600 hover:text-blue-800 hover:underline"
                         >
                           {job.applicationWebsite}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  {job.applyByWhatsApp && job.applicationWhatsApp && (
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg">💬</span>
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <span className="font-medium">By WhatsApp:</span>
+                        <a
+                          href={`https://wa.me/${job.applicationWhatsApp.replace(/[^0-9]/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                          {job.applicationWhatsApp}
                         </a>
                       </div>
                     </div>
