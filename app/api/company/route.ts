@@ -257,4 +257,42 @@ export async function PUT(request: NextRequest) {
   }
 }
 
+// DELETE - Delete recruiter's company
+export async function DELETE(request: NextRequest) {
+  try {
+    const user = requireRole(request, ['recruiter']);
+    await connectDB();
+
+    const company = await Company.findOne({ owner: user.userId });
+    if (!company) {
+      return NextResponse.json(
+        { error: 'Company not found' },
+        { status: 404 }
+      );
+    }
+
+    // Delete all jobs associated with this company
+    const Job = (await import('@/models/Job')).default;
+    await Job.deleteMany({ companyId: company._id });
+
+    // Delete the company
+    await Company.findByIdAndDelete(company._id);
+
+    return NextResponse.json(
+      { message: 'Company deleted successfully' },
+      { status: 200 }
+    );
+  } catch (error: any) {
+    if (error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error.message === 'Forbidden') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    return NextResponse.json(
+      { error: error.message || 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
 

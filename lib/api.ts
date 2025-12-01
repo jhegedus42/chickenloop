@@ -124,6 +124,10 @@ export const companyApi = {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
+  delete: () =>
+    apiRequest('/company', {
+      method: 'DELETE',
+    }),
 };
 
 export const accountApi = {

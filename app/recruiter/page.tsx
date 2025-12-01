@@ -29,6 +29,7 @@ export default function RecruiterDashboard() {
   const [error, setError] = useState('');
   const [hasCompany, setHasCompany] = useState<boolean | null>(null);
   const [companyName, setCompanyName] = useState<string>('');
+  const [companyId, setCompanyId] = useState<string>('');
   const [showContactModal, setShowContactModal] = useState(false);
   const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' });
   const [submitting, setSubmitting] = useState(false);
@@ -54,12 +55,31 @@ export default function RecruiterDashboard() {
       const data = await companyApi.get();
       setHasCompany(true);
       setCompanyName(data.company?.name || '');
+      const id = data.company?._id || data.company?.id;
+      setCompanyId(id ? String(id) : '');
     } catch (err: any) {
       if (err.message.includes('not found')) {
         setHasCompany(false);
       } else {
         setError(err.message || 'Failed to check company status');
       }
+    }
+  };
+
+  const handleDeleteCompany = async () => {
+    if (!confirm('Are you absolutely sure you want to delete your company? This action cannot be undone and will delete all your job postings.')) {
+      return;
+    }
+
+    try {
+      await companyApi.delete();
+      setHasCompany(false);
+      setCompanyName('');
+      setCompanyId('');
+      setJobs([]);
+      router.push('/recruiter');
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete company');
     }
   };
 
@@ -183,12 +203,6 @@ export default function RecruiterDashboard() {
           </h1>
           <div className="flex flex-wrap gap-3">
             <Link
-              href="/recruiter/company/edit"
-              className="bg-gray-200 text-gray-900 px-4 py-2 rounded-lg hover:bg-gray-300 font-semibold"
-            >
-              Edit Company
-            </Link>
-            <Link
               href="/recruiter/jobs/new"
               className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold"
             >
@@ -298,6 +312,38 @@ export default function RecruiterDashboard() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* My Company Section */}
+        <div className="mb-8">
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 className="text-2xl font-bold mb-4 text-gray-900">My Company</h2>
+            <p className="text-gray-600 mb-4">
+              Manage your company profile and information.
+            </p>
+            <div className="flex gap-4 flex-wrap">
+              {companyId && (
+                <Link
+                  href={`/companies/${companyId}`}
+                  className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                >
+                  View Company
+                </Link>
+              )}
+              <Link
+                href="/recruiter/company/edit"
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              >
+                Edit Company
+              </Link>
+              <button
+                onClick={handleDeleteCompany}
+                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+              >
+                Delete Company
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* My Account Section */}
