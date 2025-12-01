@@ -12,7 +12,7 @@ export default function Footer() {
               © {new Date().getFullYear()} Chickenloop.com. All rights reserved.
             </p>
           </div>
-          <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-6 flex-wrap justify-center sm:justify-start">
             <Link
               href="/terms"
               className="text-sm text-gray-300 hover:text-white transition-colors"
@@ -24,6 +24,12 @@ export default function Footer() {
               className="text-sm text-gray-300 hover:text-white transition-colors"
             >
               Privacy Policy
+            </Link>
+            <Link
+              href="/cookie-settings"
+              className="text-sm text-gray-300 hover:text-white transition-colors"
+            >
+              Cookie Settings
             </Link>
           </div>
         </div>
