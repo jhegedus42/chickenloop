@@ -61,7 +61,10 @@ export default function NewCVPage() {
         return;
       }
       if (file.size > maxSize) {
-        setError(`File ${file.name} is too large. Maximum size is 5MB.`);
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        const errorMessage = `File "${file.name}" is too large (${fileSizeMB} MB). Maximum size is 5MB.`;
+        alert(`Warning: ${errorMessage}`);
+        setError(errorMessage);
         return;
       }
     }

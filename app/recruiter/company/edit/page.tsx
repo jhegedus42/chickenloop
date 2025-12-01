@@ -262,7 +262,10 @@ export default function EditCompanyPage() {
     // Validate file size (max 5MB)
     const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
-      setError(`File ${file.name} is too large. Maximum size is 5MB.`);
+      const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+      const errorMessage = `File "${file.name}" is too large (${fileSizeMB} MB). Maximum size is 5MB.`;
+      alert(`Warning: ${errorMessage}`);
+      setError(errorMessage);
       return;
     }
 
@@ -301,7 +304,10 @@ export default function EditCompanyPage() {
         return;
       }
       if (file.size > maxSize) {
-        setError(`File ${file.name} is too large. Maximum size is 5MB.`);
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        const errorMessage = `File "${file.name}" is too large (${fileSizeMB} MB). Maximum size is 5MB.`;
+        alert(`Warning: ${errorMessage}`);
+        setError(errorMessage);
         return;
       }
     }
