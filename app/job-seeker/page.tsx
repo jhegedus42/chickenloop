@@ -333,25 +333,27 @@ export default function JobSeekerDashboard() {
           )}
         </div>
 
-        {/* Feedback Section - Bottom Right */}
-        <div className="fixed bottom-6 right-6 bg-white rounded-lg shadow-lg p-4 max-w-sm border border-gray-200 z-50">
-          <p className="text-sm text-gray-700 mb-3">
-            Do you have Feedback or Feature Requests?<br />
-            We love to hear from you!
-          </p>
-          <button
-            onClick={() => {
-              setContactForm({ 
-                name: user?.name || '', 
-                email: user?.email || '', 
-                message: '' 
-              });
-              setShowContactModal(true);
-            }}
-            className="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-semibold text-sm text-center w-full"
-          >
-            Send Mail to Site Admin
-          </button>
+        {/* Feedback Section */}
+        <div className="mb-8 flex justify-end">
+          <div className="bg-white rounded-lg shadow-md p-6 max-w-sm border border-gray-200">
+            <p className="text-sm text-gray-700 mb-3">
+              Do you have Feedback or Feature Requests?<br />
+              We love to hear from you!
+            </p>
+            <button
+              onClick={() => {
+                setContactForm({ 
+                  name: user?.name || '', 
+                  email: user?.email || '', 
+                  message: '' 
+                });
+                setShowContactModal(true);
+              }}
+              className="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-semibold text-sm text-center w-full"
+            >
+              Send Mail to Site Admin
+            </button>
+          </div>
         </div>
 
         {/* Contact Modal */}
