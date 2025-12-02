@@ -13,7 +13,31 @@ export async function apiRequest(
     credentials: 'include',
   });
 
-  const data = await response.json();
+  // Check if response is JSON before trying to parse
+  const contentType = response.headers.get('content-type');
+  let data;
+  
+  if (contentType && contentType.includes('application/json')) {
+    data = await response.json();
+  } else {
+    // Response is not JSON (likely HTML error page)
+    const text = await response.text();
+    console.error('Non-JSON response received:', {
+      status: response.status,
+      statusText: response.statusText,
+      url: `${API_BASE}${endpoint}`,
+      preview: text.substring(0, 200),
+    });
+    
+    // Try to extract error message from HTML or use status text
+    throw new Error(
+      response.status === 500
+        ? 'Server error. Please check the server logs.'
+        : response.status === 404
+        ? 'API endpoint not found. Please check the endpoint URL.'
+        : `Unexpected response format. Status: ${response.status} ${response.statusText}`
+    );
+  }
 
   if (!response.ok) {
     throw new Error(data.error || 'An error occurred');
@@ -58,6 +82,12 @@ export const jobsApi = {
     apiRequest(`/jobs/${id}`, {
       method: 'DELETE',
     }),
+  toggleFavourite: (id: string) =>
+    apiRequest(`/jobs/${id}/favourite`, {
+      method: 'POST',
+    }),
+  checkFavourite: (id: string) => apiRequest(`/jobs/${id}/favourite`),
+  getFavourites: () => apiRequest('/jobs/favourites'),
 };
 
 export const cvApi = {
@@ -96,6 +126,34 @@ export const companyApi = {
     }),
 };
 
+export const candidatesApi = {
+  getAll: () => apiRequest('/candidates-list'),
+  getOne: (id: string) => apiRequest(`/candidates-list/${id}`),
+  toggleFavourite: (id: string) =>
+    apiRequest(`/candidates-list/${id}/favourite`, {
+      method: 'POST',
+    }),
+  checkFavourite: (id: string) => apiRequest(`/candidates-list/${id}/favourite`),
+  getFavourites: () => apiRequest('/candidates-list/favourites'),
+};
+
+export const accountApi = {
+  update: (data: { name?: string; email?: string }) =>
+    apiRequest('/account', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  delete: () =>
+    apiRequest('/account', {
+      method: 'DELETE',
+    }),
+  changePassword: (data: { currentPassword: string; newPassword: string }) =>
+    apiRequest('/account/change-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+};
+
 export const adminApi = {
   getUsers: () => apiRequest('/admin/users'),
   getUser: (id: string) => apiRequest(`/admin/users/${id}`),
@@ -108,5 +166,57 @@ export const adminApi = {
     apiRequest(`/admin/users/${id}`, {
       method: 'DELETE',
     }),
+  getJobs: () => apiRequest('/admin/jobs'),
+  updateJob: (id: string, data: any) =>
+    apiRequest(`/admin/jobs/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteJob: (id: string) =>
+    apiRequest(`/admin/jobs/${id}`, {
+      method: 'DELETE',
+    }),
+  getCompanies: () => apiRequest('/admin/companies'),
+  getCompany: (id: string) => apiRequest(`/admin/companies/${id}`),
+  updateCompany: (id: string, data: any) =>
+    apiRequest(`/admin/companies/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteCompany: (id: string) =>
+    apiRequest(`/admin/companies/${id}`, {
+      method: 'DELETE',
+    }),
+  getAuditLogs: (params?: {
+    limit?: number;
+    offset?: number;
+    action?: string;
+    entityType?: string;
+    userId?: string;
+  }) => {
+    const queryParams = new URLSearchParams();
+    if (params) {
+      if (params.limit !== undefined) {
+        queryParams.append('limit', params.limit.toString());
+      }
+      if (params.offset !== undefined) {
+        queryParams.append('offset', params.offset.toString());
+      }
+      if (params.action) {
+        queryParams.append('action', params.action);
+      }
+      if (params.entityType) {
+        queryParams.append('entityType', params.entityType);
+      }
+      if (params.userId) {
+        queryParams.append('userId', params.userId);
+      }
+    }
+    const queryString = queryParams.toString();
+    const endpoint = queryString
+      ? `/admin/audit-logs?${queryString}`
+      : '/admin/audit-logs';
+    return apiRequest(endpoint);
+  },
 };
 

@@ -6,7 +6,22 @@ import { generateToken } from '@/lib/jwt';
 
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
+    // Connect to database with explicit error handling
+    try {
+      await connectDB();
+    } catch (dbError: any) {
+      console.error('Database connection error:', dbError);
+      return NextResponse.json(
+        { 
+          error: 'Database connection failed',
+          details: process.env.NODE_ENV === 'development' ? dbError.message : undefined,
+        },
+        { 
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
 
     const { email, password } = await request.json();
 
@@ -61,9 +76,19 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error: any) {
+    console.error('Login error:', error);
+    // Always return JSON, even on errors
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
+      { 
+        error: error.message || 'Internal server error',
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      },
+      { 
+        status: error.status || 500,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
     );
   }
 }

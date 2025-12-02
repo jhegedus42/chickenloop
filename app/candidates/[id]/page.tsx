@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Navbar from '../../components/Navbar';
 import { useAuth } from '../../contexts/AuthContext';
+import { candidatesApi } from '@/lib/api';
 import Link from 'next/link';
 
 interface CV {
@@ -53,6 +54,9 @@ export default function CVDetailPage() {
   const [error, setError] = useState('');
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [isFavourite, setIsFavourite] = useState(false);
+  const [togglingFavourite, setTogglingFavourite] = useState(false);
+  const [checkingFavourite, setCheckingFavourite] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -65,8 +69,37 @@ export default function CVDetailPage() {
   useEffect(() => {
     if (user && (user.role === 'recruiter' || user.role === 'admin') && cvId) {
       loadCV();
+      checkFavouriteStatus();
     }
   }, [user, cvId]);
+
+  const checkFavouriteStatus = async () => {
+    if (!user || (user.role !== 'recruiter' && user.role !== 'admin')) return;
+    
+    setCheckingFavourite(true);
+    try {
+      const data = await candidatesApi.checkFavourite(cvId);
+      setIsFavourite(data.isFavourite);
+    } catch (err: any) {
+      // Silently fail - not critical
+    } finally {
+      setCheckingFavourite(false);
+    }
+  };
+
+  const handleToggleFavourite = async () => {
+    if (!user || (user.role !== 'recruiter' && user.role !== 'admin') || togglingFavourite) return;
+    
+    setTogglingFavourite(true);
+    try {
+      const data = await candidatesApi.toggleFavourite(cvId);
+      setIsFavourite(data.isFavourite);
+    } catch (err: any) {
+      alert(err.message || 'Failed to update favourites. Please try again.');
+    } finally {
+      setTogglingFavourite(false);
+    }
+  };
 
   const loadCV = async () => {
     try {
@@ -126,12 +159,31 @@ export default function CVDetailPage() {
         <div className="bg-white rounded-lg shadow-lg p-8">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold text-gray-900">{cv.fullName}</h1>
-            <Link
-              href="/candidates"
-              className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300"
-            >
-              Back to CVs
-            </Link>
+            <div className="flex gap-3">
+              {user && (user.role === 'recruiter' || user.role === 'admin') && (
+                <button
+                  onClick={handleToggleFavourite}
+                  disabled={togglingFavourite || checkingFavourite}
+                  className={`px-4 py-2 rounded font-semibold transition-colors ${
+                    isFavourite
+                      ? 'bg-yellow-500 text-white hover:bg-yellow-600'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {togglingFavourite
+                    ? 'Updating...'
+                    : isFavourite
+                    ? '★ My Favourite'
+                    : '☆ Add to Favourites'}
+                </button>
+              )}
+              <Link
+                href="/candidates"
+                className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300"
+              >
+                Back to CVs
+              </Link>
+            </div>
           </div>
 
           {/* Personal Information */}

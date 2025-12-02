@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
-import { jobsApi, companyApi } from '@/lib/api';
+import { jobsApi, companyApi, candidatesApi } from '@/lib/api';
 import Link from 'next/link';
 
 interface Job {
@@ -21,6 +21,28 @@ interface Job {
   createdAt: string;
 }
 
+interface Candidate {
+  _id: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  summary?: string;
+  experienceAndSkill?: string[];
+  languages?: string[];
+  lookingForWorkInAreas?: string[];
+  professionalCertifications?: string[];
+  pictures?: string[];
+  jobSeeker: {
+    _id: string;
+    name: string;
+    email: string;
+    lastOnline?: string;
+  };
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export default function RecruiterDashboard() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -34,6 +56,7 @@ export default function RecruiterDashboard() {
   const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' });
   const [submitting, setSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
+  const [favouriteCandidates, setFavouriteCandidates] = useState<Candidate[]>([]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -47,6 +70,7 @@ export default function RecruiterDashboard() {
     if (user && user.role === 'recruiter') {
       checkCompany();
       loadJobs();
+      loadFavouriteCandidates();
     }
   }, [user]);
 
@@ -96,6 +120,29 @@ export default function RecruiterDashboard() {
       setError(err.message || 'Failed to load jobs');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadFavouriteCandidates = async () => {
+    try {
+      const data = await candidatesApi.getFavourites().catch(() => ({ cvs: [] }));
+      setFavouriteCandidates(data.cvs || []);
+    } catch (err: any) {
+      // Silently fail - not critical for dashboard load
+      console.error('Failed to load favourite candidates:', err);
+    }
+  };
+
+  const handleRemoveFavourite = async (cvId: string) => {
+    if (!confirm('Remove this candidate from your favourites?')) return;
+
+    try {
+      await candidatesApi.toggleFavourite(cvId);
+      // Reload favourites to update the list
+      const favouritesData = await candidatesApi.getFavourites().catch(() => ({ cvs: [] }));
+      setFavouriteCandidates(favouritesData.cvs || []);
+    } catch (err: any) {
+      alert(err.message || 'Failed to remove from favourites');
     }
   };
 
@@ -310,6 +357,147 @@ export default function RecruiterDashboard() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* My Favorite Candidates Section */}
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-gray-900 mb-6">My Favorite Candidates</h2>
+          {favouriteCandidates.length === 0 ? (
+            <div className="bg-white rounded-lg shadow-md p-8 text-center">
+              <p className="text-gray-600">You haven't added any candidates to your favourites yet.</p>
+              <p className="text-gray-500 text-sm mt-2">
+                Click "Add to Favourites" on any candidate CV to save it here.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {favouriteCandidates.map((candidate) => {
+                const firstPicture = candidate.pictures && candidate.pictures.length > 0
+                  ? candidate.pictures[0]
+                  : null;
+
+                return (
+                  <div
+                    key={candidate._id}
+                    className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+                  >
+                    {/* Candidate Picture */}
+                    <div className="w-full h-48 bg-gray-200 relative overflow-hidden">
+                      {firstPicture ? (
+                        <img
+                          src={firstPicture}
+                          alt={candidate.fullName}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-300 to-gray-400">
+                          <span className="text-gray-500 text-sm">No Image</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Candidate Info */}
+                    <div className="p-4">
+                      <Link
+                        href={`/candidates/${candidate._id}`}
+                        className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 hover:text-blue-600"
+                      >
+                        {candidate.fullName}
+                      </Link>
+
+                      {/* Summary Preview */}
+                      {candidate.summary && (
+                        <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                          {candidate.summary}
+                        </p>
+                      )}
+
+                      {/* Skills Preview */}
+                      {candidate.experienceAndSkill && candidate.experienceAndSkill.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {candidate.experienceAndSkill.slice(0, 3).map((skill, index) => (
+                            <span
+                              key={index}
+                              className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium"
+                            >
+                              {skill}
+                            </span>
+                          ))}
+                          {candidate.experienceAndSkill.length > 3 && (
+                            <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
+                              +{candidate.experienceAndSkill.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Work Areas Preview */}
+                      {candidate.lookingForWorkInAreas && candidate.lookingForWorkInAreas.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {candidate.lookingForWorkInAreas.slice(0, 2).map((area, index) => (
+                            <span
+                              key={index}
+                              className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium"
+                            >
+                              {area}
+                            </span>
+                          ))}
+                          {candidate.lookingForWorkInAreas.length > 2 && (
+                            <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
+                              +{candidate.lookingForWorkInAreas.length - 2}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Languages Preview */}
+                      {candidate.languages && candidate.languages.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {candidate.languages.slice(0, 2).map((lang, index) => (
+                            <span
+                              key={index}
+                              className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium"
+                            >
+                              {lang}
+                            </span>
+                          ))}
+                          {candidate.languages.length > 2 && (
+                            <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
+                              +{candidate.languages.length - 2}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Location */}
+                      {candidate.address && (
+                        <p className="text-sm text-gray-600 flex items-center gap-1 mb-3">
+                          <span>📍</span>
+                          <span className="font-medium text-gray-800">{candidate.address}</span>
+                        </p>
+                      )}
+
+                      {/* Actions */}
+                      <div className="flex gap-2 mt-3">
+                        <Link
+                          href={`/candidates/${candidate._id}`}
+                          className="flex-1 text-center bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 text-sm font-semibold"
+                        >
+                          View CV
+                        </Link>
+                        <button
+                          onClick={() => handleRemoveFavourite(candidate._id)}
+                          className="bg-red-600 text-white px-3 py-2 rounded hover:bg-red-700 text-sm font-semibold"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
