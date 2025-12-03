@@ -12,10 +12,14 @@ export default function HomePage() {
   const [category, setCategory] = useState('');
   const [allJobs, setAllJobs] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [latestJobs, setLatestJobs] = useState([]);
+  const [latestJobsLoading, setLatestJobsLoading] = useState(true);
 
   useEffect(() => {
     // Load jobs to extract unique categories
     loadJobs();
+    // Load latest jobs for display
+    loadLatestJobs();
   }, []);
 
   const loadJobs = async () => {
@@ -28,6 +32,20 @@ export default function HomePage() {
       console.error('Failed to load jobs for categories:', err);
     } finally {
       setCategoriesLoading(false);
+    }
+  };
+
+  const loadLatestJobs = async () => {
+    try {
+      const response = await fetch('/api/jobs-list');
+      const data = await response.json();
+      const jobsList = data.jobs || [];
+      // Get the 6 most recent jobs (already sorted by createdAt -1 from API)
+      setLatestJobs(jobsList.slice(0, 6));
+    } catch (err) {
+      console.error('Failed to load latest jobs:', err);
+    } finally {
+      setLatestJobsLoading(false);
     }
   };
 
@@ -243,6 +261,77 @@ export default function HomePage() {
                 </div>
               </form>
             </div>
+          </div>
+        </section>
+        
+        {/* Latest Jobs Section */}
+        <section className="bg-gray-50 py-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-3xl font-bold text-gray-900">Latest Jobs</h2>
+              <Link
+                href="/jobs-list"
+                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
+              >
+                View All Jobs
+              </Link>
+            </div>
+            
+            {latestJobsLoading ? (
+              <div className="text-center py-12">
+                <p className="text-gray-600">Loading jobs...</p>
+              </div>
+            ) : latestJobs.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-600">No jobs available at the moment.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {latestJobs.map((job) => {
+                  // Get the first picture as thumbnail, or use placeholder
+                  const thumbnail = job.pictures && job.pictures.length > 0 
+                    ? job.pictures[0] 
+                    : null;
+                  
+                  return (
+                    <Link
+                      key={job._id}
+                      href={`/jobs/${job._id}`}
+                      className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer block"
+                    >
+                      {/* Thumbnail Image */}
+                      <div className="w-full h-48 bg-gray-200 relative overflow-hidden">
+                        {thumbnail ? (
+                          <img
+                            src={thumbnail}
+                            alt={job.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-300 to-gray-400">
+                            <span className="text-gray-500 text-sm">No Image</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Job Info */}
+                      <div className="p-4">
+                        <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
+                          {job.title}
+                        </h3>
+                        <p className="text-sm text-gray-600 mb-2 font-medium">
+                          {job.company}
+                        </p>
+                        <p className="text-sm text-gray-600 flex items-center">
+                          <span className="mr-1">📍</span>
+                          {job.location}
+                        </p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </section>
         
