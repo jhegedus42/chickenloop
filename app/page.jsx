@@ -1,11 +1,51 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { jobsApi } from '@/lib/api';
 
 export default function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [keyword, setKeyword] = useState('');
+  const [location, setLocation] = useState('');
+  const [category, setCategory] = useState('');
+  const [allJobs, setAllJobs] = useState([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+
+  useEffect(() => {
+    // Load jobs to extract unique categories
+    loadJobs();
+  }, []);
+
+  const loadJobs = async () => {
+    try {
+      const data = await jobsApi.getAll();
+      const jobsList = data.jobs || [];
+      setAllJobs(jobsList);
+    } catch (err) {
+      // Silently fail - categories will just be empty
+      console.error('Failed to load jobs for categories:', err);
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
+
+  // Get unique job categories from all jobs (same logic as jobs page)
+  const getUniqueCategories = () => {
+    const categorySet = new Set();
+    
+    allJobs.forEach((job) => {
+      if (job.occupationalAreas && job.occupationalAreas.length > 0) {
+        job.occupationalAreas.forEach((category) => {
+          categorySet.add(category);
+        });
+      }
+    });
+
+    // Convert to array and sort alphabetically
+    return Array.from(categorySet).sort();
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -123,6 +163,86 @@ export default function HomePage() {
             >
               Browse Jobs
             </Link>
+          </div>
+        </section>
+        
+        {/* Search Bar Section */}
+        <section className="bg-white py-8 shadow-md">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-gray-50 rounded-lg p-4 sm:p-6">
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  // Navigation will be handled by the Link button
+                }}
+                className="flex flex-col sm:flex-row gap-4"
+              >
+                {/* Keyword Input */}
+                <div className="flex-1">
+                  <label htmlFor="keyword" className="block text-sm font-medium text-gray-700 mb-1">
+                    Keyword
+                  </label>
+                  <input
+                    type="text"
+                    id="keyword"
+                    value={keyword}
+                    onChange={(e) => setKeyword(e.target.value)}
+                    placeholder="Search jobs..."
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                  />
+                </div>
+
+                {/* Location Input */}
+                <div className="flex-1">
+                  <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
+                    Location
+                  </label>
+                  <input
+                    type="text"
+                    id="location"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder="City, Country..."
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                  />
+                </div>
+
+                {/* Category Dropdown */}
+                <div className="flex-1">
+                  <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+                    Category
+                  </label>
+                  <select
+                    id="category"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
+                    disabled={categoriesLoading}
+                  >
+                    <option value="">All Categories</option>
+                    {categoriesLoading ? (
+                      <option disabled>Loading categories...</option>
+                    ) : (
+                      getUniqueCategories().map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+
+                {/* Search Button */}
+                <div className="flex items-end">
+                  <Link
+                    href={`/jobs-list?keyword=${encodeURIComponent(keyword)}&location=${encodeURIComponent(location)}&category=${encodeURIComponent(category)}`}
+                    className="w-full sm:w-auto px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium text-center"
+                  >
+                    Search Jobs
+                  </Link>
+                </div>
+              </form>
+            </div>
           </div>
         </section>
         

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import { jobsApi } from '@/lib/api';
 import { getCountryNameFromCode } from '@/lib/countryUtils';
@@ -87,6 +88,7 @@ function TimeAgoDisplay({ date }: { date: string }) {
 }
 
 export default function JobsPage() {
+  const searchParams = useSearchParams();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [allJobs, setAllJobs] = useState<Job[]>([]); // Store all jobs for filtering
   const [loading, setLoading] = useState(true);
@@ -95,17 +97,53 @@ export default function JobsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedSport, setSelectedSport] = useState<string>('');
   const [selectedLanguage, setSelectedLanguage] = useState<string>('');
+  const [keyword, setKeyword] = useState<string>('');
+  const [location, setLocation] = useState<string>('');
   const [currentPage, setCurrentPage] = useState<number>(1);
   const jobsPerPage = 20;
 
   useEffect(() => {
+    // Read query parameters from URL on mount
+    const categoryParam = searchParams.get('category');
+    const keywordParam = searchParams.get('keyword');
+    const locationParam = searchParams.get('location');
+    
+    if (categoryParam) {
+      setSelectedCategory(decodeURIComponent(categoryParam));
+    }
+    if (keywordParam) {
+      setKeyword(decodeURIComponent(keywordParam));
+    }
+    if (locationParam) {
+      setLocation(decodeURIComponent(locationParam));
+    }
+    
     // Load jobs regardless of authentication status
     loadJobs();
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     // Filter jobs when any filter changes
     let filtered = allJobs;
+
+    // Filter by keyword (searches in title, description, company)
+    if (keyword) {
+      const keywordLower = keyword.toLowerCase();
+      filtered = filtered.filter((job) => {
+        const titleMatch = job.title?.toLowerCase().includes(keywordLower);
+        const descriptionMatch = job.description?.toLowerCase().includes(keywordLower);
+        const companyMatch = job.company?.toLowerCase().includes(keywordLower);
+        return titleMatch || descriptionMatch || companyMatch;
+      });
+    }
+
+    // Filter by location (searches in location field)
+    if (location) {
+      const locationLower = location.toLowerCase();
+      filtered = filtered.filter((job) => {
+        return job.location?.toLowerCase().includes(locationLower);
+      });
+    }
 
     // Filter by country
     if (selectedCountry) {
@@ -142,7 +180,7 @@ export default function JobsPage() {
     setJobs(filtered);
     // Reset to page 1 when filters change
     setCurrentPage(1);
-  }, [selectedCountry, selectedCategory, selectedSport, selectedLanguage, allJobs]);
+  }, [selectedCountry, selectedCategory, selectedSport, selectedLanguage, keyword, location, allJobs]);
 
   const loadJobs = async () => {
     try {
