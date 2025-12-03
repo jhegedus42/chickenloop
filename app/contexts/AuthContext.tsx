@@ -31,8 +31,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const data = await authApi.me();
       setUser(data.user);
-    } catch (error) {
-      setUser(null);
+    } catch (error: any) {
+      // 401 is expected when user is not logged in - not an error
+      if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+        setUser(null);
+      } else {
+        // Log other errors but don't break the app
+        console.error('Error refreshing user:', error);
+        setUser(null);
+      }
     } finally {
       setLoading(false);
     }

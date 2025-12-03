@@ -14,9 +14,9 @@ export async function GET(request: NextRequest) {
     // Build query filter
     const queryFilter: any = {};
 
-    // If featured=true, filter for featured companies
+    // If featured=true, filter for featured companies (explicitly check for true)
     if (featured === 'true') {
-      queryFilter.featured = true;
+      queryFilter.featured = { $eq: true }; // Explicitly match only true values
     }
 
     const companies = await Company.find(queryFilter)
@@ -56,6 +56,7 @@ export async function GET(request: NextRequest) {
         offeredServices: company.offeredServices,
         logo: company.logo,
         pictures: company.pictures,
+        featured: company.featured || false,
         owner: company.owner,
         createdAt: company.createdAt,
         updatedAt: company.updatedAt,

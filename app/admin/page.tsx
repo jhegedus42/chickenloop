@@ -65,6 +65,7 @@ interface Company {
     youtube?: string;
     twitter?: string;
   };
+  featured?: boolean;
   owner: any;
   createdAt: string;
   updatedAt: string;
@@ -233,6 +234,7 @@ export default function AdminDashboard() {
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [auditLogsLoading, setAuditLogsLoading] = useState(false);
   const [auditLogsTotal, setAuditLogsTotal] = useState(0);
+  const [togglingFeatured, setTogglingFeatured] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [editingJob, setEditingJob] = useState<Job | null>(null);
@@ -707,6 +709,70 @@ export default function AdminDashboard() {
       setCompanies(companies.filter((c) => c.id !== companyId));
     } catch (err: any) {
       alert(err.message || 'Failed to delete company');
+    }
+  };
+
+  const handleToggleFeatured = async (companyId: string, currentFeatured: boolean) => {
+    if (togglingFeatured === companyId) {
+      console.log(`[Admin] Already toggling featured for company ${companyId}, ignoring duplicate click`);
+      return;
+    }
+    
+    const newFeaturedStatus = !currentFeatured;
+    console.log(`[Admin] Toggling featured for company ${companyId} from ${currentFeatured} to ${newFeaturedStatus}`);
+    
+    setTogglingFeatured(companyId);
+    
+    // Optimistically update the UI immediately
+    setCompanies(prevCompanies => prevCompanies.map((c) => 
+      c.id === companyId ? { ...c, featured: newFeaturedStatus } : c
+    ));
+    
+    try {
+      console.log(`[Admin] Calling API to update company ${companyId} with featured: ${newFeaturedStatus}`);
+      const response = await adminApi.updateCompany(companyId, { featured: newFeaturedStatus });
+      console.log(`[Admin] API response:`, JSON.stringify(response, null, 2));
+      
+      // Check if the response contains the updated company with the correct featured status
+      if (response && response.company) {
+        const updatedFeatured = response.company.featured === true; // Explicitly check for true
+        console.log(`[Admin] API returned featured status: ${updatedFeatured}, expected: ${newFeaturedStatus}`);
+        
+        if (updatedFeatured !== newFeaturedStatus) {
+          console.error(`[Admin] Featured status mismatch! API returned ${updatedFeatured} but expected ${newFeaturedStatus}`);
+          // Use the API response value if it's different
+          setCompanies(prevCompanies => prevCompanies.map((c) => 
+            c.id === companyId ? { ...c, featured: updatedFeatured } : c
+          ));
+        } else {
+          // Update state with the confirmed value from API
+          setCompanies(prevCompanies => prevCompanies.map((c) => 
+            c.id === companyId ? { ...c, featured: updatedFeatured } : c
+          ));
+        }
+      } else {
+        console.warn(`[Admin] API response doesn't contain company data, reloading companies list...`);
+        // If response doesn't have company data, reload the list
+        await loadCompanies();
+      }
+      
+      console.log(`[Admin] Featured status updated successfully`);
+    } catch (err: any) {
+      console.error('[Admin] Error updating featured status:', err);
+      console.error('[Admin] Error details:', {
+        message: err.message,
+        stack: err.stack,
+        name: err.name
+      });
+      
+      // Revert the optimistic update on error
+      setCompanies(prevCompanies => prevCompanies.map((c) => 
+        c.id === companyId ? { ...c, featured: currentFeatured } : c
+      ));
+      
+      alert(err.message || 'Failed to update featured status');
+    } finally {
+      setTogglingFeatured(null);
     }
   };
 
@@ -1229,6 +1295,9 @@ export default function AdminDashboard() {
                     Website
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Featured
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -1270,6 +1339,20 @@ export default function AdminDashboard() {
                       ) : (
                         '-'
                       )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <button
+                        onClick={() => handleToggleFeatured(company.id, company.featured || false)}
+                        disabled={togglingFeatured === company.id}
+                        className={`px-3 py-1 rounded-md text-xs font-medium ${
+                          company.featured
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        } ${togglingFeatured === company.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title={company.featured ? 'Click to unfeature' : 'Click to feature'}
+                      >
+                        {togglingFeatured === company.id ? 'Updating...' : (company.featured ? '⭐ Featured' : 'Not Featured')}
+                      </button>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button

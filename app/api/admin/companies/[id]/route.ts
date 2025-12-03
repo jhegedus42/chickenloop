@@ -34,6 +34,7 @@ export async function GET(
         offeredActivities: company.offeredActivities,
         offeredServices: company.offeredServices,
         pictures: company.pictures,
+        featured: company.featured || false,
         owner: company.owner,
         createdAt: company.createdAt,
         updatedAt: company.updatedAt,
@@ -69,14 +70,34 @@ export async function PUT(
       return NextResponse.json({ error: 'Company not found' }, { status: 404 });
     }
 
-    const { name, description, address, coordinates, website, contact, socialMedia, offeredActivities, offeredServices, pictures } = await request.json();
+    const updateData = await request.json();
+    const { name, description, address, coordinates, website, contact, socialMedia, offeredActivities, offeredServices, pictures, featured } = updateData;
 
-    // Validate that coordinates are required for updates
-    if (coordinates === undefined || coordinates === null || !coordinates.latitude || !coordinates.longitude) {
-      return NextResponse.json(
-        { error: 'Geolocation coordinates are required. Please search for and select a location.' },
-        { status: 400 }
-      );
+    // Check if this is a featured-only update (only featured field is present and defined)
+    const updateKeys = Object.keys(updateData).filter(key => updateData[key] !== undefined);
+    const isFeaturedOnlyUpdate = updateKeys.length === 1 && updateKeys[0] === 'featured';
+    
+    console.log(`[API /admin/companies/${id}] Update data keys:`, updateKeys);
+    console.log(`[API /admin/companies/${id}] Is featured-only update:`, isFeaturedOnlyUpdate);
+    
+    // Validate that coordinates are required for updates (unless it's a featured-only update)
+    if (!isFeaturedOnlyUpdate) {
+      // For non-featured-only updates, we need coordinates
+      // But if coordinates are not provided, use existing ones from the company
+      if (coordinates === undefined || coordinates === null) {
+        // Use existing coordinates if not provided
+        if (!company.coordinates || !company.coordinates.latitude || !company.coordinates.longitude) {
+          return NextResponse.json(
+            { error: 'Geolocation coordinates are required. Please search for and select a location.' },
+            { status: 400 }
+          );
+        }
+      } else if (!coordinates.latitude || !coordinates.longitude) {
+        return NextResponse.json(
+          { error: 'Geolocation coordinates are required. Please search for and select a location.' },
+          { status: 400 }
+        );
+      }
     }
 
     if (name) company.name = name;
@@ -135,12 +156,51 @@ export async function PUT(
       company.markModified('pictures');
     }
 
+    // Update featured status
+    if (featured !== undefined) {
+      const oldFeatured = company.featured;
+      // Explicitly set to true or false (not just truthy/falsy)
+      company.featured = featured === true;
+      company.markModified('featured'); // Explicitly mark as modified to ensure save
+      console.log(`[API /admin/companies/${id}] Updating featured status from ${oldFeatured} to ${company.featured}`);
+    }
+
     await company.save();
+    
+    // Verify the save worked
+    const savedCompany = await Company.findById(company._id);
+    console.log(`[API /admin/companies/${id}] Company saved. Verified featured status in DB: ${savedCompany?.featured}`);
 
     const updatedCompany = await Company.findById(company._id).populate('owner', 'name email');
+    
+    if (!updatedCompany) {
+      return NextResponse.json(
+        { error: 'Company not found after update' },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json(
-      { message: 'Company updated successfully', company: updatedCompany },
+      { 
+        message: 'Company updated successfully', 
+        company: {
+          id: String(updatedCompany._id),
+          name: updatedCompany.name,
+          description: updatedCompany.description,
+          address: updatedCompany.address,
+          coordinates: updatedCompany.coordinates,
+          website: updatedCompany.website,
+          contact: updatedCompany.contact,
+          socialMedia: updatedCompany.socialMedia,
+          offeredActivities: updatedCompany.offeredActivities,
+          offeredServices: updatedCompany.offeredServices,
+          pictures: updatedCompany.pictures,
+          featured: updatedCompany.featured || false,
+          owner: updatedCompany.owner,
+          createdAt: updatedCompany.createdAt,
+          updatedAt: updatedCompany.updatedAt,
+        }
+      },
       { status: 200 }
     );
   } catch (error: any) {

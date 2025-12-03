@@ -30,24 +30,87 @@ if (!global.mongoose) {
 }
 
 async function connectDB() {
-  if (cached.conn) {
+  // Check if connection string is available
+  const uri = process.env.MONGODB_URI?.trim() || MONGODB_URI;
+  if (!uri) {
+    console.error('[connectDB] MONGODB_URI not found in process.env or module scope');
+    throw new Error('MONGODB_URI is not defined. Please check your .env.local file.');
+  }
+  
+  console.log('[connectDB] Starting connection, readyState:', mongoose.connection.readyState);
+
+  // Check if we have an existing connection that's actually ready
+  if (cached.conn && mongoose.connection.readyState === 1) {
     return cached.conn;
   }
 
+  // If connection exists but is not ready, close it and reconnect
+  if (cached.conn && mongoose.connection.readyState !== 1) {
+    try {
+      await mongoose.connection.close();
+    } catch (e) {
+      // Ignore errors when closing
+    }
+    cached.conn = null;
+    cached.promise = null;
+  }
+
+  // If there's a pending promise that's taking too long, cancel it
+  if (cached.promise) {
+    // Check if the promise has been pending for more than 5 seconds
+    // This is a safety check for stuck connections
+    const promiseAge = Date.now() - (cached.promise as any)._startTime || 0;
+    if (promiseAge > 5000) {
+      console.warn('Clearing stale connection promise');
+      cached.promise = null;
+      cached.conn = null;
+      // Force disconnect mongoose
+      try {
+        await mongoose.disconnect();
+      } catch (e) {
+        // Ignore
+      }
+    }
+  }
+
   if (!cached.promise) {
+    // Detect if we're using local MongoDB or Atlas
+    const isLocal = uri.includes('localhost') || uri.includes('127.0.0.1');
+    
     const opts = {
       bufferCommands: false,
+      serverSelectionTimeoutMS: isLocal ? 5000 : 10000, // Faster for local
+      socketTimeoutMS: isLocal ? 30000 : 60000, // Shorter for local
+      connectTimeoutMS: isLocal ? 5000 : 10000, // Faster for local
+      maxPoolSize: isLocal ? 10 : 5, // More connections for local
+      minPoolSize: isLocal ? 2 : 0, // Maintain connections for local
+      maxIdleTimeMS: isLocal ? 30000 : 10000, // Longer for local
+      retryWrites: true,
+      retryReads: true,
+      // Use direct connection for local MongoDB
+      directConnection: isLocal ? true : false,
+      // Note: maxTimeMS is a query option, not a connection option
+      // It should be set on individual queries, not here
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+    // Mark start time for the promise
+    (cached.promise as any) = mongoose.connect(uri, opts).then((mongoose) => {
       return mongoose;
+    }).catch((error) => {
+      // Clear the promise on error so we can retry
+      cached.promise = null;
+      cached.conn = null;
+      console.error('MongoDB connection error:', error.message);
+      throw error;
     });
+    (cached.promise as any)._startTime = Date.now();
   }
 
   try {
     cached.conn = await cached.promise;
   } catch (e) {
     cached.promise = null;
+    cached.conn = null;
     throw e;
   }
 
