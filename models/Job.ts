@@ -16,6 +16,7 @@ export interface IJob extends Document {
   pictures?: string[]; // Array of image paths (max 3)
   spam?: 'yes' | 'no'; // Spam flag: 'yes' if flagged as spam, 'no' otherwise
   published?: boolean; // Published flag: true if published (visible to public), false if unpublished
+  featured?: boolean; // Featured flag: true if featured, false otherwise
   applyByEmail?: boolean; // Whether applications can be submitted by email
   applyByWebsite?: boolean; // Whether applications can be submitted via website
   applyByWhatsApp?: boolean; // Whether applications can be submitted by WhatsApp
@@ -98,6 +99,10 @@ const JobSchema: Schema = new Schema(
     published: {
       type: Boolean,
       default: true,
+    },
+    featured: {
+      type: Boolean,
+      default: false,
     },
     applyByEmail: {
       type: Boolean,
