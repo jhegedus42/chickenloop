@@ -31,6 +31,7 @@ export interface ICompany extends Document {
   offeredServices?: string[]; // Array of offered service strings
   logo?: string; // Company logo image URL
   pictures?: string[]; // Array of image paths (max 3)
+  featured?: boolean; // Featured flag: true if featured, false otherwise
   owner: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -138,6 +139,10 @@ const CompanySchema: Schema = new Schema(
         },
         message: 'A company can have at most 3 pictures',
       },
+    },
+    featured: {
+      type: Boolean,
+      default: false,
     },
     owner: {
       type: Schema.Types.ObjectId,

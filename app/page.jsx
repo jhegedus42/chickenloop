@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { jobsApi } from '@/lib/api';
+import { getCountryNameFromCode } from '@/lib/countryUtils';
 
 export default function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -14,12 +15,16 @@ export default function HomePage() {
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [latestJobs, setLatestJobs] = useState([]);
   const [latestJobsLoading, setLatestJobsLoading] = useState(true);
+  const [featuredCompanies, setFeaturedCompanies] = useState([]);
+  const [companiesLoading, setCompaniesLoading] = useState(true);
 
   useEffect(() => {
     // Load jobs to extract unique categories
     loadJobs();
     // Load latest jobs for display
     loadLatestJobs();
+    // Load featured companies
+    loadFeaturedCompanies();
   }, []);
 
   const loadJobs = async () => {
@@ -46,6 +51,63 @@ export default function HomePage() {
       console.error('Failed to load latest jobs:', err);
     } finally {
       setLatestJobsLoading(false);
+    }
+  };
+
+  const loadFeaturedCompanies = async () => {
+    try {
+      // Fetch featured companies and jobs in parallel
+      const [companiesResponse, jobsResponse] = await Promise.all([
+        fetch('/api/companies-list?featured=true'),
+        fetch('/api/jobs-list')
+      ]);
+      
+      const companiesData = await companiesResponse.json();
+      const jobsData = await jobsResponse.json();
+      
+      const companies = companiesData.companies || [];
+      const jobs = jobsData.jobs || [];
+      
+      // Count active (published) jobs per company
+      // Match by companyId or by company name as fallback
+      const jobCountsByCompany = {};
+      const companyIdMap = {}; // Map company name to company ID
+      
+      companies.forEach((company) => {
+        companyIdMap[company.name] = company.id;
+      });
+      
+      jobs.forEach((job) => {
+        if (job.published !== false) {
+          let companyId = null;
+          
+          // Try to get companyId from job object
+          if (job.companyId) {
+            companyId = job.companyId._id || job.companyId.id || job.companyId;
+          }
+          
+          // Fallback: match by company name
+          if (!companyId && job.company && companyIdMap[job.company]) {
+            companyId = companyIdMap[job.company];
+          }
+          
+          if (companyId) {
+            jobCountsByCompany[companyId] = (jobCountsByCompany[companyId] || 0) + 1;
+          }
+        }
+      });
+      
+      // Add job count to each company and get first 6
+      const companiesWithJobCount = companies.slice(0, 6).map((company) => ({
+        ...company,
+        jobCount: jobCountsByCompany[company.id] || 0
+      }));
+      
+      setFeaturedCompanies(companiesWithJobCount);
+    } catch (err) {
+      console.error('Failed to load featured companies:', err);
+    } finally {
+      setCompaniesLoading(false);
     }
   };
 
@@ -326,6 +388,80 @@ export default function HomePage() {
                           <span className="mr-1">📍</span>
                           {job.location}
                         </p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+        
+        {/* Featured Companies Section */}
+        <section className="bg-white py-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-3xl font-bold text-gray-900 mb-8">Featured Companies</h2>
+            
+            {companiesLoading ? (
+              <div className="text-center py-12">
+                <p className="text-gray-600">Loading companies...</p>
+              </div>
+            ) : featuredCompanies.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-600">No companies available at the moment.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {featuredCompanies.map((company) => {
+                  // Format location/country
+                  const locationParts = [];
+                  if (company.address?.city) {
+                    locationParts.push(company.address.city);
+                  }
+                  if (company.address?.country) {
+                    const countryName = getCountryNameFromCode(company.address.country);
+                    locationParts.push(countryName || company.address.country);
+                  }
+                  const locationText = locationParts.length > 0 
+                    ? locationParts.join(', ') 
+                    : 'Location not specified';
+                  
+                  return (
+                    <Link
+                      key={company.id}
+                      href={`/companies/${company.id}`}
+                      className="bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer block"
+                    >
+                      {/* Company Logo */}
+                      <div className="w-full h-32 bg-gray-100 flex items-center justify-center p-4">
+                        {company.logo ? (
+                          <img
+                            src={company.logo}
+                            alt={company.name}
+                            className="max-w-full max-h-full object-contain"
+                          />
+                        ) : (
+                          <div className="text-gray-400 text-sm text-center">
+                            <div className="text-2xl mb-1">🏢</div>
+                            <div>No Logo</div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Company Info */}
+                      <div className="p-4">
+                        <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
+                          {company.name}
+                        </h3>
+                        <p className="text-sm text-gray-600 mb-2 flex items-center">
+                          <span className="mr-1">📍</span>
+                          {locationText}
+                        </p>
+                        {company.jobCount > 0 && (
+                          <p className="text-sm text-blue-600 font-medium">
+                            {company.jobCount} {company.jobCount === 1 ? 'active job' : 'active jobs'}
+                          </p>
+                        )}
                       </div>
                     </Link>
                   );

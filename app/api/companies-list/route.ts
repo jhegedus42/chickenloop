@@ -7,7 +7,19 @@ export async function GET(request: NextRequest) {
   try {
     await connectDB();
 
-    const companies = await Company.find()
+    // Get query parameters
+    const { searchParams } = new URL(request.url);
+    const featured = searchParams.get('featured');
+
+    // Build query filter
+    const queryFilter: any = {};
+
+    // If featured=true, filter for featured companies
+    if (featured === 'true') {
+      queryFilter.featured = true;
+    }
+
+    const companies = await Company.find(queryFilter)
       .populate('owner', 'name email')
       .sort({ createdAt: -1 })
       .lean();
