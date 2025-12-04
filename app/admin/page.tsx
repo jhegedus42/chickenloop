@@ -68,6 +68,7 @@ export default function AdminDashboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const [togglingFeatured, setTogglingFeatured] = useState<string | null>(null);
   const [deletingCompany, setDeletingCompany] = useState<string | null>(null);
+  const [deletingJob, setDeletingJob] = useState<string | null>(null);
   const entriesPerPage = 20;
 
   useEffect(() => {
@@ -240,6 +241,32 @@ export default function AdminDashboard() {
     router.push(`/admin/companies/${companyId}/edit`);
   };
 
+  const handleDeleteJob = async (jobId: string, jobTitle: string) => {
+    if (!confirm(`Are you sure you want to delete "${jobTitle}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingJob(jobId);
+    
+    try {
+      await adminApi.deleteJob(jobId);
+      // Remove the job from the table
+      setTableData(prevData => prevData.filter((j) => j.id !== jobId));
+      // Reload statistics to update the count
+      await loadStatistics();
+    } catch (err: any) {
+      console.error('[Admin] Error deleting job:', err);
+      alert(`Failed to delete job: ${err.message || 'Unknown error'}`);
+    } finally {
+      setDeletingJob(null);
+    }
+  };
+
+  const handleEditJob = (jobId: string) => {
+    // Navigate to admin job edit page
+    router.push(`/admin/jobs/${jobId}/edit`);
+  };
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50">
@@ -406,6 +433,7 @@ export default function AdminDashboard() {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recruiter</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                           </>
                         ) : selectedCategory === 'cvs' ? (
                           <>
@@ -454,6 +482,29 @@ export default function AdminDashboard() {
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {new Date(entry.createdAt).toLocaleDateString()}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <div className="flex space-x-2">
+                                  <button
+                                    onClick={() => handleEditJob(entry.id)}
+                                    className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-xs font-medium"
+                                    title="Edit job"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteJob(entry.id, entry.title)}
+                                    disabled={deletingJob === entry.id}
+                                    className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                                      deletingJob === entry.id
+                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        : 'bg-red-600 text-white hover:bg-red-700'
+                                    }`}
+                                    title="Delete job"
+                                  >
+                                    {deletingJob === entry.id ? 'Deleting...' : 'Delete'}
+                                  </button>
+                                </div>
                               </td>
                             </>
                           ) : selectedCategory === 'cvs' ? (

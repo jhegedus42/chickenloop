@@ -56,10 +56,10 @@ export async function GET(request: NextRequest) {
       companyId: job.companyId ? job.companyId.toString() : null,
     }));
 
-    // Sort by createdAt descending
+    // Sort by updatedAt descending (most recently updated first)
     jobsWithoutPopulate.sort((a: any, b: any) => {
-      const dateA = new Date(a.createdAt || 0).getTime();
-      const dateB = new Date(b.createdAt || 0).getTime();
+      const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+      const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
       return dateB - dateA;
     });
 

@@ -59,7 +59,7 @@ export default function HomePageContent() {
       const response = await fetch('/api/jobs-list');
       const data = await response.json();
       const jobsList = data.jobs || [];
-      // Get the 4 most recent jobs (already sorted by createdAt -1 from API)
+      // Get the 4 most recent jobs (already sorted by updatedAt -1 from API)
       setLatestJobs(jobsList.slice(0, 4));
     } catch (err) {
       console.error('Failed to load latest jobs:', err);

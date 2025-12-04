@@ -167,6 +167,7 @@ export const adminApi = {
       method: 'DELETE',
     }),
   getJobs: () => apiRequest('/admin/jobs'),
+  getJob: (id: string) => apiRequest(`/admin/jobs/${id}`),
   updateJob: (id: string, data: any) =>
     apiRequest(`/admin/jobs/${id}`, {
       method: 'PUT',
