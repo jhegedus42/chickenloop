@@ -52,6 +52,7 @@ interface Company {
     country?: string;
   };
   website?: string;
+  featured?: boolean;
   owner: any;
   createdAt: string;
 }
@@ -65,6 +66,7 @@ export default function AdminDashboard() {
   const [tableData, setTableData] = useState<any[]>([]);
   const [tableLoading, setTableLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [togglingFeatured, setTogglingFeatured] = useState<string | null>(null);
   const entriesPerPage = 20;
 
   useEffect(() => {
@@ -152,6 +154,72 @@ export default function AdminDashboard() {
   const indexOfLastEntry = currentPage * entriesPerPage;
   const indexOfFirstEntry = indexOfLastEntry - entriesPerPage;
   const currentEntries = tableData.slice(indexOfFirstEntry, indexOfLastEntry);
+
+  const handleToggleFeatured = async (companyId: string, currentFeatured: boolean) => {
+    if (togglingFeatured === companyId) {
+      console.log(`[Admin] Already toggling featured for company ${companyId}, ignoring duplicate click`);
+      return;
+    }
+    
+    const newFeaturedStatus = !currentFeatured;
+    console.log(`[Admin] Toggling featured for company ${companyId} from ${currentFeatured} to ${newFeaturedStatus}`);
+    
+    setTogglingFeatured(companyId);
+    
+    // Optimistically update the UI immediately
+    setTableData(prevData => prevData.map((c) => 
+      c.id === companyId ? { ...c, featured: newFeaturedStatus } : c
+    ));
+    
+    try {
+      console.log(`[Admin] Calling API to update company ${companyId} with featured: ${newFeaturedStatus}`);
+      const response = await adminApi.updateCompany(companyId, { featured: newFeaturedStatus });
+      console.log(`[Admin] API response:`, JSON.stringify(response, null, 2));
+      
+      // Check if the response contains the updated company with the correct featured status
+      if (response && response.company) {
+        const updatedFeatured = response.company.featured === true; // Explicitly check for true
+        console.log(`[Admin] API returned featured status: ${updatedFeatured}, expected: ${newFeaturedStatus}`);
+        
+        if (updatedFeatured !== newFeaturedStatus) {
+          console.error(`[Admin] Featured status mismatch! API returned ${updatedFeatured} but expected ${newFeaturedStatus}`);
+          // Use the API response value if it's different
+          setTableData(prevData => prevData.map((c) => 
+            c.id === companyId ? { ...c, featured: updatedFeatured } : c
+          ));
+        } else {
+          // Update state with the confirmed value from API
+          setTableData(prevData => prevData.map((c) => 
+            c.id === companyId ? { ...c, featured: updatedFeatured } : c
+          ));
+        }
+      } else {
+        console.warn(`[Admin] API response doesn't contain company data, reloading companies list...`);
+        // If response doesn't have company data, reload the list
+        if (selectedCategory === 'companies') {
+          await loadCategoryData('companies');
+        }
+      }
+      
+      console.log(`[Admin] Featured status updated successfully`);
+    } catch (err: any) {
+      console.error('[Admin] Error updating featured status:', err);
+      console.error('[Admin] Error details:', {
+        message: err.message,
+        stack: err.stack,
+        name: err.name
+      });
+      
+      // Revert the optimistic update on error
+      setTableData(prevData => prevData.map((c) => 
+        c.id === companyId ? { ...c, featured: currentFeatured } : c
+      ));
+      
+      alert(err.message || 'Failed to update featured status');
+    } finally {
+      setTogglingFeatured(null);
+    }
+  };
 
   if (authLoading || loading) {
     return (
@@ -333,6 +401,7 @@ export default function AdminDashboard() {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Website</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Featured</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
                           </>
                         )}
@@ -405,6 +474,20 @@ export default function AdminDashboard() {
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {entry.owner?.name ? `${entry.owner.name} (${entry.owner.email})` : 'Unknown'}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                <button
+                                  onClick={() => handleToggleFeatured(entry.id, entry.featured || false)}
+                                  disabled={togglingFeatured === entry.id}
+                                  className={`px-3 py-1 rounded-md text-xs font-medium ${
+                                    entry.featured
+                                      ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                  } ${togglingFeatured === entry.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                  title={entry.featured ? 'Click to unfeature' : 'Click to feature'}
+                                >
+                                  {togglingFeatured === entry.id ? 'Updating...' : (entry.featured ? '⭐ Featured' : 'Not Featured')}
+                                </button>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {new Date(entry.createdAt).toLocaleDateString()}

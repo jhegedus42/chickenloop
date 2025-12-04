@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
       coordinates: company.coordinates,
       website: company.website,
       socialMedia: company.socialMedia,
-      featured: company.featured || false,
+      featured: company.featured === true, // Explicitly check for true, default to false
       owner: company.owner ? ownerMap.get(company.owner.toString()) || { name: 'Unknown', email: 'unknown@example.com' } : null,
       createdAt: company.createdAt,
       updatedAt: company.updatedAt,
