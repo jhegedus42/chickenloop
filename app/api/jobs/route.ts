@@ -10,27 +10,27 @@ export async function GET(request: NextRequest) {
   try {
     console.log('[API /jobs] Starting request');
     console.log('[API /jobs] MONGODB_URI exists:', !!process.env.MONGODB_URI);
-    
+
     // Add timeout for database connection
     const startTime = Date.now();
     const dbPromise = connectDB();
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('Database connection timeout after 15 seconds')), 15000)
     );
-    
+
     console.log('[API /jobs] Attempting database connection...');
     await Promise.race([dbPromise, timeoutPromise]);
     const connectTime = Date.now() - startTime;
     console.log(`[API /jobs] Database connected in ${connectTime}ms`);
-    
+
     // Verify connection is actually ready
     const readyState = mongoose.connection.readyState;
     console.log(`[API /jobs] Connection readyState: ${readyState} (0=disconnected, 1=connected, 2=connecting, 3=disconnecting)`);
-    
+
     if (readyState !== 1) {
       throw new Error(`Database connection not ready. State: ${readyState}`);
     }
-    
+
     // Verify db object exists
     const dbConnection = mongoose.connection.db;
     if (!dbConnection) {
@@ -45,50 +45,50 @@ export async function GET(request: NextRequest) {
     console.log('[API /jobs] Querying jobs...');
     const queryStart = Date.now();
     const fetchStart = Date.now();
-    
+
     // Use the dbConnection we verified above
     if (!dbConnection) {
       throw new Error('Database connection not available');
     }
-    
+
     const collection = dbConnection.collection('jobs');
-    
+
     // Build query filter
     const queryFilter: any = {};
-    
+
     // Filter for published jobs (exclude only where published is explicitly false)
     // We'll filter this client-side after fetching
-    
+
     // If featured=true, filter for featured jobs
     if (featured === 'true') {
       queryFilter.featured = true;
     }
-    
+
     // Query to get jobs - Load ALL fields (including description, images, etc.)
     // No limit needed for local MongoDB - it's fast enough
     console.log('[API /jobs] Executing find query (no limit, ALL fields - no projection)...');
     console.log('[API /jobs] Creating query cursor...');
     const queryCursor = collection.find(queryFilter)
       .maxTimeMS(10000); // 10 second timeout should be plenty for local DB
-    
+
     console.log('[API /jobs] Query cursor created, calling toArray()...');
     const simplestQueryPromise = queryCursor.toArray();
-    
+
     const simplestTimeout = new Promise<any[]>((_, reject) =>
       setTimeout(() => reject(new Error('Query timeout after 5 seconds')), 5000)
     );
-    
+
     let jobsWithoutPopulate: any[];
     try {
       console.log('[API /jobs] Starting Promise.race...');
       jobsWithoutPopulate = await Promise.race([simplestQueryPromise, simplestTimeout]);
       const fetchTime = Date.now() - fetchStart;
       console.log(`[API /jobs] Simplest query succeeded, got ${jobsWithoutPopulate.length} jobs in ${fetchTime}ms`);
-      
+
       // Filter on client side
       jobsWithoutPopulate = jobsWithoutPopulate.filter((job: any) => job.published !== false);
       console.log(`[API /jobs] Filtered to ${jobsWithoutPopulate.length} published jobs`);
-      
+
       // Convert ObjectIds to strings
       jobsWithoutPopulate = jobsWithoutPopulate.map((job: any) => ({
         ...job,
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
     }
     const fetchTime = Date.now() - fetchStart;
     console.log(`[API /jobs] Fetched ${jobsWithoutPopulate.length} jobs in ${fetchTime}ms`);
-    
+
     // Sort on client side (much faster than database sort)
     jobsWithoutPopulate.sort((a: any, b: any) => {
       const dateA = new Date(a.createdAt || 0).getTime();
@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
       return dateB - dateA; // Descending (newest first)
     });
     console.log(`[API /jobs] Sorted ${jobsWithoutPopulate.length} jobs on client side`);
-    
+
     // Populate recruiter info using native MongoDB lookup
     let jobs = jobsWithoutPopulate;
     if (jobsWithoutPopulate.length > 0 && jobsWithoutPopulate[0].recruiter) {
@@ -123,23 +123,23 @@ export async function GET(request: NextRequest) {
         if (db) {
           const usersCollection = db.collection('users');
           const recruiterIds = [...new Set(jobsWithoutPopulate.map((j: any) => j.recruiter).filter(Boolean))];
-          
+
           const recruiters = await usersCollection.find({
             _id: { $in: recruiterIds.map((id: string) => new mongoose.Types.ObjectId(id)) }
           })
             .project({ name: 1, email: 1 })
             .maxTimeMS(3000)
             .toArray();
-          
+
           const recruiterMap = new Map(
             recruiters.map((r: any) => [r._id.toString(), { name: r.name, email: r.email }])
           );
-          
+
           jobs = jobsWithoutPopulate.map((job: any) => ({
             ...job,
             recruiter: job.recruiter ? (recruiterMap.get(job.recruiter) || { _id: job.recruiter }) : null
           }));
-          
+
           const populateTime = Date.now() - populateStart;
           console.log(`[API /jobs] Populated ${jobs.length} jobs in ${populateTime}ms`);
         } else {
@@ -151,10 +151,10 @@ export async function GET(request: NextRequest) {
         jobs = jobsWithoutPopulate;
       }
     }
-    
+
     const queryTime = Date.now() - queryStart;
     console.log(`[API /jobs] Total query time: ${queryTime}ms`);
-    
+
     return NextResponse.json({ jobs }, { status: 200 });
   } catch (error: any) {
     console.error('Error in /api/jobs:', error);
@@ -162,15 +162,15 @@ export async function GET(request: NextRequest) {
     const errorMessage = error.message || 'Internal server error';
     const isTimeout = errorMessage.includes('timeout') || errorMessage.includes('timed out');
     const isConnectionError = errorMessage.includes('connection') || errorMessage.includes('ENOTFOUND');
-    
+
     return NextResponse.json(
-      { 
+      {
         error: errorMessage,
-        details: isTimeout 
+        details: isTimeout
           ? 'Database connection timed out. Please check your MongoDB Atlas network access settings.'
           : isConnectionError
-          ? 'Cannot connect to database. Please verify your MongoDB Atlas connection string and network access.'
-          : 'Internal server error'
+            ? 'Cannot connect to database. Please verify your MongoDB Atlas connection string and network access.'
+            : 'Internal server error'
       },
       { status: 500 }
     );
@@ -183,73 +183,29 @@ export async function POST(request: NextRequest) {
     const user = requireRole(request, ['recruiter']);
     await connectDB();
 
-    // Check if recruiter has a company
-    const company = await Company.findOne({ owner: user.userId });
-    if (!company) {
+    const { title, description, company, location, salary, type } = await request.json();
+
+    if (!title || !description || !company || !location || !type) {
       return NextResponse.json(
-        { error: 'You must create a company profile before posting jobs' },
+        { error: 'Title, description, company, location, and type are required' },
         { status: 400 }
       );
     }
 
-    const { title, description, location, country, salary, type, languages, qualifications, sports, occupationalAreas, pictures, applyByEmail, applyByWebsite, applyByWhatsApp, applicationEmail, applicationWebsite, applicationWhatsApp } = await request.json();
-
-    if (!title || !description || !location || !type) {
-      return NextResponse.json(
-        { error: 'Title, description, location, and type are required' },
-        { status: 400 }
-      );
-    }
-
-    // Validate pictures array (max 3)
-    if (pictures && Array.isArray(pictures) && pictures.length > 3) {
-      return NextResponse.json(
-        { error: 'Maximum 3 pictures allowed' },
-        { status: 400 }
-      );
-    }
-
-    // Normalize country: trim and uppercase, or set to null if empty (null explicitly stores the field)
-    const normalizedCountry = country?.trim() ? country.trim().toUpperCase() : null;
-    
     const job = await Job.create({
       title,
       description,
-      company: company.name,
-      companyId: company._id,
+      company,
       location,
-      country: normalizedCountry,
       salary,
       type,
-      languages: languages || [],
-      qualifications: qualifications || [],
-      sports: sports || [],
-      occupationalAreas: occupationalAreas || [],
-      pictures: pictures || [],
-      applyByEmail: applyByEmail || false,
-      applyByWebsite: applyByWebsite || false,
-      applyByWhatsApp: applyByWhatsApp || false,
-      applicationEmail: applicationEmail || undefined,
-      applicationWebsite: applicationWebsite || undefined,
-      applicationWhatsApp: applicationWhatsApp || undefined,
       recruiter: user.userId,
-      published: true, // New jobs are published by default
     });
 
     const populatedJob = await Job.findById(job._id).populate('recruiter', 'name email');
-    
-    // Convert to plain object and ensure all fields are included, including country
-    const jobObject = populatedJob?.toObject();
-    const jobResponse = jobObject ? {
-      ...jobObject,
-      // Handle country field - normalize if it exists, preserve null if explicitly set
-      country: jobObject.country != null 
-        ? (jobObject.country.trim() ? jobObject.country.trim().toUpperCase() : null)
-        : undefined,
-    } : populatedJob;
 
     return NextResponse.json(
-      { message: 'Job created successfully', job: jobResponse },
+      { message: 'Job created successfully', job: populatedJob },
       { status: 201 }
     );
   } catch (error: any) {

@@ -65,11 +65,7 @@ export default function HomePage() {
       const companiesData = await companiesResponse.json();
       const jobsData = await jobsResponse.json();
       
-      let companies = companiesData.companies || [];
-      
-      // Additional client-side filter to ensure only featured companies are shown
-      companies = companies.filter(company => company.featured === true);
-      
+      const companies = companiesData.companies || [];
       const jobs = jobsData.jobs || [];
       
       // Count active (published) jobs per company

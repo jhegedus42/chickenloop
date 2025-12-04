@@ -28,17 +28,12 @@ export async function GET(request: NextRequest) {
     const queryStart = Date.now();
 
     // Use simple find query instead of complex aggregation - much faster
-    // Explicitly include featured field in the query
     const companies = await dbConnection.collection('companies')
       .find({})
       .sort({ createdAt: -1 })
       .limit(200) // Limit to prevent timeout
       .maxTimeMS(10000) // 10 second timeout
       .toArray();
-    
-    console.log(`[API /admin/companies] Fetched ${companies.length} companies. Sample featured values:`, 
-      companies.slice(0, 3).map((c: any) => ({ id: c._id.toString(), name: c.name, featured: c.featured }))
-    );
     
     // Manually populate owner info
     const ownerIds = [...new Set(companies.map((c: any) => c.owner).filter(Boolean))];
@@ -61,7 +56,7 @@ export async function GET(request: NextRequest) {
       coordinates: company.coordinates,
       website: company.website,
       socialMedia: company.socialMedia,
-      featured: company.featured === true, // Explicitly check for true, default to false
+      featured: company.featured || false,
       owner: company.owner ? ownerMap.get(company.owner.toString()) || { name: 'Unknown', email: 'unknown@example.com' } : null,
       createdAt: company.createdAt,
       updatedAt: company.updatedAt,
