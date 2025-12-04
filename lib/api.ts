@@ -218,5 +218,7 @@ export const adminApi = {
       : '/admin/audit-logs';
     return apiRequest(endpoint);
   },
+  getStatistics: () => apiRequest('/admin/statistics'),
+  getCVs: () => apiRequest('/admin/cvs'),
 };
 

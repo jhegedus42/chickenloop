@@ -6,29 +6,66 @@ import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import { adminApi } from '@/lib/api';
 
+interface Statistics {
+  jobSeekers: number;
+  recruiters: number;
+  jobs: number;
+  cvs: number;
+  companies: number;
+}
+
+type CategoryType = 'job-seekers' | 'recruiters' | 'jobs' | 'cvs' | 'companies' | null;
+
 interface User {
   id: string;
-  email: string;
   name: string;
+  email: string;
   role: string;
   createdAt: string;
   jobs?: any[];
   cv?: any;
 }
 
+interface Job {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  type: string;
+  recruiter: any;
+  createdAt: string;
+}
+
+interface CV {
+  id: string;
+  jobSeeker: any;
+  published: boolean;
+  createdAt: string;
+}
+
+interface Company {
+  id: string;
+  name: string;
+  address?: {
+    city?: string;
+    state?: string;
+    country?: string;
+  };
+  website?: string;
+  owner: any;
+  createdAt: string;
+}
+
 export default function AdminDashboard() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [users, setUsers] = useState<User[]>([]);
+  const [statistics, setStatistics] = useState<Statistics | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [editForm, setEditForm] = useState({
-    email: '',
-    name: '',
-    role: '',
-    password: '',
-  });
+  const [selectedCategory, setSelectedCategory] = useState<CategoryType>(null);
+  const [tableData, setTableData] = useState<any[]>([]);
+  const [tableLoading, setTableLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const entriesPerPage = 20;
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -40,61 +77,81 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (user && user.role === 'admin') {
-      loadUsers();
+      loadStatistics();
+      setLoading(false);
     }
   }, [user]);
 
-  const loadUsers = async () => {
+  const loadStatistics = async () => {
     try {
-      const data = await adminApi.getUsers();
-      setUsers(data.users);
+      const data = await adminApi.getStatistics();
+      setStatistics(data.statistics);
     } catch (err: any) {
-      setError(err.message || 'Failed to load users');
-    } finally {
-      setLoading(false);
+      console.error('Failed to load statistics:', err);
+      // Don't show error for statistics, just log it
     }
   };
 
-  const handleEdit = (userData: User) => {
-    setEditingUser(userData);
-    setEditForm({
-      email: userData.email,
-      name: userData.name,
-      role: userData.role,
-      password: '',
-    });
-  };
-
-  const handleUpdate = async () => {
-    if (!editingUser) return;
-
+  const loadCategoryData = async (category: CategoryType) => {
+    if (!category) return;
+    
+    setTableLoading(true);
+    setCurrentPage(1);
+    
     try {
-      const updateData: any = {
-        email: editForm.email,
-        name: editForm.name,
-        role: editForm.role,
-      };
-      if (editForm.password) {
-        updateData.password = editForm.password;
+      let data: any;
+      
+      switch (category) {
+        case 'job-seekers':
+          const usersData = await adminApi.getUsers();
+          data = usersData.users.filter((u: User) => u.role === 'job-seeker');
+          break;
+        case 'recruiters':
+          const recruitersData = await adminApi.getUsers();
+          data = recruitersData.users.filter((u: User) => u.role === 'recruiter');
+          break;
+        case 'jobs':
+          const jobsData = await adminApi.getJobs();
+          data = jobsData.jobs || [];
+          break;
+        case 'cvs':
+          const cvsData = await adminApi.getCVs();
+          data = cvsData.cvs || [];
+          break;
+        case 'companies':
+          const companiesData = await adminApi.getCompanies();
+          data = companiesData.companies || [];
+          break;
+        default:
+          data = [];
       }
-      await adminApi.updateUser(editingUser.id, updateData);
-      setEditingUser(null);
-      loadUsers();
+      
+      setTableData(data);
     } catch (err: any) {
-      alert(err.message || 'Failed to update user');
+      console.error(`Failed to load ${category}:`, err);
+      setTableData([]);
+    } finally {
+      setTableLoading(false);
     }
   };
 
-  const handleDelete = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user? This will also delete all their associated data.')) return;
-
-    try {
-      await adminApi.deleteUser(userId);
-      setUsers(users.filter((u) => u.id !== userId));
-    } catch (err: any) {
-      alert(err.message || 'Failed to delete user');
+  const handleCardClick = (category: CategoryType) => {
+    if (selectedCategory === category) {
+      // If clicking the same card, close the table
+      setSelectedCategory(null);
+      setTableData([]);
+    } else {
+      // Open new category
+      setSelectedCategory(category);
+      loadCategoryData(category);
     }
   };
+
+  // Calculate pagination
+  const totalPages = Math.ceil(tableData.length / entriesPerPage);
+  const indexOfLastEntry = currentPage * entriesPerPage;
+  const indexOfFirstEntry = indexOfLastEntry - entriesPerPage;
+  const currentEntries = tableData.slice(indexOfFirstEntry, indexOfLastEntry);
 
   if (authLoading || loading) {
     return (
@@ -113,145 +170,287 @@ export default function AdminDashboard() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <h1 className="text-4xl font-bold text-gray-900 mb-8">Admin Dashboard</h1>
 
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
-
-        {editingUser && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full mx-4">
-              <h2 className="text-2xl font-bold mb-4">Edit User</h2>
-              <div className="space-y-4">
+        {/* Statistics Cards */}
+        {statistics && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
+            {/* Job Seekers Card */}
+            <button
+              onClick={() => handleCardClick('job-seekers')}
+              className={`bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500 text-left transition-all hover:shadow-lg cursor-pointer ${
+                selectedCategory === 'job-seekers' ? 'ring-2 ring-blue-500' : ''
+              }`}
+            >
+              <div className="flex items-center justify-between">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                  <input
-                    type="text"
-                    value={editForm.name}
-                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  <p className="text-sm font-medium text-gray-600">Job Seekers</p>
+                  <p className="text-3xl font-bold text-gray-900 mt-2">{statistics.jobSeekers}</p>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={editForm.email}
-                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                  <select
-                    value={editForm.role}
-                    onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="recruiter">Recruiter</option>
-                    <option value="job-seeker">Job Seeker</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    New Password (leave blank to keep current)
-                  </label>
-                  <input
-                    type="password"
-                    value={editForm.password}
-                    onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div className="flex gap-4">
-                  <button
-                    onClick={handleUpdate}
-                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 font-semibold"
-                  >
-                    Update
-                  </button>
-                  <button
-                    onClick={() => setEditingUser(null)}
-                    className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 font-semibold"
-                  >
-                    Cancel
-                  </button>
+                <div className="bg-blue-100 rounded-full p-3">
+                  <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
                 </div>
               </div>
-            </div>
+            </button>
+
+            {/* Recruiters Card */}
+            <button
+              onClick={() => handleCardClick('recruiters')}
+              className={`bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500 text-left transition-all hover:shadow-lg cursor-pointer ${
+                selectedCategory === 'recruiters' ? 'ring-2 ring-green-500' : ''
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Recruiters</p>
+                  <p className="text-3xl font-bold text-gray-900 mt-2">{statistics.recruiters}</p>
+                </div>
+                <div className="bg-green-100 rounded-full p-3">
+                  <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              </div>
+            </button>
+
+            {/* Jobs Card */}
+            <button
+              onClick={() => handleCardClick('jobs')}
+              className={`bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500 text-left transition-all hover:shadow-lg cursor-pointer ${
+                selectedCategory === 'jobs' ? 'ring-2 ring-purple-500' : ''
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Jobs</p>
+                  <p className="text-3xl font-bold text-gray-900 mt-2">{statistics.jobs}</p>
+                </div>
+                <div className="bg-purple-100 rounded-full p-3">
+                  <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+              </div>
+            </button>
+
+            {/* CVs Card */}
+            <button
+              onClick={() => handleCardClick('cvs')}
+              className={`bg-white rounded-lg shadow-md p-6 border-l-4 border-orange-500 text-left transition-all hover:shadow-lg cursor-pointer ${
+                selectedCategory === 'cvs' ? 'ring-2 ring-orange-500' : ''
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">CVs</p>
+                  <p className="text-3xl font-bold text-gray-900 mt-2">{statistics.cvs}</p>
+                </div>
+                <div className="bg-orange-100 rounded-full p-3">
+                  <svg className="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+              </div>
+            </button>
+
+            {/* Companies Card */}
+            <button
+              onClick={() => handleCardClick('companies')}
+              className={`bg-white rounded-lg shadow-md p-6 border-l-4 border-indigo-500 text-left transition-all hover:shadow-lg cursor-pointer ${
+                selectedCategory === 'companies' ? 'ring-2 ring-indigo-500' : ''
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Companies</p>
+                  <p className="text-3xl font-bold text-gray-900 mt-2">{statistics.companies}</p>
+                </div>
+                <div className="bg-indigo-100 rounded-full p-3">
+                  <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                </div>
+              </div>
+            </button>
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Role
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Data
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {users.map((userData) => (
-                  <tr key={userData.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {userData.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {userData.email}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                        {userData.role}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {userData.role === 'recruiter' && (
-                        <span>{userData.jobs?.length || 0} job(s)</span>
-                      )}
-                      {userData.role === 'job-seeker' && (
-                        <span>{userData.cv ? 'Has CV' : 'No CV'}</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={() => handleEdit(userData)}
-                        className="text-blue-600 hover:text-blue-900 mr-4"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(userData.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        {/* Data Table */}
+        {selectedCategory && (
+          <div className="bg-white rounded-lg shadow-md overflow-hidden mt-8">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-gray-900 capitalize">
+                {selectedCategory === 'job-seekers' ? 'Job Seekers' : 
+                 selectedCategory === 'recruiters' ? 'Recruiters' :
+                 selectedCategory === 'jobs' ? 'Jobs' : 
+                 selectedCategory === 'cvs' ? 'CVs' : 'Companies'}
+              </h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Showing {indexOfFirstEntry + 1} to {Math.min(indexOfLastEntry, tableData.length)} of {tableData.length} entries
+              </p>
+            </div>
 
-        {users.length === 0 && (
-          <div className="bg-white rounded-lg shadow-md p-8 text-center">
-            <p className="text-gray-600">No users found.</p>
+            {tableLoading ? (
+              <div className="p-8 text-center">
+                <p className="text-gray-600">Loading...</p>
+              </div>
+            ) : currentEntries.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="text-gray-600">No data available</p>
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        {selectedCategory === 'job-seekers' || selectedCategory === 'recruiters' ? (
+                          <>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                          </>
+                        ) : selectedCategory === 'jobs' ? (
+                          <>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recruiter</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                          </>
+                        ) : selectedCategory === 'cvs' ? (
+                          <>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Seeker</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Published</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                          </>
+                        ) : (
+                          <>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Website</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                          </>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {currentEntries.map((entry: any) => (
+                        <tr key={entry.id} className="hover:bg-gray-50">
+                          {selectedCategory === 'job-seekers' || selectedCategory === 'recruiters' ? (
+                            <>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{entry.name}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{entry.email}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                  {entry.role}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {new Date(entry.createdAt).toLocaleDateString()}
+                              </td>
+                            </>
+                          ) : selectedCategory === 'jobs' ? (
+                            <>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{entry.title}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{entry.company}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{entry.location}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{entry.type}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {entry.recruiter?.name || 'Unknown'}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {new Date(entry.createdAt).toLocaleDateString()}
+                              </td>
+                            </>
+                          ) : selectedCategory === 'cvs' ? (
+                            <>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {entry.jobSeeker?.name || 'Unknown'}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {entry.jobSeeker?.email || 'N/A'}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                                  entry.published ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {entry.published ? 'Published' : 'Draft'}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {new Date(entry.createdAt).toLocaleDateString()}
+                              </td>
+                            </>
+                          ) : (
+                            <>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{entry.name}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {entry.address 
+                                  ? `${entry.address.city || ''}${entry.address.city && entry.address.state ? ', ' : ''}${entry.address.state || ''}${entry.address.country ? `, ${entry.address.country}` : ''}`.trim() || 'N/A'
+                                  : 'N/A'}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {entry.website ? (
+                                  <a href={entry.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                    {entry.website}
+                                  </a>
+                                ) : (
+                                  'N/A'
+                                )}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {entry.owner?.name ? `${entry.owner.name} (${entry.owner.email})` : 'Unknown'}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {new Date(entry.createdAt).toLocaleDateString()}
+                              </td>
+                            </>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                    <div className="text-sm text-gray-600">
+                      Page {currentPage} of {totalPages}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                        className={`px-4 py-2 rounded-md font-medium ${
+                          currentPage === 1
+                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                        }`}
+                      >
+                        Previous
+                      </button>
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        className={`px-4 py-2 rounded-md font-medium ${
+                          currentPage === totalPages
+                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                        }`}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
       </main>
