@@ -1,0 +1,108 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+
+interface SearchBarProps {
+  keyword: string;
+  location: string;
+  category: string;
+  categories: string[];
+  categoriesLoading: boolean;
+  onKeywordChange: (value: string) => void;
+  onLocationChange: (value: string) => void;
+  onCategoryChange: (value: string) => void;
+}
+
+export default function SearchBar({
+  keyword,
+  location,
+  category,
+  categories,
+  categoriesLoading,
+  onKeywordChange,
+  onLocationChange,
+  onCategoryChange,
+}: SearchBarProps) {
+  return (
+    <section className="bg-white py-12 sm:py-16 shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-gray-50 rounded-xl p-6 sm:p-8 shadow-sm border border-gray-100">
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              // Navigation will be handled by the Link button
+            }}
+            className="flex flex-col sm:flex-row gap-4"
+          >
+            {/* Keyword Input */}
+            <div className="flex-1">
+              <label htmlFor="keyword" className="block text-sm font-medium text-gray-700 mb-1">
+                Keyword
+              </label>
+              <input
+                type="text"
+                id="keyword"
+                value={keyword}
+                onChange={(e) => onKeywordChange(e.target.value)}
+                placeholder="Search jobs..."
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 shadow-sm transition-shadow"
+              />
+            </div>
+
+            {/* Location Input */}
+            <div className="flex-1">
+              <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
+                Location
+              </label>
+              <input
+                type="text"
+                id="location"
+                value={location}
+                onChange={(e) => onLocationChange(e.target.value)}
+                placeholder="City, Country..."
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 shadow-sm transition-shadow"
+              />
+            </div>
+
+            {/* Category Dropdown */}
+            <div className="flex-1">
+              <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+                Category
+              </label>
+              <select
+                id="category"
+                value={category}
+                onChange={(e) => onCategoryChange(e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 shadow-sm transition-shadow"
+                disabled={categoriesLoading}
+              >
+                <option value="">All Categories</option>
+                {categoriesLoading ? (
+                  <option disabled>Loading categories...</option>
+                ) : (
+                  categories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
+
+            {/* Search Button */}
+            <div className="flex items-end">
+              <Link
+                href={`/jobs-list?keyword=${encodeURIComponent(keyword)}&location=${encodeURIComponent(location)}&category=${encodeURIComponent(category)}`}
+                className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 font-medium text-center shadow-md hover:shadow-lg transform hover:scale-105"
+              >
+                Search Jobs
+              </Link>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+  );
+}
+
