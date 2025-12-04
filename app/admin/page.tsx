@@ -67,6 +67,7 @@ export default function AdminDashboard() {
   const [tableLoading, setTableLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [togglingFeatured, setTogglingFeatured] = useState<string | null>(null);
+  const [deletingCompany, setDeletingCompany] = useState<string | null>(null);
   const entriesPerPage = 20;
 
   useEffect(() => {
@@ -204,21 +205,39 @@ export default function AdminDashboard() {
       console.log(`[Admin] Featured status updated successfully`);
     } catch (err: any) {
       console.error('[Admin] Error updating featured status:', err);
-      console.error('[Admin] Error details:', {
-        message: err.message,
-        stack: err.stack,
-        name: err.name
-      });
-      
-      // Revert the optimistic update on error
+      // Revert optimistic update on error
       setTableData(prevData => prevData.map((c) => 
         c.id === companyId ? { ...c, featured: currentFeatured } : c
       ));
-      
-      alert(err.message || 'Failed to update featured status');
     } finally {
       setTogglingFeatured(null);
     }
+  };
+
+  const handleDeleteCompany = async (companyId: string, companyName: string) => {
+    if (!confirm(`Are you sure you want to delete "${companyName}"? This action cannot be undone and will also delete all associated jobs.`)) {
+      return;
+    }
+
+    setDeletingCompany(companyId);
+    
+    try {
+      await adminApi.deleteCompany(companyId);
+      // Remove the company from the table
+      setTableData(prevData => prevData.filter((c) => c.id !== companyId));
+      // Reload statistics to update the count
+      await loadStatistics();
+    } catch (err: any) {
+      console.error('[Admin] Error deleting company:', err);
+      alert(`Failed to delete company: ${err.message || 'Unknown error'}`);
+    } finally {
+      setDeletingCompany(null);
+    }
+  };
+
+  const handleEditCompany = (companyId: string) => {
+    // Navigate to company edit page - for now use admin companies detail/edit
+    router.push(`/admin/companies/${companyId}/edit`);
   };
 
   if (authLoading || loading) {
@@ -403,6 +422,7 @@ export default function AdminDashboard() {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Featured</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                           </>
                         )}
                       </tr>
@@ -491,6 +511,29 @@ export default function AdminDashboard() {
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {new Date(entry.createdAt).toLocaleDateString()}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                <div className="flex items-center space-x-2">
+                                  <button
+                                    onClick={() => handleEditCompany(entry.id)}
+                                    className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-xs font-medium"
+                                    title="Edit company"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteCompany(entry.id, entry.name)}
+                                    disabled={deletingCompany === entry.id}
+                                    className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                                      deletingCompany === entry.id
+                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        : 'bg-red-600 text-white hover:bg-red-700'
+                                    }`}
+                                    title="Delete company"
+                                  >
+                                    {deletingCompany === entry.id ? 'Deleting...' : 'Delete'}
+                                  </button>
+                                </div>
                               </td>
                             </>
                           )}

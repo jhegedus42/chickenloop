@@ -11,6 +11,7 @@ import CandidateCard from './CandidateCard';
 import SectionHeader from './SectionHeader';
 import SearchBar from './SearchBar';
 import CompaniesPreview from './CompaniesPreview';
+import MapPreview from './MapPreview';
 
 export default function HomePageContent() {
   const { user } = useAuth();
@@ -347,6 +348,9 @@ export default function HomePageContent() {
         
         {/* Companies Preview Section */}
         <CompaniesPreview />
+        
+        {/* Map Preview Section */}
+        <MapPreview />
         
         {/* Top Candidates Section - Only visible to recruiters and admins */}
         {user && (user.role === 'recruiter' || user.role === 'admin') && (

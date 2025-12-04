@@ -34,6 +34,7 @@ export async function GET(
         offeredActivities: company.offeredActivities,
         offeredServices: company.offeredServices,
         pictures: company.pictures,
+        logo: company.logo,
         featured: company.featured || false,
         owner: company.owner,
         createdAt: company.createdAt,
@@ -59,10 +60,12 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let id: string | undefined;
   try {
     requireRole(request, ['admin']);
     await connectDB();
-    const { id } = await params;
+    const resolvedParams = await params;
+    id = resolvedParams.id;
 
     const company = await Company.findById(id);
     
@@ -70,8 +73,18 @@ export async function PUT(
       return NextResponse.json({ error: 'Company not found' }, { status: 404 });
     }
 
-    const updateData = await request.json();
-    const { name, description, address, coordinates, website, contact, socialMedia, offeredActivities, offeredServices, pictures, featured } = updateData;
+    let updateData;
+    try {
+      updateData = await request.json();
+    } catch (jsonError: any) {
+      console.error(`[API /admin/companies/${id}] Error parsing JSON:`, jsonError);
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
+      );
+    }
+
+    const { name, description, address, coordinates, website, contact, socialMedia, offeredActivities, offeredServices, pictures, logo, featured } = updateData;
 
     // Check if this is a featured-only update (only featured field is present and defined)
     const updateKeys = Object.keys(updateData).filter(key => updateData[key] !== undefined);
@@ -156,6 +169,11 @@ export async function PUT(
       company.markModified('pictures');
     }
 
+    if (logo !== undefined) {
+      company.logo = logo || undefined;
+      company.markModified('logo');
+    }
+
     // Update featured status
     if (featured !== undefined) {
       const oldFeatured = company.featured;
@@ -195,6 +213,7 @@ export async function PUT(
           offeredActivities: updatedCompany.offeredActivities,
           offeredServices: updatedCompany.offeredServices,
           pictures: updatedCompany.pictures,
+          logo: updatedCompany.logo,
           featured: updatedCompany.featured || false,
           owner: updatedCompany.owner,
           createdAt: updatedCompany.createdAt,
@@ -204,14 +223,20 @@ export async function PUT(
       { status: 200 }
     );
   } catch (error: any) {
+    const companyId = id || 'unknown';
+    console.error(`[API /admin/companies/${companyId}] Error updating company:`, error);
+    
     if (error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (error.message === 'Forbidden') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
+    
+    // Ensure we always return JSON, even for unexpected errors
+    const errorMessage = error?.message || error?.toString() || 'Internal server error';
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

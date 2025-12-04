@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
       logo: company.logo,
       address: company.address,
       website: company.website,
+      coordinates: company.coordinates,
       createdAt: company.createdAt,
     }));
 

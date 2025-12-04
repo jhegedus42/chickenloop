@@ -4,10 +4,10 @@ import { join } from 'path';
 import { existsSync } from 'fs';
 import { requireRole } from '@/lib/auth';
 
-// POST - Upload company pictures (recruiters only)
+// POST - Upload company pictures (recruiters and admins)
 export async function POST(request: NextRequest) {
   try {
-    const user = requireRole(request, ['recruiter']);
+    const user = requireRole(request, ['recruiter', 'admin']);
     
     const formData = await request.formData();
     const files = formData.getAll('pictures') as File[];
