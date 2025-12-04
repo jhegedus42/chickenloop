@@ -5,8 +5,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { jobsApi } from '@/lib/api';
 import { getCountryNameFromCode } from '@/lib/countryUtils';
+import { useAuth } from './contexts/AuthContext';
 
 export default function HomePage() {
+  const { user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [keyword, setKeyword] = useState('');
   const [location, setLocation] = useState('');
@@ -17,6 +19,8 @@ export default function HomePage() {
   const [latestJobsLoading, setLatestJobsLoading] = useState(true);
   const [featuredCompanies, setFeaturedCompanies] = useState([]);
   const [companiesLoading, setCompaniesLoading] = useState(true);
+  const [topCandidates, setTopCandidates] = useState([]);
+  const [candidatesLoading, setCandidatesLoading] = useState(true);
 
   useEffect(() => {
     // Load jobs to extract unique categories
@@ -25,7 +29,11 @@ export default function HomePage() {
     loadLatestJobs();
     // Load featured companies
     loadFeaturedCompanies();
-  }, []);
+    // Load top candidates (only if user is recruiter or admin)
+    if (user && (user.role === 'recruiter' || user.role === 'admin')) {
+      loadTopCandidates();
+    }
+  }, [user]);
 
   const loadJobs = async () => {
     try {
@@ -108,6 +116,23 @@ export default function HomePage() {
       console.error('Failed to load featured companies:', err);
     } finally {
       setCompaniesLoading(false);
+    }
+  };
+
+  const loadTopCandidates = async () => {
+    try {
+      const response = await fetch('/api/candidates-list');
+      if (!response.ok) {
+        throw new Error('Failed to fetch candidates');
+      }
+      const data = await response.json();
+      const candidates = data.cvs || [];
+      // Get the first 6 candidates (already sorted by newest first from API)
+      setTopCandidates(candidates.slice(0, 6));
+    } catch (err) {
+      console.error('Failed to load top candidates:', err);
+    } finally {
+      setCandidatesLoading(false);
     }
   };
 
@@ -470,6 +495,77 @@ export default function HomePage() {
             )}
           </div>
         </section>
+        
+        {/* Top Candidates Section - Only visible to recruiters and admins */}
+        {user && (user.role === 'recruiter' || user.role === 'admin') && (
+          <section className="bg-gray-50 py-12">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <h2 className="text-3xl font-bold text-gray-900 mb-8">Top Candidates</h2>
+              
+              {candidatesLoading ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-600">Loading candidates...</p>
+                </div>
+              ) : topCandidates.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-600">No candidates available at the moment.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {topCandidates.map((candidate) => {
+                    // Get main skill/title - prioritize experienceAndSkill, then first skill from skills array
+                    const mainSkill = candidate.experienceAndSkill && candidate.experienceAndSkill.length > 0
+                      ? candidate.experienceAndSkill[0]
+                      : candidate.skills && candidate.skills.length > 0
+                        ? candidate.skills[0]
+                        : 'Professional';
+                    
+                    return (
+                      <Link
+                        key={candidate._id}
+                        href={`/candidates/${candidate._id}`}
+                        className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer block"
+                      >
+                        {/* Candidate Picture */}
+                        <div className="w-full h-48 bg-gray-200 relative overflow-hidden">
+                          {candidate.pictures && candidate.pictures.length > 0 ? (
+                            <img
+                              src={candidate.pictures[0]}
+                              alt={candidate.fullName}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-300 to-gray-400">
+                              <span className="text-gray-500 text-sm">No Image</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Candidate Info */}
+                        <div className="p-4">
+                          <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
+                            {candidate.fullName}
+                          </h3>
+                          <p className="text-sm text-blue-600 font-medium mb-2">
+                            {mainSkill}
+                          </p>
+                          {candidate.summary && (
+                            <p className="text-sm text-gray-600 mb-3 line-clamp-3">
+                              {candidate.summary}
+                            </p>
+                          )}
+                          <p className="text-sm text-blue-600 font-medium hover:text-blue-700">
+                            View Full CV →
+                          </p>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </section>
+        )}
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Additional content area - ready for future content */}
