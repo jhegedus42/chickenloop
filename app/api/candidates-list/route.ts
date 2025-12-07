@@ -33,16 +33,17 @@ export async function GET(request: NextRequest) {
     console.log(`API: /api/candidates-list - Found ${cvs.length} CVs`);
 
     return NextResponse.json({ cvs }, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('API: /api/candidates-list - Error:', error);
-    if (error.message === 'Unauthorized') {
+    if (errorMessage === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    if (error.message === 'Forbidden') {
+    if (errorMessage === 'Forbidden') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: errorMessage || 'Internal server error' },
       { status: 500 }
     );
   }

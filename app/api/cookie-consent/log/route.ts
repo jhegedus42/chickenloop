@@ -32,11 +32,12 @@ export async function POST(request: NextRequest) {
       { success: true, id: consentRecord._id },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error logging cookie consent:', error);
     // Don't fail the request if logging fails
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: errorMessage },
       { status: 500 }
     );
   }

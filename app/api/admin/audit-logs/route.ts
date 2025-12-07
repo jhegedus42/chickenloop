@@ -50,22 +50,22 @@ export async function GET(request: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Audit logs API error:', error);
-    
+
     // Ensure we always return JSON, even for unexpected errors
-    if (error.message === 'Unauthorized') {
+    if (errorMessage === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    if (error.message === 'Forbidden') {
+    if (errorMessage === 'Forbidden') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
-    
+
     // Return JSON error response
-    const errorMessage = error?.message || error?.toString() || 'Internal server error';
     return NextResponse.json(
       { error: errorMessage },
-      { 
+      {
         status: 500,
         headers: {
           'Content-Type': 'application/json',

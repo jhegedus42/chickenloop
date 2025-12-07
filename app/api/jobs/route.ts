@@ -157,10 +157,10 @@ export async function GET(request: NextRequest) {
     console.log(`[API /jobs] Total query time: ${queryTime}ms`);
 
     return NextResponse.json({ jobs }, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error in /api/jobs:', error);
     // Provide more detailed error information
-    const errorMessage = error.message || 'Internal server error';
     const isTimeout = errorMessage.includes('timeout') || errorMessage.includes('timed out');
     const isConnectionError = errorMessage.includes('connection') || errorMessage.includes('ENOTFOUND');
 
@@ -209,15 +209,16 @@ export async function POST(request: NextRequest) {
       { message: 'Job created successfully', job: populatedJob },
       { status: 201 }
     );
-  } catch (error: any) {
-    if (error.message === 'Unauthorized') {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    if (errorMessage === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    if (error.message === 'Forbidden') {
+    if (errorMessage === 'Forbidden') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: errorMessage || 'Internal server error' },
       { status: 500 }
     );
   }

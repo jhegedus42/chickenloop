@@ -43,10 +43,11 @@ export async function GET(
         }
 
         return NextResponse.json({ images: allImages }, { status: 200 });
-    } catch (error: any) {
+    } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         console.error('Error fetching job images:', error);
         return NextResponse.json(
-            { error: error.message || 'Internal server error' },
+            { error: errorMessage || 'Internal server error' },
             { status: 500 }
         );
     }

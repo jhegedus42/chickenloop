@@ -16,7 +16,7 @@ export async function GET(
     const { id } = await params;
 
     const company = await Company.findById(id).populate('owner', 'name email');
-    
+
     if (!company) {
       return NextResponse.json({ error: 'Company not found' }, { status: 404 });
     }
@@ -41,15 +41,16 @@ export async function GET(
         updatedAt: company.updatedAt,
       },
     });
-  } catch (error: any) {
-    if (error.message === 'Unauthorized') {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    if (errorMessage === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    if (error.message === 'Forbidden') {
+    if (errorMessage === 'Forbidden') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: errorMessage || 'Internal server error' },
       { status: 500 }
     );
   }
@@ -68,7 +69,7 @@ export async function PUT(
     id = resolvedParams.id;
 
     const company = await Company.findById(id);
-    
+
     if (!company) {
       return NextResponse.json({ error: 'Company not found' }, { status: 404 });
     }
@@ -89,10 +90,10 @@ export async function PUT(
     // Check if this is a featured-only update (only featured field is present and defined)
     const updateKeys = Object.keys(updateData).filter(key => updateData[key] !== undefined);
     const isFeaturedOnlyUpdate = updateKeys.length === 1 && updateKeys[0] === 'featured';
-    
+
     console.log(`[API /admin/companies/${id}] Update data keys:`, updateKeys);
     console.log(`[API /admin/companies/${id}] Is featured-only update:`, isFeaturedOnlyUpdate);
-    
+
     // Validate that coordinates are required for updates (unless it's a featured-only update)
     if (!isFeaturedOnlyUpdate) {
       // For non-featured-only updates, we need coordinates
@@ -116,7 +117,7 @@ export async function PUT(
     if (name) company.name = name;
     if (description !== undefined) company.description = description;
     if (website !== undefined) company.website = website;
-    
+
     // Update contact
     if (contact !== undefined) {
       if (!company.contact) company.contact = {};
@@ -125,7 +126,7 @@ export async function PUT(
       if (contact.whatsapp !== undefined) company.contact.whatsapp = contact.whatsapp?.trim() || undefined;
       company.markModified('contact');
     }
-    
+
     // Update nested objects properly - normalize empty strings to undefined
     if (address !== undefined) {
       if (!company.address) company.address = {};
@@ -136,14 +137,14 @@ export async function PUT(
       if (address.country !== undefined) company.address.country = address.country?.trim().toUpperCase() || undefined;
       company.markModified('address');
     }
-    
+
     if (coordinates !== undefined && coordinates !== null) {
       if (!company.coordinates) company.coordinates = { latitude: 0, longitude: 0 };
       if (coordinates.latitude !== undefined && coordinates.latitude !== null) company.coordinates.latitude = coordinates.latitude;
       if (coordinates.longitude !== undefined && coordinates.longitude !== null) company.coordinates.longitude = coordinates.longitude;
       company.markModified('coordinates');
     }
-    
+
     if (socialMedia !== undefined) {
       if (!company.socialMedia) company.socialMedia = {};
       if (socialMedia.facebook !== undefined) company.socialMedia.facebook = socialMedia.facebook?.trim() || undefined;
@@ -184,13 +185,13 @@ export async function PUT(
     }
 
     await company.save();
-    
+
     // Verify the save worked
     const savedCompany = await Company.findById(company._id);
     console.log(`[API /admin/companies/${id}] Company saved. Verified featured status in DB: ${savedCompany?.featured}`);
 
     const updatedCompany = await Company.findById(company._id).populate('owner', 'name email');
-    
+
     if (!updatedCompany) {
       return NextResponse.json(
         { error: 'Company not found after update' },
@@ -199,8 +200,8 @@ export async function PUT(
     }
 
     return NextResponse.json(
-      { 
-        message: 'Company updated successfully', 
+      {
+        message: 'Company updated successfully',
         company: {
           id: String(updatedCompany._id),
           name: updatedCompany.name,
@@ -222,19 +223,19 @@ export async function PUT(
       },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const companyId = id || 'unknown';
     console.error(`[API /admin/companies/${companyId}] Error updating company:`, error);
-    
-    if (error.message === 'Unauthorized') {
+
+    if (errorMessage === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    if (error.message === 'Forbidden') {
+    if (errorMessage === 'Forbidden') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
-    
+
     // Ensure we always return JSON, even for unexpected errors
-    const errorMessage = error?.message || error?.toString() || 'Internal server error';
     return NextResponse.json(
       { error: errorMessage },
       { status: 500 }
@@ -253,7 +254,7 @@ export async function DELETE(
     const { id } = await params;
 
     const company = await Company.findById(id);
-    
+
     if (!company) {
       return NextResponse.json({ error: 'Company not found' }, { status: 404 });
     }
@@ -289,15 +290,16 @@ export async function DELETE(
       { message: 'Company deleted successfully' },
       { status: 200 }
     );
-  } catch (error: any) {
-    if (error.message === 'Unauthorized') {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    if (errorMessage === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    if (error.message === 'Forbidden') {
+    if (errorMessage === 'Forbidden') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: errorMessage || 'Internal server error' },
       { status: 500 }
     );
   }

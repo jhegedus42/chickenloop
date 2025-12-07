@@ -9,14 +9,15 @@ export async function POST(request: NextRequest) {
     // Connect to database with explicit error handling
     try {
       await connectDB();
-    } catch (dbError: any) {
+    } catch (dbError: unknown) {
+      const dbErrorMessage = dbError instanceof Error ? dbError.message : 'Unknown error';
       console.error('Database connection error:', dbError);
       return NextResponse.json(
-        { 
+        {
           error: 'Database connection failed',
-          details: process.env.NODE_ENV === 'development' ? dbError.message : undefined,
+          details: process.env.NODE_ENV === 'development' ? dbErrorMessage : undefined,
         },
-        { 
+        {
           status: 500,
           headers: { 'Content-Type': 'application/json' },
         }
@@ -75,16 +76,18 @@ export async function POST(request: NextRequest) {
     });
 
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
     console.error('Login error:', error);
     // Always return JSON, even on errors
     return NextResponse.json(
-      { 
-        error: error.message || 'Internal server error',
-        details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      {
+        error: errorMessage || 'Internal server error',
+        details: process.env.NODE_ENV === 'development' ? errorStack : undefined,
       },
-      { 
-        status: error.status || 500,
+      {
+        status: 500,
         headers: {
           'Content-Type': 'application/json',
         },

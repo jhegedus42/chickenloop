@@ -95,10 +95,11 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ jobs }, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error in /api/jobs-list:', error);
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: errorMessage || 'Internal server error' },
       { status: 500 }
     );
   }

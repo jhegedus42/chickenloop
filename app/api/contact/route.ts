@@ -74,10 +74,11 @@ export async function POST(request: NextRequest) {
       { message: 'Thank you for your feedback! We will get back to you soon.' },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error sending email:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to send message. Please try again.' },
+      { error: errorMessage || 'Failed to send message. Please try again.' },
       { status: 500 }
     );
   }
