@@ -53,3 +53,4 @@ SHARED_DATABASE_CREDENTIALS.template.md
 
 # User uploaded files (not committed to git)
 public/uploads/
+doc/PROJECT_CREDENTIALS_TODO.md
