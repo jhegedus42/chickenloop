@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
+import { put } from '@vercel/blob';
 import { requireRole } from '@/lib/auth';
 
 // POST - Upload company logo (recruiters and admins)
 export async function POST(request: NextRequest) {
   try {
-    const user = requireRole(request, ['recruiter', 'admin']);
-    
+    requireRole(request, ['recruiter', 'admin']);
+
     const formData = await request.formData();
     const file = formData.get('logo') as File;
 
@@ -34,45 +32,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'companies');
-    
-    // Ensure uploads directory exists
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
-    }
-
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
     // Generate unique filename
     const timestamp = Date.now();
     const randomStr = Math.random().toString(36).substring(2, 15);
     const extension = file.name.split('.').pop() || 'jpg';
-    const filename = `logo-${timestamp}-${randomStr}.${extension}`;
-    const filepath = join(uploadsDir, filename);
+    const filename = `companies/logo-${timestamp}-${randomStr}.${extension}`;
 
-    await writeFile(filepath, buffer);
-    const url = `/uploads/companies/${filename}`;
+    // Upload to Vercel Blob
+    const blob = await put(filename, file, { access: 'public' });
 
     return NextResponse.json(
-      { 
+      {
         message: 'Logo uploaded successfully',
-        url: url,
+        url: blob.url,
       },
       { status: 200 }
     );
-  } catch (error: any) {
-    if (error.message === 'Unauthorized') {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    if (errorMessage === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    if (error.message === 'Forbidden') {
+    if (errorMessage === 'Forbidden') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     console.error('[API /company/upload-logo] Error:', error);
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: errorMessage || 'Internal server error' },
       { status: 500 }
     );
   }
 }
-

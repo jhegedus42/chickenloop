@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
+import { put } from '@vercel/blob';
 import { requireRole } from '@/lib/auth';
 
 // POST - Upload CV pictures (job seekers only)
 export async function POST(request: NextRequest) {
   try {
-    const user = requireRole(request, ['job-seeker']);
-    
+    requireRole(request, ['job-seeker']);
+
     const formData = await request.formData();
     const files = formData.getAll('pictures') as File[];
 
@@ -21,13 +19,6 @@ export async function POST(request: NextRequest) {
         { error: 'Maximum 3 pictures allowed' },
         { status: 400 }
       );
-    }
-
-    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'cvs');
-    
-    // Ensure uploads directory exists
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
     }
 
     const uploadedPaths: string[] = [];
@@ -55,40 +46,35 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-
       // Generate unique filename
       const timestamp = Date.now();
       const randomStr = Math.random().toString(36).substring(2, 15);
       const extension = file.name.split('.').pop() || 'jpg';
-      const filename = `cv-${timestamp}-${randomStr}.${extension}`;
-      const filepath = join(uploadsDir, filename);
+      const filename = `cvs/cv-${timestamp}-${randomStr}.${extension}`;
 
-      await writeFile(filepath, buffer);
-      uploadedPaths.push(`/uploads/cvs/${filename}`);
+      // Upload to Vercel Blob
+      const blob = await put(filename, file, { access: 'public' });
+      uploadedPaths.push(blob.url);
     }
 
     return NextResponse.json(
-      { 
+      {
         message: 'Files uploaded successfully',
         paths: uploadedPaths,
       },
       { status: 200 }
     );
-  } catch (error: any) {
-    if (error.message === 'Unauthorized') {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    if (errorMessage === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    if (error.message === 'Forbidden') {
+    if (errorMessage === 'Forbidden') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: errorMessage || 'Internal server error' },
       { status: 500 }
     );
   }
 }
-
-
-
