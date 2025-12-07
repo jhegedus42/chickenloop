@@ -1,11 +1,7 @@
 # Session Memory - ChickenLoop Project
 
-<<<<<<< HEAD
-**Last Updated:** December 04, 2025 at 08:12 PM CET
-=======
-**Last Updated:** December 04, 2025 at 08:12 PM CET
->>>>>>> 13164f8 (Restore jobs listing page with full features and remove API limit)
-**Last Commit By:** Tzwengali (sven.kelling@gmail.com)
+**Last Updated:** December 07, 2025 at 11:50 PM CET
+**Last Commit By:** chickenloop3845@gmail.com
 **Branch:** main
 **Project:** ChickenLoop - Watersports Job Platform  
 **Repository:** https://github.com/chickenloop3845-commits/chickenloop
@@ -25,7 +21,58 @@
 - **Database**: MongoDB Atlas (Cloud) with Mongoose
 - **Authentication**: JWT tokens stored in HTTP-only cookies
 - **Deployment**: Vercel (auto-deploys on push to main)
-- **File Storage**: Local filesystem (`public/uploads/`)
+- **File Storage**: Vercel Blob (cloud) for production, local filesystem for dev
+
+---
+
+## 📝 Session Changes Log (Dec 7, 2025)
+
+### 1. TypeScript Type Safety Fixes
+
+**Deductive Reasoning:**
+```
+P1: Vercel build runs TypeScript compiler in strict mode
+P2: TypeScript compiler rejects code with type errors
+P3: Code contained `params.id` where `params` could be null
+∴ Build failed → Must add null checks (`params?.id`)
+```
+
+**Deductive Reasoning (Job Model):**
+```
+P1: Code uses fields: country, languages, sports, pictures, etc.
+P2: TypeScript requires all accessed fields to be declared in interfaces
+P3: IJob interface was missing these field declarations
+∴ TypeScript errors → Must update IJob interface with all fields
+```
+
+### 2. Vercel Blob Storage Migration
+
+**Deductive Reasoning:**
+```
+P1: Vercel uses ephemeral filesystem (erased on each deployment)
+P2: Images stored in `public/uploads/` are on filesystem
+P3: If filesystem erased → images lost after deployment
+∴ Need persistent storage → Vercel Blob provides cloud persistence
+```
+
+**Solution Chain:**
+```
+Ephemeral FS → images disappear
+  → need cloud storage
+    → Vercel Blob is native integration
+      → replace writeFile() with put()
+        → URLs now: blob.vercel-storage.com/*
+```
+
+### 3. Vercel Environment Variables
+
+**Deductive Reasoning:**
+```
+P1: Build process imports db.ts which reads MONGODB_URI
+P2: MONGODB_URI was not set in Vercel environment
+P3: Missing env var → throw Error
+∴ Build failed → Must add MONGODB_URI and JWT_SECRET to Vercel
+```
 
 ---
 
