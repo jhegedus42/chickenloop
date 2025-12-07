@@ -18,7 +18,7 @@ export async function GET(
     const job = await Job.findById(id)
       .populate('recruiter', 'name email')
       .populate('companyId', 'name');
-    
+
     if (!job) {
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
@@ -49,7 +49,7 @@ export async function PUT(
     const { id } = await params;
 
     const job = await Job.findById(id);
-    
+
     if (!job) {
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
@@ -59,7 +59,7 @@ export async function PUT(
     if (title) job.title = title;
     if (description) job.description = description;
     if (location) job.location = location;
-    if (country !== undefined) job.country = country?.trim().toUpperCase() || undefined;
+    if (country !== undefined) (job as any).country = country?.trim().toUpperCase() || undefined;
     if (salary !== undefined) job.salary = salary;
     if (type) job.type = type;
     if (company) job.company = company;
@@ -70,18 +70,18 @@ export async function PUT(
           { status: 400 }
         );
       }
-      job.languages = languages || [];
+      (job as any).languages = languages || [];
     }
     if (qualifications !== undefined) {
-      job.qualifications = qualifications || [];
+      (job as any).qualifications = qualifications || [];
     }
     if (sports !== undefined) {
-      job.sports = sports || [];
+      (job as any).sports = sports || [];
     }
     if (occupationalAreas !== undefined) {
-      job.occupationalAreas = occupationalAreas || [];
+      (job as any).occupationalAreas = occupationalAreas || [];
     }
-    
+
     // Update pictures array (max 3)
     if (pictures !== undefined) {
       if (Array.isArray(pictures) && pictures.length > 3) {
@@ -90,21 +90,21 @@ export async function PUT(
           { status: 400 }
         );
       }
-      job.pictures = pictures || [];
+      (job as any).pictures = pictures || [];
     }
-    
+
     // Update spam flag (admin can clear spam flag)
     if (spam !== undefined) {
       if (spam === 'yes' || spam === 'no') {
-        job.spam = spam;
+        (job as any).spam = spam;
       }
     }
-    
+
     // Update published flag (admin can publish/unpublish any job)
     if (published !== undefined) {
       (job as any).published = published === true;
     }
-    
+
     // Update application fields
     if (applyByEmail !== undefined) {
       (job as any).applyByEmail = applyByEmail === true;
@@ -154,7 +154,7 @@ export async function DELETE(
     const { id } = await params;
 
     const job = await Job.findById(id);
-    
+
     if (!job) {
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
@@ -164,7 +164,7 @@ export async function DELETE(
       id: String(job._id),
       title: job.title,
       company: job.company,
-      companyId: job.companyId ? String(job.companyId) : undefined,
+      companyId: (job as any).companyId ? String((job as any).companyId) : undefined,
       recruiter: job.recruiter ? String(job.recruiter) : undefined,
     };
 
