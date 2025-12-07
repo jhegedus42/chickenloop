@@ -74,6 +74,32 @@ P3: Missing env var → throw Error
 ∴ Build failed → Must add MONGODB_URI and JWT_SECRET to Vercel
 ```
 
+### 4. UI/UX Improvements (Previous Sessions)
+
+**Job Details Page - Deductive Reasoning:**
+```
+P1: Users need to see company info clearly
+P2: Raw data without formatting is hard to scan
+P3: Bold labels + consistent layout → better readability
+∴ Added bold labels, moved description above location, styled social links
+```
+
+**Job Posting Form - Deductive Reasoning:**
+```
+P1: Single-column forms are long and tedious
+P2: Related fields (Location/Country, Type/Salary) can pair logically
+P3: Two-column layout groups related fields → reduces scrolling
+∴ Implemented two-column layout with logical field groupings
+```
+
+**Image Gallery - Deductive Reasoning:**
+```
+P1: Users want to see job images clearly
+P2: Small thumbnails don't show detail
+P3: Full-width hero + grid + lightbox → progressive disclosure
+∴ First image full-width, grid below, clickable lightbox carousel
+```
+
 ---
 
 ## 🔑 Critical Configuration
@@ -197,45 +223,6 @@ JWT_SECRET=2hxoXFr26ersairETgh8k0lBTC0fT2xR0YetVIuJxM8=
 - `app/api/auth/*` - Authentication endpoints
 - `app/api/cv/*` - CV management
 - `app/api/admin/*` - Admin operations
-
----
-
-## 🎨 Recent UI/UX Changes
-
-### Job Details Page (`app/jobs/[id]/page.tsx`)
-
-**Company Info Section:**
-- Description shown above location
-- Location formatted with bold label: `<span className="font-semibold text-gray-600">Location:</span>`
-- Website formatted with bold label: `<span className="font-semibold text-gray-600">Website:</span>`
-- Social media links with dynamic title: `Follow {CompanyName} on:` (bold, inline with icons)
-
-**Image Gallery:**
-- First image shown full-width at top
-- All images shown below description in 3-column grid
-- Clickable images open lightbox with carousel navigation
-- Lightbox supports keyboard navigation and swipe
-
-**Job Details:**
-- Languages and Qualifications shown inline (no page breaks)
-- Badges displayed next to labels (same line)
-
-### Job Posting Forms
-
-**Two-Column Layout:**
-- Row 1: Location (left) | Country (right)
-- Row 2: Job Type (left) | Salary (right)
-- Row 3: Occupational Area (left) | Languages Required (right)
-- Row 4: Sport/Activities (left) | Required Qualifications (right)
-- Description field: Single column below two-column section
-- Pictures: Below description
-
-**Fields:**
-- Country: Full country name entry → stored as ISO code
-- Languages: Multi-select with checkboxes
-- Sports/Activities: Multi-select with predefined list
-- Occupational Areas: Multi-select with predefined list
-- Qualifications: Multi-select with predefined list
 
 ---
 
