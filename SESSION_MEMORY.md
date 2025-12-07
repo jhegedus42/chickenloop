@@ -103,9 +103,10 @@ JWT_SECRET=2hxoXFr26ersairETgh8k0lBTC0fT2xR0YetVIuJxM8=
 ```
 
 **Required in Vercel (production):**
-- Same `MONGODB_URI` and `JWT_SECRET` values
+- `MONGODB_URI` - Same as local
+- `JWT_SECRET` - Same as local
+- `BLOB_READ_WRITE_TOKEN` - Auto-added when Blob store is created
 - Set in Vercel Dashboard → Settings → Environment Variables
-- Apply to: Production, Preview, Development environments
 
 **Security:**
 - `.env.local` is in `.gitignore` (never committed)
@@ -311,11 +312,20 @@ HOW: Ephemeral FS problem → need persistent storage → Vercel Blob is native 
 
 ### Image Upload Handling
 
-**Storage:**
-- Images stored in `public/uploads/jobs/`
-- Filename format: `job-{timestamp}-{randomId}.{ext}`
+**Storage (Production - Vercel Blob):**
+- Images uploaded via `@vercel/blob` `put()` function
+- URLs: `https://*.blob.vercel-storage.com/...`
+- Persistent cloud storage (survives deployments)
+- Blob store name: `chickenloop-blob`
+
+**Storage (Local Development):**
+- Falls back to local filesystem if BLOB_READ_WRITE_TOKEN not set
+- Stored in `public/uploads/jobs/`, `public/uploads/companies/`, `public/uploads/cvs/`
+
+**Constraints:**
 - Maximum 3 pictures per job
-- FormData handling in upload API route
+- Maximum 5MB per image
+- Allowed types: JPEG, PNG, WEBP, GIF
 
 **Display:**
 - First image: Full-width banner at top
@@ -395,10 +405,10 @@ npm run dev
 - `Intl.DisplayNames` fallback implemented for environment compatibility
 
 ### Image Handling
-- Uploads stored in `public/uploads/jobs/`
+- **Production:** Vercel Blob storage (persistent cloud)
+- **Local dev:** filesystem `public/uploads/`
 - Maximum 3 images per job
 - Lightbox carousel for viewing images
-- Images are clickable and open in popup
 
 ---
 
@@ -450,12 +460,14 @@ npm run dev
 - ✅ Country name/code conversion
 - ✅ Multi-select fields (languages, sports, qualifications, occupational areas)
 
-### Recent Changes
-- ✅ Shared database setup for team collaboration
-- ✅ Git user configuration fixed (Tzwengali)
-- ✅ Company Info section formatting (bold field titles)
-- ✅ Image gallery with lightbox carousel
-- ✅ Two-column job posting form layout
+### Recent Changes (Dec 7, 2025)
+- ✅ Vercel Blob storage for production image uploads
+- ✅ Complete IJob TypeScript interface (no more `any` casts)
+- ✅ Fixed params/searchParams null checks
+- ✅ Added Suspense boundaries for useSearchParams()
+- ✅ Vercel environment variables configured (MONGODB_URI, JWT_SECRET, BLOB_READ_WRITE_TOKEN)
+- ✅ Added coding standards to SESSION_MEMORY.md
+- ✅ Added commit message guidelines with reasoning format
 
 ---
 
