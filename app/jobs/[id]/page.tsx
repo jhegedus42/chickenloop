@@ -98,7 +98,7 @@ function formatCompanyAddress(address?: CompanyInfo['address']): string | null {
 export default function JobDetailPage() {
   const params = useParams();
   const { user } = useAuth();
-  const jobId = params.id as string;
+  const jobId = params?.id as string;
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

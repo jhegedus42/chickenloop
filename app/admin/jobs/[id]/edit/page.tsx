@@ -19,7 +19,7 @@ export default function AdminEditJobPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const params = useParams();
-  const jobId = params.id as string;
+  const jobId = params?.id as string;
   const [formData, setFormData] = useState({
     title: '',
     description: '',

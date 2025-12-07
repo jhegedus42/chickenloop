@@ -48,7 +48,7 @@ export default function CVDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const cvId = params.id as string;
+  const cvId = params?.id as string;
   const [cv, setCv] = useState<CV | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
