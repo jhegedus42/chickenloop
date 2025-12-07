@@ -191,6 +191,32 @@ JWT_SECRET=2hxoXFr26ersairETgh8k0lBTC0fT2xR0YetVIuJxM8=
 
 ---
 
+## 🛡️ Coding Standards
+
+### TypeScript Type Safety (MANDATORY)
+
+1. **Never use `any` or `as any` casts** - Always define proper types/interfaces
+2. **Never use dynamic field access** - Define all fields in interfaces
+3. **Always run type checker after every modification**:
+   ```bash
+   npm run build
+   ```
+4. **Mongoose models must have complete interfaces** - All fields used in the codebase must be defined in the model's interface (e.g., `IJob`, `IUser`, etc.)
+
+### Pre-Commit Verification
+
+Before committing, always run:
+```bash
+npm run build
+```
+
+This ensures:
+- TypeScript compilation passes
+- No type errors
+- Next.js SSR/SSG works correctly
+
+---
+
 ## 🔧 Important Implementation Details
 
 ### Country Field Handling

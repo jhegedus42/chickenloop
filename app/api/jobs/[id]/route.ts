@@ -23,7 +23,7 @@ export async function GET(
     // Check if job is published (unpublished jobs are hidden from public)
     // Show jobs where published is true OR undefined (default is true)
     // Hide only jobs where published is explicitly false
-    const jobPublished = (job as any).published;
+    const jobPublished = job.published;
     if (jobPublished === false) {
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
@@ -122,27 +122,27 @@ export async function PUT(
     
     // Update published flag (recruiters can publish/unpublish their own jobs)
     if (published !== undefined) {
-      (job as any).published = published === true;
+      job.published = published === true;
     }
     
     // Update application fields
     if (applyByEmail !== undefined) {
-      (job as any).applyByEmail = applyByEmail === true;
+      job.applyByEmail = applyByEmail === true;
     }
     if (applyByWebsite !== undefined) {
-      (job as any).applyByWebsite = applyByWebsite === true;
+      job.applyByWebsite = applyByWebsite === true;
     }
     if (applyByWhatsApp !== undefined) {
-      (job as any).applyByWhatsApp = applyByWhatsApp === true;
+      job.applyByWhatsApp = applyByWhatsApp === true;
     }
     if (applicationEmail !== undefined) {
-      (job as any).applicationEmail = applicationEmail || undefined;
+      job.applicationEmail = applicationEmail || undefined;
     }
     if (applicationWebsite !== undefined) {
-      (job as any).applicationWebsite = applicationWebsite || undefined;
+      job.applicationWebsite = applicationWebsite || undefined;
     }
     if (applicationWhatsApp !== undefined) {
-      (job as any).applicationWhatsApp = applicationWhatsApp || undefined;
+      job.applicationWhatsApp = applicationWhatsApp || undefined;
     }
 
     await job.save();

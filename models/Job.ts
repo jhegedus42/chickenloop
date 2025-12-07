@@ -5,9 +5,25 @@ export interface IJob extends Document {
   description: string;
   company: string;
   location: string;
+  country?: string | null;
   salary?: string;
   type: 'full-time' | 'part-time' | 'contract' | 'freelance';
   recruiter: mongoose.Types.ObjectId;
+  companyId?: mongoose.Types.ObjectId;
+  languages?: string[];
+  qualifications?: string[];
+  sports?: string[];
+  occupationalAreas?: string[];
+  pictures?: string[];
+  spam?: 'yes' | 'no';
+  published?: boolean;
+  visitCount?: number;
+  applyByEmail?: boolean;
+  applyByWebsite?: boolean;
+  applyByWhatsApp?: boolean;
+  applicationEmail?: string;
+  applicationWebsite?: string;
+  applicationWhatsApp?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,6 +46,10 @@ const JobSchema: Schema = new Schema(
       type: String,
       required: true,
     },
+    country: {
+      type: String,
+      default: null,
+    },
     salary: {
       type: String,
     },
@@ -43,6 +63,58 @@ const JobSchema: Schema = new Schema(
       ref: 'User',
       required: true,
     },
+    companyId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Company',
+    },
+    languages: [{
+      type: String,
+    }],
+    qualifications: [{
+      type: String,
+    }],
+    sports: [{
+      type: String,
+    }],
+    occupationalAreas: [{
+      type: String,
+    }],
+    pictures: [{
+      type: String,
+    }],
+    spam: {
+      type: String,
+      enum: ['yes', 'no'],
+    },
+    published: {
+      type: Boolean,
+      default: true,
+    },
+    visitCount: {
+      type: Number,
+      default: 0,
+    },
+    applyByEmail: {
+      type: Boolean,
+      default: false,
+    },
+    applyByWebsite: {
+      type: Boolean,
+      default: false,
+    },
+    applyByWhatsApp: {
+      type: Boolean,
+      default: false,
+    },
+    applicationEmail: {
+      type: String,
+    },
+    applicationWebsite: {
+      type: String,
+    },
+    applicationWhatsApp: {
+      type: String,
+    },
   },
   {
     timestamps: true,
@@ -52,4 +124,3 @@ const JobSchema: Schema = new Schema(
 const Job: Model<IJob> = mongoose.models.Job || mongoose.model<IJob>('Job', JobSchema);
 
 export default Job;
-

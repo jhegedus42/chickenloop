@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import { jobsApi } from '@/lib/api';
@@ -70,7 +70,7 @@ function TimeAgoDisplay({ date }: { date: string }) {
   useEffect(() => {
     setMounted(true);
     setTimeAgo(getTimeAgo(date));
-    
+
     // Update every minute
     const interval = setInterval(() => {
       setTimeAgo(getTimeAgo(date));
@@ -87,7 +87,7 @@ function TimeAgoDisplay({ date }: { date: string }) {
   return <span className="text-xs text-gray-500">{timeAgo}</span>;
 }
 
-export default function JobsPage() {
+function JobsPageContent() {
   const searchParams = useSearchParams();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [allJobs, setAllJobs] = useState<Job[]>([]); // Store all jobs for filtering
@@ -104,10 +104,10 @@ export default function JobsPage() {
 
   useEffect(() => {
     // Read query parameters from URL on mount
-    const categoryParam = searchParams.get('category');
-    const keywordParam = searchParams.get('keyword');
-    const locationParam = searchParams.get('location');
-    
+    const categoryParam = searchParams?.get('category');
+    const keywordParam = searchParams?.get('keyword');
+    const locationParam = searchParams?.get('location');
+
     if (categoryParam) {
       setSelectedCategory(decodeURIComponent(categoryParam));
     }
@@ -117,7 +117,7 @@ export default function JobsPage() {
     if (locationParam) {
       setLocation(decodeURIComponent(locationParam));
     }
-    
+
     // Load jobs regardless of authentication status
     loadJobs();
   }, [searchParams]);
@@ -198,7 +198,7 @@ export default function JobsPage() {
   // Get unique countries from all jobs
   const getUniqueCountries = (): Array<{ code: string; name: string }> => {
     const countryMap = new Map<string, string>();
-    
+
     allJobs.forEach((job) => {
       if (job.country && job.country.trim()) {
         const code = job.country.toUpperCase();
@@ -219,7 +219,7 @@ export default function JobsPage() {
   // Get unique job categories from all jobs
   const getUniqueCategories = (): string[] => {
     const categorySet = new Set<string>();
-    
+
     allJobs.forEach((job) => {
       if (job.occupationalAreas && job.occupationalAreas.length > 0) {
         job.occupationalAreas.forEach((category) => {
@@ -235,7 +235,7 @@ export default function JobsPage() {
   // Get unique sports/activities from all jobs
   const getUniqueSports = (): string[] => {
     const sportSet = new Set<string>();
-    
+
     allJobs.forEach((job) => {
       if (job.sports && job.sports.length > 0) {
         job.sports.forEach((sport) => {
@@ -251,7 +251,7 @@ export default function JobsPage() {
   // Get unique languages from all jobs
   const getUniqueLanguages = (): string[] => {
     const languageSet = new Set<string>();
-    
+
     allJobs.forEach((job) => {
       if (job.languages && job.languages.length > 0) {
         job.languages.forEach((language) => {
@@ -283,7 +283,7 @@ export default function JobsPage() {
           <h1 className="text-4xl font-bold text-gray-900">
             We have {jobs.length} {jobs.length === 1 ? 'job' : 'jobs'} meeting these criteria
           </h1>
-          
+
           {/* Filters */}
           <div className="flex flex-col sm:flex-row items-end sm:items-center sm:justify-end gap-3 flex-wrap">
             {/* Country Filter */}
@@ -412,139 +412,151 @@ export default function JobsPage() {
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {currentJobs.map((job) => {
-              // Get the most recent date (createdAt or updatedAt if it exists and is more recent)
-              const mostRecentDate = (job.updatedAt && new Date(job.updatedAt) > new Date(job.createdAt))
-                ? job.updatedAt
-                : job.createdAt;
-              
-              // Get the first picture, or use a placeholder
-              const firstPicture = job.pictures && job.pictures.length > 0 
-                ? job.pictures[0] 
-                : null;
+                      // Get the most recent date (createdAt or updatedAt if it exists and is more recent)
+                      const mostRecentDate = (job.updatedAt && new Date(job.updatedAt) > new Date(job.createdAt))
+                        ? job.updatedAt
+                        : job.createdAt;
 
-              return (
-                <Link
-                  key={job._id}
-                  href={`/jobs/${job._id}`}
-                  className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer block"
-                >
-                  {/* Job Picture */}
-                  <div className="w-full h-48 bg-gray-200 relative overflow-hidden">
-                    {firstPicture ? (
-                      <img
-                        src={firstPicture}
-                        alt={job.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-300 to-gray-400">
-                        <span className="text-gray-500 text-sm">No Image</span>
-                      </div>
-                    )}
+                      // Get the first picture, or use a placeholder
+                      const firstPicture = job.pictures && job.pictures.length > 0
+                        ? job.pictures[0]
+                        : null;
+
+                      return (
+                        <Link
+                          key={job._id}
+                          href={`/jobs/${job._id}`}
+                          className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer block"
+                        >
+                          {/* Job Picture */}
+                          <div className="w-full h-48 bg-gray-200 relative overflow-hidden">
+                            {firstPicture ? (
+                              <img
+                                src={firstPicture}
+                                alt={job.title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-300 to-gray-400">
+                                <span className="text-gray-500 text-sm">No Image</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Job Title */}
+                          <div className="p-4">
+                            <h2 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
+                              {job.title}
+                            </h2>
+
+                            {/* Location and Time Ago */}
+                            <div className="flex flex-col gap-1">
+                              <p className="text-sm text-gray-600 flex flex-wrap items-center gap-1">
+                                <span className="mr-1">📍</span>
+                                <span className="font-medium text-gray-800">{job.location}</span>
+                                {job.country && typeof job.country === 'string' && job.country.trim() && (
+                                  <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                    • {getCountryNameFromCode(job.country)}
+                                  </span>
+                                )}
+                              </p>
+                              <TimeAgoDisplay date={mostRecentDate} />
+                            </div>
+                          </div>
+                        </Link>
+                      );
+                    })}
                   </div>
 
-                  {/* Job Title */}
-                  <div className="p-4">
-                    <h2 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
-                      {job.title}
-                    </h2>
-
-                    {/* Location and Time Ago */}
-                    <div className="flex flex-col gap-1">
-                      <p className="text-sm text-gray-600 flex flex-wrap items-center gap-1">
-                        <span className="mr-1">📍</span>
-                        <span className="font-medium text-gray-800">{job.location}</span>
-                        {job.country && typeof job.country === 'string' && job.country.trim() && (
-                          <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                            • {getCountryNameFromCode(job.country)}
-                          </span>
-                        )}
-                      </p>
-                      <TimeAgoDisplay date={mostRecentDate} />
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-                </div>
-
-                {/* Pagination Controls */}
-                {totalPages > 1 && (
-                  <div className="mt-8 flex items-center justify-center gap-2">
-                    <button
-                      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                      disabled={currentPage === 1}
-                      className={`px-4 py-2 rounded-md font-medium ${
-                        currentPage === 1
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="mt-8 flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                        className={`px-4 py-2 rounded-md font-medium ${currentPage === 1
                           ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                           : 'bg-blue-600 text-white hover:bg-blue-700'
-                      }`}
-                    >
-                      Previous
-                    </button>
-                    
-                    <div className="flex gap-1">
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                        // Show first page, last page, current page, and pages around current
-                        if (
-                          page === 1 ||
-                          page === totalPages ||
-                          (page >= currentPage - 1 && page <= currentPage + 1)
-                        ) {
-                          return (
-                            <button
-                              key={page}
-                              onClick={() => setCurrentPage(page)}
-                              className={`px-3 py-2 rounded-md font-medium ${
-                                currentPage === page
+                          }`}
+                      >
+                        Previous
+                      </button>
+
+                      <div className="flex gap-1">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                          // Show first page, last page, current page, and pages around current
+                          if (
+                            page === 1 ||
+                            page === totalPages ||
+                            (page >= currentPage - 1 && page <= currentPage + 1)
+                          ) {
+                            return (
+                              <button
+                                key={page}
+                                onClick={() => setCurrentPage(page)}
+                                className={`px-3 py-2 rounded-md font-medium ${currentPage === page
                                   ? 'bg-blue-600 text-white'
                                   : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
-                              }`}
-                            >
-                              {page}
-                            </button>
-                          );
-                        } else if (
-                          page === currentPage - 2 ||
-                          page === currentPage + 2
-                        ) {
-                          return (
-                            <span key={page} className="px-2 py-2 text-gray-500">
-                              ...
-                            </span>
-                          );
-                        }
-                        return null;
-                      })}
-                    </div>
+                                  }`}
+                              >
+                                {page}
+                              </button>
+                            );
+                          } else if (
+                            page === currentPage - 2 ||
+                            page === currentPage + 2
+                          ) {
+                            return (
+                              <span key={page} className="px-2 py-2 text-gray-500">
+                                ...
+                              </span>
+                            );
+                          }
+                          return null;
+                        })}
+                      </div>
 
-                    <button
-                      onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                      disabled={currentPage === totalPages}
-                      className={`px-4 py-2 rounded-md font-medium ${
-                        currentPage === totalPages
+                      <button
+                        onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        className={`px-4 py-2 rounded-md font-medium ${currentPage === totalPages
                           ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                           : 'bg-blue-600 text-white hover:bg-blue-700'
-                      }`}
-                    >
-                      Next
-                    </button>
-                  </div>
-                )}
+                          }`}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
 
-                {/* Page info */}
-                {totalPages > 1 && (
-                  <div className="mt-4 text-center text-sm text-gray-600">
-                    Showing {indexOfFirstJob + 1} to {Math.min(indexOfLastJob, jobs.length)} of {jobs.length} jobs
-                  </div>
-                )}
-              </>
-            );
-          })()}
-        </>
+                  {/* Page info */}
+                  {totalPages > 1 && (
+                    <div className="mt-4 text-center text-sm text-gray-600">
+                      Showing {indexOfFirstJob + 1} to {Math.min(indexOfLastJob, jobs.length)} of {jobs.length} jobs
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </>
         )}
       </main>
     </div>
   );
 }
 
+// Wrapper component with Suspense boundary for useSearchParams
+export default function JobsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50">
+        <Navbar />
+        <main className="max-w-7xl mx-auto px-4 py-8">
+          <div className="text-center py-12">Loading jobs...</div>
+        </main>
+      </div>
+    }>
+      <JobsPageContent />
+    </Suspense>
+  );
+}

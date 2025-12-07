@@ -142,7 +142,7 @@ export default function CompanyPage() {
   useEffect(() => {
     const loadCompany = async () => {
       try {
-        const response = await fetch(`/api/companies/${params.id}`);
+        const response = await fetch(`/api/companies/${params?.id}`);
         const data = await response.json();
         
         if (!response.ok) {
@@ -162,10 +162,10 @@ export default function CompanyPage() {
       }
     };
 
-    if (params.id) {
+    if (params?.id) {
       loadCompany();
     }
-  }, [params.id]);
+  }, [params?.id]);
 
   const loadCompanyJobs = async (companyId: string) => {
     try {

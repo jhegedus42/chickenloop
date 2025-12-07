@@ -59,7 +59,7 @@ export async function PUT(
     if (title) job.title = title;
     if (description) job.description = description;
     if (location) job.location = location;
-    if (country !== undefined) (job as any).country = country?.trim().toUpperCase() || undefined;
+    if (country !== undefined) job.country = country?.trim().toUpperCase() || undefined;
     if (salary !== undefined) job.salary = salary;
     if (type) job.type = type;
     if (company) job.company = company;
@@ -70,16 +70,16 @@ export async function PUT(
           { status: 400 }
         );
       }
-      (job as any).languages = languages || [];
+      job.languages = languages || [];
     }
     if (qualifications !== undefined) {
-      (job as any).qualifications = qualifications || [];
+      job.qualifications = qualifications || [];
     }
     if (sports !== undefined) {
-      (job as any).sports = sports || [];
+      job.sports = sports || [];
     }
     if (occupationalAreas !== undefined) {
-      (job as any).occupationalAreas = occupationalAreas || [];
+      job.occupationalAreas = occupationalAreas || [];
     }
 
     // Update pictures array (max 3)
@@ -90,33 +90,33 @@ export async function PUT(
           { status: 400 }
         );
       }
-      (job as any).pictures = pictures || [];
+      job.pictures = pictures || [];
     }
 
     // Update spam flag (admin can clear spam flag)
     if (spam !== undefined) {
       if (spam === 'yes' || spam === 'no') {
-        (job as any).spam = spam;
+        job.spam = spam;
       }
     }
 
     // Update published flag (admin can publish/unpublish any job)
     if (published !== undefined) {
-      (job as any).published = published === true;
+      job.published = published === true;
     }
 
     // Update application fields
     if (applyByEmail !== undefined) {
-      (job as any).applyByEmail = applyByEmail === true;
+      job.applyByEmail = applyByEmail === true;
     }
     if (applyByWebsite !== undefined) {
-      (job as any).applyByWebsite = applyByWebsite === true;
+      job.applyByWebsite = applyByWebsite === true;
     }
     if (applicationEmail !== undefined) {
-      (job as any).applicationEmail = applicationEmail || undefined;
+      job.applicationEmail = applicationEmail || undefined;
     }
     if (applicationWebsite !== undefined) {
-      (job as any).applicationWebsite = applicationWebsite || undefined;
+      job.applicationWebsite = applicationWebsite || undefined;
     }
 
     await job.save();
@@ -164,7 +164,7 @@ export async function DELETE(
       id: String(job._id),
       title: job.title,
       company: job.company,
-      companyId: (job as any).companyId ? String((job as any).companyId) : undefined,
+      companyId: job.companyId ? String(job.companyId) : undefined,
       recruiter: job.recruiter ? String(job.recruiter) : undefined,
     };
 

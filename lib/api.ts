@@ -16,7 +16,7 @@ export async function apiRequest(
   // Check if response is JSON before trying to parse
   const contentType = response.headers.get('content-type');
   let data;
-  
+
   if (contentType && contentType.includes('application/json')) {
     data = await response.json();
   } else {
@@ -28,14 +28,14 @@ export async function apiRequest(
       url: `${API_BASE}${endpoint}`,
       preview: text.substring(0, 200),
     });
-    
+
     // Try to extract error message from HTML or use status text
     throw new Error(
       response.status === 500
         ? 'Server error. Please check the server logs.'
         : response.status === 404
-        ? 'API endpoint not found. Please check the endpoint URL.'
-        : `Unexpected response format. Status: ${response.status} ${response.statusText}`
+          ? 'API endpoint not found. Please check the endpoint URL.'
+          : `Unexpected response format. Status: ${response.status} ${response.statusText}`
     );
   }
 
@@ -105,6 +105,10 @@ export const cvApi = {
   delete: () =>
     apiRequest('/cv', {
       method: 'DELETE',
+    }),
+  togglePublish: () =>
+    apiRequest('/cv/toggle-publish', {
+      method: 'POST',
     }),
 };
 

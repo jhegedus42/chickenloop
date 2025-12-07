@@ -18,7 +18,7 @@ export async function POST(
     }
 
     // Set spam flag to 'yes'
-    (job as any).spam = 'yes';
+    job.spam = 'yes';
     await job.save();
     
     // Verify the save worked
