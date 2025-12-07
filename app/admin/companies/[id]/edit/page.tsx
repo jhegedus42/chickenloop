@@ -17,7 +17,7 @@ import Link from 'next/link';
 // Dynamically import map component to avoid SSR issues
 const DraggableMap = dynamic(
   () => import('../../../../components/DraggableMap'),
-  { 
+  {
     ssr: false,
     loading: () => (
       <div className="w-full h-96 flex items-center justify-center bg-gray-100 border border-gray-200 rounded-lg">
@@ -50,7 +50,7 @@ export default function AdminEditCompanyPage() {
   const params = useParams();
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const companyId = params.id as string;
+  const companyId = params?.id as string;
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -115,7 +115,7 @@ export default function AdminEditCompanyPage() {
     try {
       const data = await adminApi.getCompany(companyId);
       const company = data.company;
-      
+
       setFormData({
         name: company.name || '',
         description: company.description || '',
@@ -144,7 +144,7 @@ export default function AdminEditCompanyPage() {
         offeredServices: company.offeredServices || [],
         featured: company.featured || false,
       });
-      
+
       if (company.logo) {
         setExistingLogo(company.logo);
       }
@@ -293,7 +293,7 @@ export default function AdminEditCompanyPage() {
 
   const handlePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    
+
     if (files.length + selectedPictures.length + existingPictures.length > 3) {
       setError('Maximum 3 pictures allowed');
       return;
@@ -332,10 +332,10 @@ export default function AdminEditCompanyPage() {
     } else {
       const newPictures = selectedPictures.filter((_, i) => i !== index);
       const newPreviews = picturePreviews.filter((_, i) => i !== index);
-      
+
       // Revoke the URL to free memory
       URL.revokeObjectURL(picturePreviews[index]);
-      
+
       setSelectedPictures(newPictures);
       setPicturePreviews(newPreviews);
     }
@@ -398,7 +398,7 @@ export default function AdminEditCompanyPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     // Validate that coordinates are set
     if (!formData.coordinates || !formData.coordinates.latitude || !formData.coordinates.longitude) {
       setShowLocationModal(true);
@@ -410,7 +410,7 @@ export default function AdminEditCompanyPage() {
     try {
       // Upload logo first
       const logoUrl = await uploadLogo();
-      
+
       // Upload pictures
       const picturePaths = await uploadPictures();
 
@@ -431,7 +431,7 @@ export default function AdminEditCompanyPage() {
 
       // Show success modal
       setShowSuccessModal(true);
-      
+
       // Redirect after 3 seconds
       setTimeout(() => {
         router.push('/admin');
@@ -506,7 +506,7 @@ export default function AdminEditCompanyPage() {
             {/* Offering Section */}
             <div className="border-t pt-4 mt-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Offering</h3>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -628,7 +628,7 @@ export default function AdminEditCompanyPage() {
 
             <div className="border-t pt-4 mt-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-3">Location</h3>
-              
+
               {/* Step 1: Search for location */}
               <div className="mb-4 relative" ref={searchContainerRef}>
                 <label htmlFor="location-search" className="block text-sm font-medium text-gray-700 mb-1">
@@ -651,7 +651,7 @@ export default function AdminEditCompanyPage() {
                     Searching...
                   </div>
                 )}
-                
+
                 {/* Dropdown with search results */}
                 {showResults && searchResults.length > 0 && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
@@ -794,7 +794,7 @@ export default function AdminEditCompanyPage() {
                       companyName={formData.name || 'Location'}
                     />
                   </div>
-                  <CoordinatesDisplay 
+                  <CoordinatesDisplay
                     latitude={formData.coordinates.latitude}
                     longitude={formData.coordinates.longitude}
                   />
@@ -805,7 +805,7 @@ export default function AdminEditCompanyPage() {
             {/* Contact Section */}
             <div className="border-t pt-4 mt-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact</h3>
-              
+
               <div className="space-y-4">
                 <div>
                   <label htmlFor="website" className="block text-sm font-medium text-gray-700 mb-1">
@@ -829,8 +829,8 @@ export default function AdminEditCompanyPage() {
                     id="contact-email"
                     type="email"
                     value={formData.contact.email}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
+                    onChange={(e) => setFormData({
+                      ...formData,
                       contact: { ...formData.contact, email: e.target.value }
                     })}
                     placeholder="example@company.com"
@@ -846,8 +846,8 @@ export default function AdminEditCompanyPage() {
                     id="contact-office-phone"
                     type="tel"
                     value={formData.contact.officePhone}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
+                    onChange={(e) => setFormData({
+                      ...formData,
                       contact: { ...formData.contact, officePhone: e.target.value }
                     })}
                     placeholder="+34 912345678"
@@ -866,8 +866,8 @@ export default function AdminEditCompanyPage() {
                     id="contact-whatsapp"
                     type="tel"
                     value={formData.contact.whatsapp}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
+                    onChange={(e) => setFormData({
+                      ...formData,
                       contact: { ...formData.contact, whatsapp: e.target.value }
                     })}
                     placeholder="+34 912345678"
@@ -980,7 +980,7 @@ export default function AdminEditCompanyPage() {
             {/* Logo Section */}
             <div className="border-t pt-4 mt-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Company Logo</h3>
-              
+
               <div>
                 <label htmlFor="logo" className="block text-sm font-medium text-gray-700 mb-1">
                   Upload Logo (Optional)
@@ -1022,7 +1022,7 @@ export default function AdminEditCompanyPage() {
             {/* Pictures Section */}
             <div className="border-t pt-4 mt-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Pictures</h3>
-              
+
               <div>
                 <label htmlFor="pictures" className="block text-sm font-medium text-gray-700 mb-1">
                   Upload Pictures (Optional - up to 3)
