@@ -215,6 +215,33 @@ This ensures:
 - No type errors
 - Next.js SSR/SSG works correctly
 
+### Commit Message Guidelines
+
+Every commit message must include **symbolic logic-based reasoning** explaining:
+
+1. **WHY** - The reasoning behind the change (the problem being solved)
+2. **WHAT** - What was changed to solve it
+3. **HOW** - The logical chain of reasoning that led to the solution
+
+**Format:**
+```
+<Short summary of change>
+
+WHY: <Problem statement / reasoning>
+WHAT: <Specific changes made>
+HOW: <Logical steps: A → B → C led to this solution>
+```
+
+**Example:**
+```
+Switch to Vercel Blob storage for image uploads
+
+WHY: Local filesystem is ephemeral on Vercel → images disappear after deployment
+WHAT: Updated 4 upload routes to use @vercel/blob put() instead of writeFile()
+HOW: Ephemeral FS problem → need persistent storage → Vercel Blob is native → 
+     simple put() API replaces writeFile() → URLs now point to blob.vercel-storage.com
+```
+
 ---
 
 ## 🔧 Important Implementation Details
