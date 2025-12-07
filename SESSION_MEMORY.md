@@ -25,80 +25,13 @@
 
 ---
 
-## 📝 Session Changes Log (Dec 7, 2025)
+## 📝 Session Changes
 
-### 1. TypeScript Type Safety Fixes
-
-**Deductive Reasoning:**
-```
-P1: Vercel build runs TypeScript compiler in strict mode
-P2: TypeScript compiler rejects code with type errors
-P3: Code contained `params.id` where `params` could be null
-∴ Build failed → Must add null checks (`params?.id`)
-```
-
-**Deductive Reasoning (Job Model):**
-```
-P1: Code uses fields: country, languages, sports, pictures, etc.
-P2: TypeScript requires all accessed fields to be declared in interfaces
-P3: IJob interface was missing these field declarations
-∴ TypeScript errors → Must update IJob interface with all fields
-```
-
-### 2. Vercel Blob Storage Migration
-
-**Deductive Reasoning:**
-```
-P1: Vercel uses ephemeral filesystem (erased on each deployment)
-P2: Images stored in `public/uploads/` are on filesystem
-P3: If filesystem erased → images lost after deployment
-∴ Need persistent storage → Vercel Blob provides cloud persistence
-```
-
-**Solution Chain:**
-```
-Ephemeral FS → images disappear
-  → need cloud storage
-    → Vercel Blob is native integration
-      → replace writeFile() with put()
-        → URLs now: blob.vercel-storage.com/*
-```
-
-### 3. Vercel Environment Variables
-
-**Deductive Reasoning:**
-```
-P1: Build process imports db.ts which reads MONGODB_URI
-P2: MONGODB_URI was not set in Vercel environment
-P3: Missing env var → throw Error
-∴ Build failed → Must add MONGODB_URI and JWT_SECRET to Vercel
-```
-
-### 4. UI/UX Improvements (Previous Sessions)
-
-**Job Details Page - Deductive Reasoning:**
-```
-P1: Users need to see company info clearly
-P2: Raw data without formatting is hard to scan
-P3: Bold labels + consistent layout → better readability
-∴ Added bold labels, moved description above location, styled social links
-```
-
-**Job Posting Form - Deductive Reasoning:**
-```
-P1: Single-column forms are long and tedious
-P2: Related fields (Location/Country, Type/Salary) can pair logically
-P3: Two-column layout groups related fields → reduces scrolling
-∴ Implemented two-column layout with logical field groupings
-```
-
-**Image Gallery - Deductive Reasoning:**
-```
-P1: Users want to see job images clearly
-P2: Small thumbnails don't show detail
-P3: Full-width hero + grid + lightbox → progressive disclosure
-∴ First image full-width, grid below, clickable lightbox carousel
-```
+> **All session changes with deductive reasoning are stored in git commit messages.**
+> 
+> View with: `git log --oneline -20` or `git log -p` for full reasoning.
+> 
+> Commit messages follow the WHY/WHAT/HOW format defined in Coding Standards below.
 
 ---
 
