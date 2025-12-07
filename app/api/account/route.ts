@@ -11,7 +11,7 @@ export async function PUT(request: NextRequest) {
     await connectDB();
 
     const userData = await User.findById(user.userId);
-    
+
     if (!userData) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
@@ -24,7 +24,7 @@ export async function PUT(request: NextRequest) {
     if (email) {
       // Check if email is already taken by another user
       const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
-      if (existingUser && existingUser._id.toString() !== user.userId) {
+      if (existingUser && String(existingUser._id) !== user.userId) {
         return NextResponse.json({ error: 'Email already in use' }, { status: 400 });
       }
       userData.email = email.toLowerCase().trim();
@@ -56,7 +56,7 @@ export async function DELETE(request: NextRequest) {
     await connectDB();
 
     const userData = await User.findById(user.userId);
-    
+
     if (!userData) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
