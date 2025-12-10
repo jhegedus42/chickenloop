@@ -33,6 +33,7 @@ interface Job {
   location: string;
   type: string;
   recruiter: any;
+  featured?: boolean;
   createdAt: string;
 }
 
@@ -210,6 +211,40 @@ export default function AdminDashboard() {
       setTableData(prevData => prevData.map((c) => 
         c.id === companyId ? { ...c, featured: currentFeatured } : c
       ));
+    } finally {
+      setTogglingFeatured(null);
+    }
+  };
+
+  const handleToggleJobFeatured = async (jobId: string, currentFeatured: boolean) => {
+    if (togglingFeatured === jobId) {
+      console.log(`[Admin] Already toggling featured for job ${jobId}, ignoring duplicate click`);
+      return;
+    }
+    
+    const newFeaturedStatus = !currentFeatured;
+    
+    // Optimistic update
+    setTableData(prevData => prevData.map((j) => 
+      j.id === jobId ? { ...j, featured: newFeaturedStatus } : j
+    ));
+    setTogglingFeatured(jobId);
+    
+    try {
+      await adminApi.updateJob(jobId, { featured: newFeaturedStatus });
+      console.log(`[Admin] Job ${jobId} featured status updated to ${newFeaturedStatus}`);
+      
+      // If response doesn't have job data, reload the list
+      if (selectedCategory === 'jobs') {
+        await loadCategoryData('jobs');
+      }
+    } catch (err: any) {
+      console.error('[Admin] Error updating job featured status:', err);
+      // Revert optimistic update on error
+      setTableData(prevData => prevData.map((j) => 
+        j.id === jobId ? { ...j, featured: currentFeatured } : j
+      ));
+      alert(`Failed to update featured status: ${err.message || 'Unknown error'}`);
     } finally {
       setTogglingFeatured(null);
     }
@@ -432,6 +467,7 @@ export default function AdminDashboard() {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recruiter</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Featured</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                           </>
@@ -479,6 +515,20 @@ export default function AdminDashboard() {
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{entry.type}</td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {entry.recruiter?.name || 'Unknown'}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                <button
+                                  onClick={() => handleToggleJobFeatured(entry.id, entry.featured || false)}
+                                  disabled={togglingFeatured === entry.id}
+                                  className={`px-3 py-1 rounded-md text-xs font-medium ${
+                                    entry.featured
+                                      ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                  } ${togglingFeatured === entry.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                  title={entry.featured ? 'Click to unfeature' : 'Click to feature'}
+                                >
+                                  {togglingFeatured === entry.id ? 'Updating...' : (entry.featured ? '⭐ Featured' : 'Not Featured')}
+                                </button>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {new Date(entry.createdAt).toLocaleDateString()}

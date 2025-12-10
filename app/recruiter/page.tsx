@@ -17,6 +17,7 @@ interface Job {
   type: string;
   pictures?: string[];
   published?: boolean;
+  featured?: boolean;
   visitCount?: number;
   createdAt: string;
 }
@@ -167,6 +168,7 @@ export default function RecruiterDashboard() {
       alert(err.message || 'Failed to update job');
     }
   };
+
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

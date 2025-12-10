@@ -23,6 +23,8 @@ export default function HomePageContent() {
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [latestJobs, setLatestJobs] = useState([]);
   const [latestJobsLoading, setLatestJobsLoading] = useState(true);
+  const [featuredJobs, setFeaturedJobs] = useState([]);
+  const [featuredJobsLoading, setFeaturedJobsLoading] = useState(true);
   const [featuredCompanies, setFeaturedCompanies] = useState([]);
   const [companiesLoading, setCompaniesLoading] = useState(true);
   const [topCandidates, setTopCandidates] = useState([]);
@@ -33,6 +35,8 @@ export default function HomePageContent() {
     loadJobs();
     // Load latest jobs for display
     loadLatestJobs();
+    // Load featured jobs for display
+    loadFeaturedJobs();
     // Load featured companies
     loadFeaturedCompanies();
     // Load top candidates (only if user is recruiter or admin)
@@ -65,6 +69,20 @@ export default function HomePageContent() {
       console.error('Failed to load latest jobs:', err);
     } finally {
       setLatestJobsLoading(false);
+    }
+  };
+
+  const loadFeaturedJobs = async () => {
+    try {
+      const response = await fetch('/api/jobs?featured=true');
+      const data = await response.json();
+      const jobsList = data.jobs || [];
+      // Get the first 3 featured jobs
+      setFeaturedJobs(jobsList.slice(0, 3));
+    } catch (err) {
+      console.error('Failed to load featured jobs:', err);
+    } finally {
+      setFeaturedJobsLoading(false);
     }
   };
 
@@ -111,8 +129,8 @@ export default function HomePageContent() {
         }
       });
       
-      // Add job count to each company and get first 6
-      const companiesWithJobCount = companies.slice(0, 6).map((company) => ({
+      // Add job count to each company and get first 4
+      const companiesWithJobCount = companies.slice(0, 4).map((company) => ({
         ...company,
         jobCount: jobCountsByCompany[company.id] || 0
       }));
@@ -296,6 +314,58 @@ export default function HomePageContent() {
           onCategoryChange={setCategory}
         />
         
+        {/* Featured Jobs Section */}
+        {featuredJobs.length > 0 && (
+          <section className="bg-white py-12 sm:py-16">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <SectionHeader
+                title="Featured Jobs"
+                actionLabel="View All Jobs"
+                actionHref="/jobs-list?featured=true"
+              />
+              
+              {featuredJobsLoading ? (
+                <div className="text-center py-16">
+                  <p className="text-gray-600 text-lg">Loading featured jobs...</p>
+                </div>
+              ) : featuredJobs.length === 0 ? (
+                <div className="text-center py-16">
+                  <p className="text-gray-600 text-lg">No featured jobs at the moment.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+                  {featuredJobs.map((job) => (
+                    <JobCard key={job._id} job={job} />
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+        
+        {/* Featured Companies Section */}
+        <section className="bg-white py-12 sm:py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <SectionHeader title="Featured Companies" />
+            
+            {companiesLoading ? (
+              <div className="text-center py-16">
+                <p className="text-gray-600 text-lg">Loading companies...</p>
+              </div>
+            ) : featuredCompanies.length === 0 ? (
+              <div className="text-center py-16">
+                <p className="text-gray-600 text-lg">No companies available at the moment.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+                {featuredCompanies.map((company) => (
+                  <CompanyCard key={company.id} company={company} />
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+        
         {/* Latest Jobs Section */}
         <section className="bg-gray-50 py-12 sm:py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -317,29 +387,6 @@ export default function HomePageContent() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
                 {latestJobs.map((job) => (
                   <JobCard key={job._id} job={job} />
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-        
-        {/* Featured Companies Section */}
-        <section className="bg-white py-12 sm:py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <SectionHeader title="Featured Companies" />
-            
-            {companiesLoading ? (
-              <div className="text-center py-16">
-                <p className="text-gray-600 text-lg">Loading companies...</p>
-              </div>
-            ) : featuredCompanies.length === 0 ? (
-              <div className="text-center py-16">
-                <p className="text-gray-600 text-lg">No companies available at the moment.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-                {featuredCompanies.map((company) => (
-                  <CompanyCard key={company.id} company={company} />
                 ))}
               </div>
             )}

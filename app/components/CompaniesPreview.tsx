@@ -18,7 +18,7 @@ export default function CompaniesPreview() {
   useEffect(() => {
     const loadCompanies = async () => {
       try {
-        const response = await fetch('/api/companies?limit=8');
+        const response = await fetch('/api/companies?limit=4');
         if (!response.ok) {
           throw new Error('Failed to fetch companies');
         }

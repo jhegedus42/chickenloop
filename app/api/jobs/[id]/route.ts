@@ -86,7 +86,7 @@ export async function PUT(
       );
     }
 
-    const { title, description, company, location, country, salary, type, languages, qualifications, sports, occupationalAreas, pictures, published, applyByEmail, applyByWebsite, applyByWhatsApp, applicationEmail, applicationWebsite, applicationWhatsApp } = await request.json();
+    const { title, description, company, location, country, salary, type, languages, qualifications, sports, occupationalAreas, pictures, published, featured, applyByEmail, applyByWebsite, applyByWhatsApp, applicationEmail, applicationWebsite, applicationWhatsApp } = await request.json();
 
     if (title) job.title = title;
     if (description) job.description = description;
@@ -125,6 +125,9 @@ export async function PUT(
     if (published !== undefined) {
       job.published = published === true;
     }
+    
+    // Featured flag can only be updated by admins, ignore if sent by recruiters
+    // (featured field is intentionally not updated here)
     
     // Update application fields
     if (applyByEmail !== undefined) {

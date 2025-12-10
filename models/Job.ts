@@ -17,6 +17,7 @@ export interface IJob extends Document {
   pictures?: string[];
   spam?: 'yes' | 'no';
   published?: boolean;
+  featured?: boolean;
   visitCount?: number;
   applyByEmail?: boolean;
   applyByWebsite?: boolean;
@@ -89,6 +90,10 @@ const JobSchema: Schema = new Schema(
     published: {
       type: Boolean,
       default: true,
+    },
+    featured: {
+      type: Boolean,
+      default: false,
     },
     visitCount: {
       type: Number,
