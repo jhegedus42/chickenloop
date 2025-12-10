@@ -181,6 +181,7 @@ export default function NewJobPage() {
 
       await jobsApi.create({
         ...formData,
+        company: company?.name || '', // Include company name from company object
         country: normalizedCountry,
         sports: formData.sports,
         occupationalAreas: formData.occupationalAreas,

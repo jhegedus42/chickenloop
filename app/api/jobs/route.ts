@@ -186,7 +186,8 @@ export async function POST(request: NextRequest) {
 
     const { title, description, company, location, salary, type } = await request.json();
 
-    if (!title || !description || !company || !location || !type) {
+    // Validate required fields - check for empty strings and whitespace
+    if (!title || !title.trim() || !description || !description.trim() || !company || !company.trim() || !location || !location.trim() || !type || !type.trim()) {
       return NextResponse.json(
         { error: 'Title, description, company, location, and type are required' },
         { status: 400 }
