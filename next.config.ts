@@ -20,6 +20,19 @@ const nextConfig: NextConfig = {
     // Optimize package imports
     optimizePackageImports: ['react', 'react-dom'],
   },
+  // Allow images from Vercel Blob Storage
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '*.public.blob.vercel-storage.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.blob.vercel-storage.com',
+      },
+    ],
+  },
 };
 
 export default nextConfig;

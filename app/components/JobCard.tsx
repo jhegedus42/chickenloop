@@ -26,8 +26,14 @@ export default function JobCard({ job }: JobCardProps) {
             alt={job.title}
             className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
             onError={(e) => {
-              // Hide broken images (old /uploads/ paths won't work on Vercel)
-              (e.target as HTMLImageElement).style.display = 'none';
+              // Only hide if it's a local /uploads/ path (won't work on Vercel)
+              const img = e.target as HTMLImageElement;
+              if (img.src.includes('/uploads/')) {
+                img.style.display = 'none';
+              } else {
+                // For blob storage URLs, log the error but don't hide
+                console.error('Failed to load image:', img.src);
+              }
             }}
           />
         ) : (

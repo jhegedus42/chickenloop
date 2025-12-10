@@ -26,6 +26,10 @@ export async function POST(request: NextRequest) {
 
     const uploadedPaths: string[] = [];
     const useBlobStorage = !!process.env.BLOB_READ_WRITE_TOKEN;
+    
+    // Log which storage method is being used (for debugging)
+    console.log('[Upload] Storage method:', useBlobStorage ? 'Vercel Blob Storage' : 'Local filesystem');
+    console.log('[Upload] BLOB_READ_WRITE_TOKEN present:', !!process.env.BLOB_READ_WRITE_TOKEN);
 
     for (const file of files) {
       if (!file || !(file instanceof File)) {
@@ -59,6 +63,7 @@ export async function POST(request: NextRequest) {
       if (useBlobStorage) {
         // Upload to Vercel Blob (production)
         const blob = await put(filename, file, { access: 'public' });
+        console.log('[Upload] Uploaded to Blob Storage:', blob.url);
         uploadedPaths.push(blob.url);
       } else {
         // Fallback to filesystem storage (local development)
@@ -70,7 +75,9 @@ export async function POST(request: NextRequest) {
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
         await writeFile(filePath, buffer);
-        uploadedPaths.push(`/uploads/jobs/${timestamp}-${randomStr}.${extension}`);
+        const localPath = `/uploads/jobs/${timestamp}-${randomStr}.${extension}`;
+        console.log('[Upload] Saved to local filesystem:', localPath);
+        uploadedPaths.push(localPath);
       }
     }
 
