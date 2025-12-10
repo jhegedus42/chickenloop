@@ -54,3 +54,10 @@ SHARED_DATABASE_CREDENTIALS.template.md
 # User uploaded files (not committed to git)
 public/uploads/
 doc/PROJECT_CREDENTIALS_TODO.md
+
+# MongoDB backups (never commit database backups to git)
+backups/
+exports/
+*.tar.gz
+*.bson
+*.json.backup

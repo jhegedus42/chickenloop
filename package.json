@@ -43,6 +43,6 @@
     "tailwindcss": "^4",
     "ts-jest": "^29.4.6",
     "typescript": "^5",
-    "vercel": "^41.0.2"
+    "vercel": "^41.7.8"
   }
 }

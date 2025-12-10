@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 import { requireRole } from '@/lib/auth';
+import { writeFile, mkdir } from 'fs/promises';
+import { join } from 'path';
+import { existsSync } from 'fs';
 
-// POST - Upload job pictures (recruiters only)
+// POST - Upload job pictures (recruiters and admins)
 export async function POST(request: NextRequest) {
   try {
-    requireRole(request, ['recruiter']);
+    requireRole(request, ['recruiter', 'admin']);
 
     const formData = await request.formData();
     const files = formData.getAll('pictures') as File[];
@@ -22,6 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     const uploadedPaths: string[] = [];
+    const useBlobStorage = !!process.env.BLOB_READ_WRITE_TOKEN;
 
     for (const file of files) {
       if (!file || !(file instanceof File)) {
@@ -52,9 +56,22 @@ export async function POST(request: NextRequest) {
       const extension = file.name.split('.').pop() || 'jpg';
       const filename = `jobs/job-${timestamp}-${randomStr}.${extension}`;
 
-      // Upload to Vercel Blob
-      const blob = await put(filename, file, { access: 'public' });
-      uploadedPaths.push(blob.url);
+      if (useBlobStorage) {
+        // Upload to Vercel Blob (production)
+        const blob = await put(filename, file, { access: 'public' });
+        uploadedPaths.push(blob.url);
+      } else {
+        // Fallback to filesystem storage (local development)
+        const uploadDir = join(process.cwd(), 'public', 'uploads', 'jobs');
+        if (!existsSync(uploadDir)) {
+          await mkdir(uploadDir, { recursive: true });
+        }
+        const filePath = join(uploadDir, `${timestamp}-${randomStr}.${extension}`);
+        const bytes = await file.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        await writeFile(filePath, buffer);
+        uploadedPaths.push(`/uploads/jobs/${timestamp}-${randomStr}.${extension}`);
+      }
     }
 
     return NextResponse.json(
