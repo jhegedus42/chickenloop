@@ -39,14 +39,20 @@ export async function POST(request: NextRequest) {
     const timestamp = Date.now();
     const randomStr = Math.random().toString(36).substring(2, 15);
     const extension = file.name.split('.').pop() || 'jpg';
-    const filename = `companies/logo-${timestamp}-${randomStr}.${extension}`;
+    const filename = `companies/logos/logo-${timestamp}-${randomStr}.${extension}`;
 
     const useBlobStorage = !!process.env.BLOB_READ_WRITE_TOKEN;
+    
+    // Log which storage method is being used (for debugging)
+    console.log('[Upload Logo] Storage method:', useBlobStorage ? 'Vercel Blob Storage' : 'Local filesystem');
+    console.log('[Upload Logo] BLOB_READ_WRITE_TOKEN present:', !!process.env.BLOB_READ_WRITE_TOKEN);
+    
     let url: string;
 
     if (useBlobStorage) {
       // Upload to Vercel Blob (production)
       const blob = await put(filename, file, { access: 'public' });
+      console.log('[Upload Logo] Uploaded to Blob Storage:', blob.url);
       url = blob.url;
     } else {
       // Fallback to filesystem storage (local development)
@@ -58,7 +64,9 @@ export async function POST(request: NextRequest) {
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
       await writeFile(filePath, buffer);
-      url = `/uploads/companies/logos/logo-${timestamp}-${randomStr}.${extension}`;
+      const localPath = `/uploads/companies/logos/logo-${timestamp}-${randomStr}.${extension}`;
+      console.log('[Upload Logo] Saved to local filesystem:', localPath);
+      url = localPath;
     }
 
     return NextResponse.json(
