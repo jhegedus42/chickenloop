@@ -240,6 +240,10 @@ export default function JobDetailPage() {
                   src={job.pictures[0]}
                   alt={`${job.title} - Featured`}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    // Hide broken images (old /uploads/ paths won't work on Vercel)
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
                 />
               </div>
             </div>
@@ -361,6 +365,10 @@ export default function JobDetailPage() {
                         src={picture}
                         alt={`${job.title} - Image ${index + 1}`}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Hide broken images (old /uploads/ paths won't work on Vercel)
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
                       />
                     </button>
                   ))}
@@ -381,6 +389,15 @@ export default function JobDetailPage() {
                     src={job.pictures[lightboxIndex]}
                     alt={`${job.title} - Image ${lightboxIndex + 1}`}
                     className="w-full h-[70vh] object-contain bg-black"
+                    onError={(e) => {
+                      // Show error message for broken images
+                      const img = e.target as HTMLImageElement;
+                      img.style.display = 'none';
+                      const errorDiv = document.createElement('div');
+                      errorDiv.className = 'w-full h-[70vh] flex items-center justify-center bg-black text-white';
+                      errorDiv.textContent = 'Image not available';
+                      img.parentElement?.appendChild(errorDiv);
+                    }}
                   />
                   {job.pictures && job.pictures.length > 1 && (
                     <>

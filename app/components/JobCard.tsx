@@ -25,6 +25,10 @@ export default function JobCard({ job }: JobCardProps) {
             src={thumbnail}
             alt={job.title}
             className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+            onError={(e) => {
+              // Hide broken images (old /uploads/ paths won't work on Vercel)
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-300 to-gray-400">
