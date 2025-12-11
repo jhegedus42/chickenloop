@@ -9,18 +9,21 @@ export const mockUsers = {
         _id: { toString: () => '507f1f77bcf86cd799439011' },
         email: 'recruiter@test.com',
         name: 'Test Recruiter',
+        password: 'password123',
         role: 'recruiter' as const,
     },
     jobSeeker: {
         _id: { toString: () => '507f1f77bcf86cd799439012' },
         email: 'jobseeker@test.com',
         name: 'Test Job Seeker',
+        password: 'password123',
         role: 'job-seeker' as const,
     },
     admin: {
         _id: { toString: () => '507f1f77bcf86cd799439013' },
         email: 'admin@test.com',
         name: 'Test Admin',
+        password: 'password123',
         role: 'admin' as const,
     },
 };
@@ -52,16 +55,25 @@ export function createMockRequest(options: {
     const headers = new Headers();
     if (token) {
         headers.set('Cookie', `token=${token}`);
+        headers.set('Authorization', `Bearer ${token}`);
     }
     if (body) {
         headers.set('Content-Type', 'application/json');
     }
 
-    return new Request(url, {
+    const req = new Request(url, {
         method,
         headers,
         body: body ? JSON.stringify(body) : undefined,
     });
+
+    // Mock cookies property for NextRequest compatibility
+    (req as any).cookies = {
+        get: (name: string) => ({ value: name === 'token' ? token : undefined }),
+        getAll: () => [],
+    };
+
+    return req;
 }
 
 /**
