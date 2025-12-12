@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
       name: company.name,
       description: company.description,
       logo: company.logo,
+      pictures: company.pictures,
       address: company.address,
       website: company.website,
       coordinates: company.coordinates,
