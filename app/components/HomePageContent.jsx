@@ -14,7 +14,7 @@ import CompaniesPreview from './CompaniesPreview';
 import MapPreview from './MapPreview';
 
 export default function HomePageContent() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [keyword, setKeyword] = useState('');
   const [location, setLocation] = useState('');
@@ -160,6 +160,10 @@ export default function HomePageContent() {
     }
   };
 
+  const handleLogout = async () => {
+    await logout();
+  };
+
   // Get unique job categories from all jobs (same logic as jobs page)
   const getUniqueCategories = () => {
     const categorySet = new Set();
@@ -206,10 +210,25 @@ export default function HomePageContent() {
               </Link>
               <Link
                 href="/job-seeker/cv/new"
-                className="px-4 lg:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105"
+                className="px-4 lg:px-6 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105"
               >
                 Upload Resume
               </Link>
+              {user ? (
+                <button
+                  onClick={handleLogout}
+                  className="px-4 lg:px-6 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105"
+                >
+                  Logout
+                </button>
+              ) : (
+                <Link
+                  href="/login"
+                  className="px-4 lg:px-6 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105"
+                >
+                  Login
+                </Link>
+              )}
             </div>
 
             {/* Mobile Menu Button */}
@@ -257,10 +276,29 @@ export default function HomePageContent() {
                 <Link
                   href="/job-seeker/cv/new"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 font-medium text-center shadow-md"
+                  className="px-4 py-2.5 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200 font-medium text-center shadow-md"
                 >
                   Upload Resume
                 </Link>
+                {user ? (
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      handleLogout();
+                    }}
+                    className="px-4 py-2.5 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200 font-medium text-center shadow-md"
+                  >
+                    Logout
+                  </button>
+                ) : (
+                  <Link
+                    href="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="px-4 py-2.5 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200 font-medium text-center shadow-md"
+                  >
+                    Login
+                  </Link>
+                )}
               </div>
             </div>
           )}
@@ -320,8 +358,6 @@ export default function HomePageContent() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <SectionHeader
                 title="Featured Jobs"
-                actionLabel="View All Jobs"
-                actionHref="/jobs-list?featured=true"
               />
               
               {featuredJobsLoading ? (
