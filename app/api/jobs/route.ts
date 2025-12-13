@@ -184,7 +184,26 @@ export async function POST(request: NextRequest) {
     const user = requireRole(request, ['recruiter']);
     await connectDB();
 
-    const { title, description, company, location, salary, type } = await request.json();
+    const { 
+      title, 
+      description, 
+      company, 
+      location, 
+      country,
+      salary, 
+      type,
+      languages,
+      qualifications,
+      sports,
+      occupationalAreas,
+      pictures,
+      applyByEmail,
+      applyByWebsite,
+      applyByWhatsApp,
+      applicationEmail,
+      applicationWebsite,
+      applicationWhatsApp
+    } = await request.json();
 
     // Validate required fields - check for empty strings and whitespace
     if (!title || !title.trim() || !description || !description.trim() || !company || !company.trim() || !location || !location.trim() || !type || !type.trim()) {
@@ -194,14 +213,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate pictures array length
+    if (pictures !== undefined && Array.isArray(pictures) && pictures.length > 3) {
+      return NextResponse.json(
+        { error: 'Maximum 3 pictures allowed' },
+        { status: 400 }
+      );
+    }
+
+    // Normalize country: trim and uppercase, or set to null if empty
+    const normalizedCountry = country?.trim() ? country.trim().toUpperCase() : null;
+
     const job = await Job.create({
       title,
       description,
       company,
       location,
+      country: normalizedCountry,
       salary,
       type,
       recruiter: user.userId,
+      languages: languages || [],
+      qualifications: qualifications || [],
+      sports: sports || [],
+      occupationalAreas: occupationalAreas || [],
+      pictures: pictures || [],
+      applyByEmail: applyByEmail === true,
+      applyByWebsite: applyByWebsite === true,
+      applyByWhatsApp: applyByWhatsApp === true,
+      applicationEmail: applicationEmail || undefined,
+      applicationWebsite: applicationWebsite || undefined,
+      applicationWhatsApp: applicationWhatsApp || undefined,
     });
 
     const populatedJob = await Job.findById(job._id).populate('recruiter', 'name email');
