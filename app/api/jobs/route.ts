@@ -224,6 +224,10 @@ export async function POST(request: NextRequest) {
     // Normalize country: trim and uppercase, or set to null if empty
     const normalizedCountry = country?.trim() ? country.trim().toUpperCase() : null;
 
+    // Find the recruiter's company to set companyId
+    const recruiterCompany = await Company.findOne({ owner: user.userId });
+    const companyId = recruiterCompany ? recruiterCompany._id : undefined;
+
     const job = await Job.create({
       title,
       description,
@@ -233,6 +237,7 @@ export async function POST(request: NextRequest) {
       salary,
       type,
       recruiter: user.userId,
+      companyId: companyId,
       languages: languages || [],
       qualifications: qualifications || [],
       sports: sports || [],
