@@ -202,18 +202,22 @@ export default function HomePageContent() {
 
             {/* Desktop Buttons - Right */}
             <div className="hidden md:flex items-center space-x-3 lg:space-x-4">
-              <Link
-                href="/recruiter/jobs/new"
-                className="px-4 lg:px-6 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105"
-              >
-                Post a Job
-              </Link>
-              <Link
-                href="/job-seeker/cv/new"
-                className="px-4 lg:px-6 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105"
-              >
-                Upload Resume
-              </Link>
+              {!(user && user.role === 'job-seeker') && (
+                <Link
+                  href="/recruiter/jobs/new"
+                  className="px-4 lg:px-6 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105"
+                >
+                  Post a Job
+                </Link>
+              )}
+              {!(user && (user.role === 'recruiter' || user.role === 'admin')) && (
+                <Link
+                  href="/job-seeker/cv/new"
+                  className="px-4 lg:px-6 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105"
+                >
+                  Upload Resume
+                </Link>
+              )}
               {user ? (
                 <button
                   onClick={handleLogout}
@@ -266,20 +270,24 @@ export default function HomePageContent() {
           {mobileMenuOpen && (
             <div className="md:hidden pb-4 border-t border-blue-700 bg-blue-600">
               <div className="flex flex-col space-y-2 pt-4">
-                <Link
-                  href="/recruiter/jobs/new"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="px-4 py-2.5 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200 font-medium text-center shadow-md"
-                >
-                  Post a Job
-                </Link>
-                <Link
-                  href="/job-seeker/cv/new"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="px-4 py-2.5 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200 font-medium text-center shadow-md"
-                >
-                  Upload Resume
-                </Link>
+                {!(user && user.role === 'job-seeker') && (
+                  <Link
+                    href="/recruiter/jobs/new"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="px-4 py-2.5 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200 font-medium text-center shadow-md"
+                  >
+                    Post a Job
+                  </Link>
+                )}
+                {!(user && (user.role === 'recruiter' || user.role === 'admin')) && (
+                  <Link
+                    href="/job-seeker/cv/new"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="px-4 py-2.5 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200 font-medium text-center shadow-md"
+                  >
+                    Upload Resume
+                  </Link>
+                )}
                 {user ? (
                   <button
                     onClick={() => {
