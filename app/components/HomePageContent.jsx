@@ -195,7 +195,7 @@ export default function HomePageContent() {
                   width={200}
                   height={60}
                   priority
-                  className="h-auto w-auto max-h-12 sm:max-h-14"
+                  className="h-auto w-auto max-h-[60px] sm:max-h-[70px]"
                 />
               </Link>
             </div>

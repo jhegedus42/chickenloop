@@ -20,6 +20,7 @@ interface Job {
   occupationalAreas?: string[];
   sports?: string[];
   pictures?: string[];
+  featured?: boolean;
   recruiter: {
     name: string;
     email: string;
@@ -176,6 +177,22 @@ function JobsPageContent() {
         return job.languages.includes(selectedLanguage);
       });
     }
+
+    // Sort: featured jobs first, then by posting date (createdAt) descending
+    filtered.sort((a, b) => {
+      // Featured jobs come first
+      const aFeatured = Boolean(a.featured);
+      const bFeatured = Boolean(b.featured);
+      
+      // If one is featured and the other isn't, featured comes first
+      if (aFeatured && !bFeatured) return -1;
+      if (!aFeatured && bFeatured) return 1;
+      
+      // Within each group (both featured or both non-featured), sort by posting date (createdAt) descending
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      return dateB - dateA; // Descending (newest first)
+    });
 
     setJobs(filtered);
     // Reset to page 1 when filters change
@@ -426,10 +443,19 @@ function JobsPageContent() {
                         <Link
                           key={job._id}
                           href={`/jobs/${job._id}`}
-                          className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer block"
+                          className={`rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer block ${
+                            job.featured 
+                              ? 'bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-300' 
+                              : 'bg-white'
+                          }`}
                         >
                           {/* Job Picture */}
                           <div className="w-full h-48 bg-gray-200 relative overflow-hidden">
+                            {job.featured && (
+                              <div className="absolute top-2 right-2 z-10 bg-yellow-400 text-yellow-900 px-2 py-1 rounded-md text-xs font-bold shadow-md">
+                                ⭐ Featured
+                              </div>
+                            )}
                             {firstPicture ? (
                               <img
                                 src={firstPicture}
