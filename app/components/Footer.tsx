@@ -14,6 +14,18 @@ export default function Footer() {
           </div>
           <div className="flex items-center space-x-6 flex-wrap justify-center sm:justify-start">
             <Link
+              href="/about"
+              className="text-sm text-gray-300 hover:text-white transition-colors"
+            >
+              About
+            </Link>
+            <Link
+              href="/contact"
+              className="text-sm text-gray-300 hover:text-white transition-colors"
+            >
+              Contact
+            </Link>
+            <Link
               href="/terms"
               className="text-sm text-gray-300 hover:text-white transition-colors"
             >
