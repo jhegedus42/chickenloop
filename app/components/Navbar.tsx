@@ -42,6 +42,12 @@ export default function Navbar() {
               >
                 Jobs
               </Link>
+              <Link
+                href="/career-advice"
+                className="px-2 sm:px-3 py-2 rounded hover:bg-blue-700 text-sm sm:text-base"
+              >
+                Career Advice
+              </Link>
               {user && (user.role === 'recruiter' || user.role === 'admin') && (
                 <Link
                   href="/candidates"
@@ -121,6 +127,13 @@ export default function Navbar() {
                   className="px-4 py-2 rounded hover:bg-blue-700 text-sm"
                 >
                   Jobs
+                </Link>
+                <Link
+                  href="/career-advice"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-4 py-2 rounded hover:bg-blue-700 text-sm"
+                >
+                  Career Advice
                 </Link>
                 {user && (user.role === 'recruiter' || user.role === 'admin') && (
                   <Link

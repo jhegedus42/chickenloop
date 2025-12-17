@@ -136,3 +136,5 @@ This document lists all API endpoints available in the Chickenloop application.
 - Job Seeker endpoints require `role: 'job-seeker'` in the user object
 - Some endpoints support both authenticated and anonymous access (e.g., viewing jobs)
 
+
+

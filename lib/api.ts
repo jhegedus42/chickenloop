@@ -227,3 +227,25 @@ export const adminApi = {
   getCVs: () => apiRequest('/admin/cvs'),
 };
 
+export const careerAdviceApi = {
+  getAll: (includeUnpublished?: boolean) => {
+    const query = includeUnpublished ? '?includeUnpublished=true' : '';
+    return apiRequest(`/career-advice${query}`);
+  },
+  getOne: (id: string) => apiRequest(`/career-advice/${id}`),
+  create: (data: { title: string; picture?: string; content: string; published?: boolean }) =>
+    apiRequest('/career-advice', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  update: (id: string, data: { title?: string; picture?: string; content?: string; published?: boolean }) =>
+    apiRequest(`/career-advice/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  delete: (id: string) =>
+    apiRequest(`/career-advice/${id}`, {
+      method: 'DELETE',
+    }),
+};
+

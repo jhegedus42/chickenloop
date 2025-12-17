@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Navbar from '../components/Navbar';
-import CompanyCard from '../components/CompanyCard';
 import { getCountryNameFromCode } from '@/lib/countryUtils';
+import Link from 'next/link';
 
 interface Company {
   id: string;
@@ -16,6 +17,7 @@ interface Company {
     country?: string;
   };
   website?: string;
+  featured?: boolean;
   createdAt: string;
 }
 
@@ -53,7 +55,33 @@ function getTimeAgo(date: string): string {
   return `${diffInYears} ${diffInYears === 1 ? 'year' : 'years'} ago`;
 }
 
-export default function CompaniesPage() {
+// Component to handle time ago display (prevents hydration mismatch)
+function TimeAgoDisplay({ date }: { date: string }) {
+  const [timeAgo, setTimeAgo] = useState<string>('');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    setTimeAgo(getTimeAgo(date));
+
+    // Update every minute
+    const interval = setInterval(() => {
+      setTimeAgo(getTimeAgo(date));
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [date]);
+
+  // Don't render until mounted to prevent hydration mismatch
+  if (!mounted) {
+    return <span className="text-xs text-gray-500">Loading...</span>;
+  }
+
+  return <span className="text-xs text-gray-500">{timeAgo}</span>;
+}
+
+function CompaniesPageContent() {
+  const searchParams = useSearchParams();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [allCompanies, setAllCompanies] = useState<Company[]>([]); // Store all companies for filtering
   const [loading, setLoading] = useState(true);
@@ -64,8 +92,20 @@ export default function CompaniesPage() {
   const companiesPerPage = 20;
 
   useEffect(() => {
+    // Read query parameters from URL on mount
+    const keywordParam = searchParams?.get('keyword');
+    const countryParam = searchParams?.get('country');
+
+    if (keywordParam) {
+      setKeyword(decodeURIComponent(keywordParam));
+    }
+    if (countryParam) {
+      setSelectedCountry(decodeURIComponent(countryParam));
+    }
+
+    // Load companies regardless of authentication status
     loadCompanies();
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     // Filter companies when any filter changes
@@ -89,6 +129,22 @@ export default function CompaniesPage() {
       });
     }
 
+    // Sort: featured companies first, then by creation date (createdAt) descending
+    filtered.sort((a, b) => {
+      // Featured companies come first
+      const aFeatured = Boolean(a.featured);
+      const bFeatured = Boolean(b.featured);
+      
+      // If one is featured and the other isn't, featured comes first
+      if (aFeatured && !bFeatured) return -1;
+      if (!aFeatured && bFeatured) return 1;
+      
+      // Within each group (both featured or both non-featured), sort by creation date (createdAt) descending
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      return dateB - dateA; // Descending (newest first)
+    });
+
     setCompanies(filtered);
     // Reset to page 1 when filters change
     setCurrentPage(1);
@@ -102,8 +158,25 @@ export default function CompaniesPage() {
       }
       const data = await response.json();
       const companiesList = data.companies || [];
-      setAllCompanies(companiesList);
-      setCompanies(companiesList);
+      
+      // Sort companies: featured first, then by creation date descending
+      const sortedCompanies = [...companiesList].sort((a, b) => {
+        // Featured companies come first
+        const aFeatured = Boolean(a.featured);
+        const bFeatured = Boolean(b.featured);
+        
+        // If one is featured and the other isn't, featured comes first
+        if (aFeatured && !bFeatured) return -1;
+        if (!aFeatured && bFeatured) return 1;
+        
+        // Within each group (both featured or both non-featured), sort by creation date (createdAt) descending
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+        return dateB - dateA; // Descending (newest first)
+      });
+      
+      setAllCompanies(sortedCompanies);
+      setCompanies(sortedCompanies);
     } catch (err: any) {
       setError(err.message || 'Failed to load companies');
     } finally {
@@ -149,7 +222,7 @@ export default function CompaniesPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex flex-col mb-8 gap-4">
           <h1 className="text-4xl font-bold text-gray-900">
-            We have {companies.length} {companies.length === 1 ? 'company' : 'companies'}
+            We have {companies.length} {companies.length === 1 ? 'company' : 'companies'} meeting these criteria
           </h1>
 
           {/* Filters */}
@@ -231,16 +304,83 @@ export default function CompaniesPage() {
               return (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {currentCompanies.map((company) => (
-                      <div key={company.id} className="relative">
-                        <CompanyCard company={company} />
-                        <div className="mt-2 text-center">
-                          <span className="text-xs text-gray-500">
-                            {getTimeAgo(company.createdAt)}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+                    {currentCompanies.map((company) => {
+                      // Get the first picture, or use a placeholder
+                      const firstPicture = company.pictures && company.pictures.length > 0
+                        ? company.pictures[0]
+                        : null;
+
+                      // Format location
+                      const locationParts = [];
+                      if (company.address?.city) {
+                        locationParts.push(company.address.city);
+                      }
+                      if (company.address?.country) {
+                        const countryName = getCountryNameFromCode(company.address.country);
+                        locationParts.push(countryName || company.address.country);
+                      }
+                      const locationText = locationParts.length > 0 
+                        ? locationParts.join(', ') 
+                        : 'Location not specified';
+
+                      return (
+                        <Link
+                          key={company.id}
+                          href={`/companies/${company.id}`}
+                          className={`rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer block ${
+                            company.featured 
+                              ? 'bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-300' 
+                              : 'bg-white'
+                          }`}
+                        >
+                          {/* Company Picture */}
+                          <div className="w-full h-48 bg-gray-200 relative overflow-hidden">
+                            {company.featured && (
+                              <div className="absolute top-2 right-2 z-10 bg-yellow-400 text-yellow-900 px-2 py-1 rounded-md text-xs font-bold shadow-md">
+                                ⭐ Featured
+                              </div>
+                            )}
+                            {firstPicture ? (
+                              <img
+                                src={firstPicture}
+                                alt={company.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  // Only hide if it's a local /uploads/ path (won't work on Vercel)
+                                  const img = e.target as HTMLImageElement;
+                                  if (img.src.includes('/uploads/')) {
+                                    img.style.display = 'none';
+                                  } else {
+                                    // For blob storage URLs, log the error but don't hide
+                                    console.error('Failed to load image:', img.src);
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-300 to-gray-400">
+                                <span className="text-gray-500 text-sm">No Image</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Company Info */}
+                          <div className="p-4">
+                            <h2 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
+                              {company.name}
+                            </h2>
+
+                            {/* Location and Time Ago */}
+                            <div className="flex flex-col gap-1">
+                              <p className="text-sm text-gray-600 flex flex-wrap items-center gap-1">
+                                <span className="mr-1">📍</span>
+                                <span className="font-medium text-gray-800">{locationText}</span>
+                              </p>
+                              <TimeAgoDisplay date={company.createdAt} />
+                            </div>
+                          </div>
+                        </Link>
+                      );
+                    })}
                   </div>
 
                   {/* Pagination Controls */}
@@ -320,3 +460,18 @@ export default function CompaniesPage() {
   );
 }
 
+// Wrapper component with Suspense boundary for useSearchParams
+export default function CompaniesPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50">
+        <Navbar />
+        <main className="max-w-7xl mx-auto px-4 py-8">
+          <div className="text-center py-12">Loading companies...</div>
+        </main>
+      </div>
+    }>
+      <CompaniesPageContent />
+    </Suspense>
+  );
+}

@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
       address: company.address,
       website: company.website,
       coordinates: company.coordinates,
+      featured: company.featured || false,
       createdAt: company.createdAt,
     }));
 

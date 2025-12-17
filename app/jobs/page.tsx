@@ -179,6 +179,8 @@ function JobsPageContent() {
     }
 
     // Sort: featured jobs first, then by posting date (createdAt) descending
+    // 1) Featured jobs ordered by post date descending
+    // 2) Non-featured jobs ordered by post date descending
     filtered.sort((a, b) => {
       // Featured jobs come first
       const aFeatured = Boolean(a.featured);
@@ -203,8 +205,25 @@ function JobsPageContent() {
     try {
       const data = await jobsApi.getAll();
       const jobsList = data.jobs || [];
-      setAllJobs(jobsList);
-      setJobs(jobsList);
+      
+      // Sort jobs: featured first, then by posting date descending
+      const sortedJobs = [...jobsList].sort((a, b) => {
+        // Featured jobs come first
+        const aFeatured = Boolean(a.featured);
+        const bFeatured = Boolean(b.featured);
+        
+        // If one is featured and the other isn't, featured comes first
+        if (aFeatured && !bFeatured) return -1;
+        if (!aFeatured && bFeatured) return 1;
+        
+        // Within each group (both featured or both non-featured), sort by posting date (createdAt) descending
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+        return dateB - dateA; // Descending (newest first)
+      });
+      
+      setAllJobs(sortedJobs);
+      setJobs(sortedJobs);
     } catch (err: any) {
       setError(err.message || 'Failed to load jobs');
     } finally {
