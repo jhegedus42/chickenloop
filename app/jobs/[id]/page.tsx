@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 import Navbar from '../../components/Navbar';
+import ShareJobButton from '../../components/ShareJobButton';
 import { jobsApi } from '@/lib/api';
 import { getCountryNameFromCode } from '@/lib/countryUtils';
 import { useAuth } from '../../contexts/AuthContext';
@@ -97,6 +98,7 @@ function formatCompanyAddress(address?: CompanyInfo['address']): string | null {
 
 export default function JobDetailPage() {
   const params = useParams();
+  const pathname = usePathname();
   const { user } = useAuth();
   const jobId = params?.id as string;
   const [job, setJob] = useState<Job | null>(null);
@@ -109,7 +111,15 @@ export default function JobDetailPage() {
   const [isFavourite, setIsFavourite] = useState(false);
   const [togglingFavourite, setTogglingFavourite] = useState(false);
   const [checkingFavourite, setCheckingFavourite] = useState(false);
+  const [currentUrl, setCurrentUrl] = useState('');
   const hasLoadedRef = useRef<string | null>(null);
+
+  // Get the current URL for sharing (client-side only)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setCurrentUrl(window.location.href);
+    }
+  }, [pathname]);
 
   useEffect(() => {
     // Load job regardless of authentication status
@@ -261,7 +271,13 @@ export default function JobDetailPage() {
             {/* Job Title and Company */}
             <div className="mb-6">
               <h1 className="text-4xl font-bold text-gray-900 mb-2">{job.title}</h1>
-              <p className="text-2xl text-gray-600 mb-4">{job.company}</p>
+              <p className="text-2xl text-gray-600 mb-2">{job.company}</p>
+              {/* Share Button */}
+              <ShareJobButton
+                jobTitle={job.title}
+                shortDescription={`${job.type} position at ${job.company} in ${job.location}`}
+                url={currentUrl}
+              />
             </div>
 
             {/* Job Details */}
