@@ -540,6 +540,9 @@ export default function JobDetailPage() {
                     </div>
                   )}
                 </div>
+                <p className="mt-4 text-sm text-gray-500 italic">
+                  Please mention that you found this job on chickenloop.com
+                </p>
               </div>
             )}
 
