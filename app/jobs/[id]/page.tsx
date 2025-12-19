@@ -272,12 +272,41 @@ export default function JobDetailPage() {
             <div className="mb-6">
               <h1 className="text-4xl font-bold text-gray-900 mb-2">{job.title}</h1>
               <p className="text-2xl text-gray-600 mb-2">{job.company}</p>
-              {/* Share Button */}
-              <ShareJobButton
-                jobTitle={job.title}
-                shortDescription={`${job.type} position at ${job.company} in ${job.location}`}
-                url={currentUrl}
-              />
+              {/* Share and Favourites Buttons */}
+              <div className="flex items-center gap-3">
+                <ShareJobButton
+                  jobTitle={job.title}
+                  shortDescription={`${job.type} position at ${job.company} in ${job.location}`}
+                  url={currentUrl}
+                />
+                {/* Add to Favourites Button */}
+                {user && user.role === 'job-seeker' ? (
+                  <button
+                    onClick={handleToggleFavourite}
+                    disabled={togglingFavourite || checkingFavourite}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-label={isFavourite ? 'Remove from favourites' : 'Add to favourites'}
+                  >
+                    {togglingFavourite ? (
+                      <span>...</span>
+                    ) : isFavourite ? (
+                      <>
+                        <svg className="w-4 h-4 fill-yellow-500" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                        <span>In Favourites</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                        </svg>
+                        <span>Add to Favourites</span>
+                      </>
+                    )}
+                  </button>
+                ) : null}
+              </div>
             </div>
 
             {/* Job Details */}
@@ -573,39 +602,8 @@ export default function JobDetailPage() {
                   <FormattedDate date={job.createdAt} />
                 </div>
                 
-                {/* Right Column - Favourites and Report Spam Buttons */}
-                <div className="flex-shrink-0 flex flex-col sm:flex-row gap-3">
-                  {/* Add to Favourites Button */}
-                  {user && user.role === 'job-seeker' ? (
-                    <button
-                      onClick={handleToggleFavourite}
-                      disabled={togglingFavourite || checkingFavourite}
-                      className={`px-4 py-2 text-sm rounded-lg font-medium transition-colors ${
-                        isFavourite
-                          ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                          : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                      }`}
-                    >
-                      {togglingFavourite
-                        ? '...'
-                        : isFavourite
-                        ? '★ In Favourites'
-                        : '☆ Add to Favourites'}
-                    </button>
-                  ) : (
-                    <div className="px-4 py-2 text-xs text-gray-600 bg-gray-100 rounded-lg max-w-xs">
-                      <span>Please </span>
-                      <Link href="/login" className="text-blue-600 hover:underline">
-                        log in
-                      </Link>
-                      <span> or </span>
-                      <Link href="/register" className="text-blue-600 hover:underline">
-                        register
-                      </Link>
-                      <span> as Job Seeker to add favourites</span>
-                    </div>
-                  )}
-                  
+                {/* Right Column - Report Spam Button */}
+                <div className="flex-shrink-0">
                   {/* Report Spam Button */}
                   <button
                     onClick={handleReportSpam}
