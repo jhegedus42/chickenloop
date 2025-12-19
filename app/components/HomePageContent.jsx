@@ -206,7 +206,7 @@ export default function HomePageContent() {
               Find Your Next Watersports Job
             </h1>
             <p className="text-lg sm:text-xl md:text-2xl text-white/90 mb-6 sm:mb-8 drop-shadow-md max-w-2xl mx-auto">
-              Kite, foil, surf, sail or dive — discover opportunities worldwide.
+              Kite, surf, foil, sail or dive — discover opportunities worldwide.
             </p>
             <Link
               href="/jobs"
