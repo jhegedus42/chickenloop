@@ -48,7 +48,7 @@ export default function CVDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const cvId = params?.id as string;
+  const cvId = (params?.id as string) || '';
   const [cv, setCv] = useState<CV | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -75,7 +75,7 @@ export default function CVDetailPage() {
 
   const checkFavouriteStatus = async () => {
     if (!user || (user.role !== 'recruiter' && user.role !== 'admin')) return;
-    
+
     setCheckingFavourite(true);
     try {
       const data = await candidatesApi.checkFavourite(cvId);
@@ -89,7 +89,7 @@ export default function CVDetailPage() {
 
   const handleToggleFavourite = async () => {
     if (!user || (user.role !== 'recruiter' && user.role !== 'admin') || togglingFavourite) return;
-    
+
     setTogglingFavourite(true);
     try {
       const data = await candidatesApi.toggleFavourite(cvId);
@@ -164,17 +164,16 @@ export default function CVDetailPage() {
                 <button
                   onClick={handleToggleFavourite}
                   disabled={togglingFavourite || checkingFavourite}
-                  className={`px-4 py-2 rounded font-semibold transition-colors ${
-                    isFavourite
+                  className={`px-4 py-2 rounded font-semibold transition-colors ${isFavourite
                       ? 'bg-yellow-500 text-white hover:bg-yellow-600'
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   {togglingFavourite
                     ? 'Updating...'
                     : isFavourite
-                    ? '★ My Favourite'
-                    : '☆ Add to Favourites'}
+                      ? '★ My Favourite'
+                      : '☆ Add to Favourites'}
                 </button>
               )}
               <Link
