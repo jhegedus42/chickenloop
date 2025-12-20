@@ -161,7 +161,15 @@ export default function NewCVPage() {
         router.push('/job-seeker');
       }, 3000);
     } catch (err: any) {
-      setError(err.message || 'Failed to create CV');
+      const errorMessage = err.message || 'Failed to create CV';
+      setError(errorMessage);
+      // Scroll to error banner
+      setTimeout(() => {
+        const errorBanner = document.getElementById('error-banner');
+        if (errorBanner) {
+          errorBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 100);
     } finally {
       setLoading(false);
     }
@@ -859,6 +867,22 @@ export default function NewCVPage() {
                 </div>
               </div>
             </div>
+
+            {/* Error banner near submit button */}
+            {error && (
+              <div id="error-banner" className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                <div className="flex items-center justify-between">
+                  <span>{error}</span>
+                  <button
+                    onClick={() => setError('')}
+                    className="text-red-700 hover:text-red-900 ml-4"
+                    aria-label="Dismiss error"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-4">
               <button
