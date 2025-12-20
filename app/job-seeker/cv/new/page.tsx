@@ -106,13 +106,25 @@ export default function NewCVPage() {
         credentials: 'include',
       });
 
-      const data = await response.json();
+      // Safely parse JSON response
+      let data;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(`Server error: ${text.substring(0, 200)}`);
+      }
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to upload pictures');
       }
 
       return data.paths || [];
+    } catch (error: any) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload pictures';
+      setError(errorMessage);
+      throw error;
     } finally {
       setUploadingPictures(false);
     }

@@ -113,7 +113,15 @@ export default function EditCareerAdvicePage() {
         credentials: 'include',
       });
 
-      const data = await response.json();
+      // Safely parse JSON response
+      let data;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(`Server error: ${text.substring(0, 200)}`);
+      }
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to upload picture');
@@ -121,7 +129,8 @@ export default function EditCareerAdvicePage() {
 
       return data.url;
     } catch (err: any) {
-      setError(err.message || 'Failed to upload picture');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to upload picture';
+      setError(errorMessage);
       return null;
     } finally {
       setUploadingPicture(false);
