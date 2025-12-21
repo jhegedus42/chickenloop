@@ -142,7 +142,7 @@ export default function CVDetailPage() {
             </div>
             <Link
               href="/candidates"
-              className="text-blue-600 hover:text-blue-800 hover:underline"
+              className="inline-flex items-center text-blue-600 hover:text-blue-800 font-semibold"
             >
               ← Back to CVs
             </Link>
@@ -155,7 +155,14 @@ export default function CVDetailPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50">
       <Navbar />
-      <main className="max-w-4xl mx-auto px-4 py-12">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <Link
+          href="/candidates"
+          className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-6 font-semibold"
+        >
+          ← Back to CVs
+        </Link>
+
         <div className="bg-white rounded-lg shadow-lg p-8">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold text-gray-900">{cv.fullName}</h1>
@@ -177,12 +184,6 @@ export default function CVDetailPage() {
                     : '☆ Add to Favourites'}
                 </button>
               )}
-              <Link
-                href="/candidates"
-                className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300"
-              >
-                Back to CVs
-              </Link>
             </div>
           </div>
 

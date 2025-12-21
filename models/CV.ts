@@ -94,8 +94,10 @@ const CVSchema: Schema = new Schema(
 
 const CV: Model<ICV> = mongoose.models.CV || mongoose.model<ICV>('CV', CVSchema);
 
-// Create index on createdAt for efficient sorting
+// Create indexes for efficient querying
 CVSchema.index({ createdAt: -1 });
+// Compound index for published + createdAt queries (used in candidates-list)
+CVSchema.index({ published: 1, createdAt: -1 });
 
 export default CV;
 
