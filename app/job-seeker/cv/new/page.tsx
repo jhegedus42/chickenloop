@@ -43,6 +43,14 @@ export default function NewCVPage() {
     }
   }, [user, authLoading, router]);
 
+  // Prefill email from user account when user is loaded
+  useEffect(() => {
+    if (user && user.email && formData.email === '') {
+      setFormData((prev) => ({ ...prev, email: user.email }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
   const handlePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const totalPictures = selectedPictures.length + files.length;

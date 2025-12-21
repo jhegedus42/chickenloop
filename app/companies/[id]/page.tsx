@@ -241,7 +241,14 @@ export default function CompanyPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50">
       <Navbar />
-      <main className="max-w-4xl mx-auto px-4 py-12">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <Link
+          href="/companies"
+          className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-6 font-semibold"
+        >
+          ← Back to Companies
+        </Link>
+
         <div className="bg-white rounded-lg shadow-lg p-8">
           <div className="flex items-center gap-6 mb-4">
             {company.logo && (

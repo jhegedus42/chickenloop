@@ -16,19 +16,14 @@ export async function GET(request: NextRequest) {
     // Get only published CVs (unpublished CVs are hidden from recruiters/admins)
     // Include CVs where published is true OR undefined (default is true)
     // Exclude only CVs where published is explicitly false
-    // Use find with populate and sort in memory to avoid MongoDB sort memory limit
-    const cvsRaw = await CV.find({
+    // Use MongoDB sort with index for better performance
+    const cvs = await CV.find({
       published: { $ne: false }
     })
       .populate('jobSeeker', 'name email lastOnline')
-      .lean();
-    
-    // Sort in memory after fetching (avoids MongoDB sort memory limit)
-    const cvs = cvsRaw.sort((a: any, b: any) => {
-      const dateA = new Date(a.createdAt).getTime();
-      const dateB = new Date(b.createdAt).getTime();
-      return dateB - dateA; // Descending order
-    });
+      .sort({ createdAt: -1 }) // Use MongoDB sort with index
+      .lean()
+      .exec();
 
     console.log(`API: /api/candidates-list - Found ${cvs.length} CVs`);
 
