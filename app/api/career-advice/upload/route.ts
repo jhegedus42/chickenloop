@@ -41,19 +41,31 @@ export async function POST(request: NextRequest) {
     const extension = file.name.split('.').pop() || 'jpg';
     const filename = `career-advice/article-${timestamp}-${randomStr}.${extension}`;
 
-    const useBlobStorage = !!process.env.BLOB_READ_WRITE_TOKEN;
+    // In Vercel, always use Blob storage (filesystem is read-only)
+    // In local dev, use Blob if token is available, otherwise fallback to filesystem
+    const isVercel = !!process.env.VERCEL;
+    const hasBlobToken = !!process.env.BLOB_READ_WRITE_TOKEN;
+    const useBlobStorage = isVercel || hasBlobToken;
     
     console.log('[Upload] Storage method:', useBlobStorage ? 'Vercel Blob Storage' : 'Local filesystem');
+    console.log('[Upload] Vercel environment:', isVercel);
+
+    if (isVercel && !hasBlobToken) {
+      return NextResponse.json(
+        { error: 'BLOB_READ_WRITE_TOKEN is required for file uploads in production' },
+        { status: 500 }
+      );
+    }
 
     let fileUrl: string;
 
     if (useBlobStorage) {
-      // Upload to Vercel Blob (production)
+      // Upload to Vercel Blob (production or local with token)
       const blob = await put(filename, file, { access: 'public' });
       console.log('[Upload] Uploaded to Blob Storage:', blob.url);
       fileUrl = blob.url;
     } else {
-      // Fallback to filesystem storage (local development)
+      // Fallback to filesystem storage (local development only)
       const uploadDir = join(process.cwd(), 'public', 'uploads', 'career-advice');
       if (!existsSync(uploadDir)) {
         await mkdir(uploadDir, { recursive: true });
@@ -89,4 +101,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
 

@@ -25,7 +25,18 @@ export async function POST(request: NextRequest) {
     }
 
     const uploadedPaths: string[] = [];
-    const useBlobStorage = !!process.env.BLOB_READ_WRITE_TOKEN;
+    // In Vercel, always use Blob storage (filesystem is read-only)
+    // In local dev, use Blob if token is available, otherwise fallback to filesystem
+    const isVercel = !!process.env.VERCEL;
+    const hasBlobToken = !!process.env.BLOB_READ_WRITE_TOKEN;
+    const useBlobStorage = isVercel || hasBlobToken;
+
+    if (isVercel && !hasBlobToken) {
+      return NextResponse.json(
+        { error: 'BLOB_READ_WRITE_TOKEN is required for file uploads in production' },
+        { status: 500 }
+      );
+    }
 
     for (const file of files) {
       if (!file || !(file instanceof File)) {
@@ -57,11 +68,11 @@ export async function POST(request: NextRequest) {
       const filename = `cvs/cv-${timestamp}-${randomStr}.${extension}`;
 
       if (useBlobStorage) {
-        // Upload to Vercel Blob (production)
+        // Upload to Vercel Blob (production or local with token)
         const blob = await put(filename, file, { access: 'public' });
         uploadedPaths.push(blob.url);
       } else {
-        // Fallback to filesystem storage (local development)
+        // Fallback to filesystem storage (local development only)
         const uploadDir = join(process.cwd(), 'public', 'uploads', 'cvs');
         if (!existsSync(uploadDir)) {
           await mkdir(uploadDir, { recursive: true });

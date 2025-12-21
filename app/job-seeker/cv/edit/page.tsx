@@ -146,7 +146,15 @@ export default function EditCVPage() {
         credentials: 'include',
       });
 
-      const data = await response.json();
+      // Safely parse JSON response
+      let data;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(`Server error: ${text.substring(0, 200)}`);
+      }
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to upload pictures');
@@ -154,6 +162,10 @@ export default function EditCVPage() {
 
       // Merge existing pictures with newly uploaded ones
       return [...existingPictures, ...(data.paths || [])];
+    } catch (error: any) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload pictures';
+      setError(errorMessage);
+      throw error;
     } finally {
       setUploadingPictures(false);
     }
@@ -190,7 +202,15 @@ export default function EditCVPage() {
         router.push('/job-seeker');
       }, 3000);
     } catch (err: any) {
-      setError(err.message || 'Failed to update CV');
+      const errorMessage = err.message || 'Failed to update CV';
+      setError(errorMessage);
+      // Scroll to error banner
+      setTimeout(() => {
+        const errorBanner = document.getElementById('error-banner');
+        if (errorBanner) {
+          errorBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 100);
     } finally {
       setLoading(false);
     }
@@ -910,6 +930,22 @@ export default function EditCVPage() {
                 </div>
               </div>
             </div>
+
+            {/* Error banner near submit button */}
+            {error && (
+              <div id="error-banner" className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                <div className="flex items-center justify-between">
+                  <span>{error}</span>
+                  <button
+                    onClick={() => setError('')}
+                    className="text-red-700 hover:text-red-900 ml-4"
+                    aria-label="Dismiss error"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-4">
               <button
