@@ -6,6 +6,7 @@ import Navbar from '../../components/Navbar';
 import { useAuth } from '../../contexts/AuthContext';
 import { candidatesApi } from '@/lib/api';
 import Link from 'next/link';
+import JobSelectionModal from '../../components/JobSelectionModal';
 
 interface CV {
   _id: string;
@@ -57,6 +58,10 @@ export default function CVDetailPage() {
   const [isFavourite, setIsFavourite] = useState(false);
   const [togglingFavourite, setTogglingFavourite] = useState(false);
   const [checkingFavourite, setCheckingFavourite] = useState(false);
+  const [hasContacted, setHasContacted] = useState(false);
+  const [contacting, setContacting] = useState(false);
+  const [showJobModal, setShowJobModal] = useState(false);
+  const [availableJobs, setAvailableJobs] = useState<any[]>([]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -70,8 +75,96 @@ export default function CVDetailPage() {
     if (user && (user.role === 'recruiter' || user.role === 'admin') && cvId) {
       loadCV();
       checkFavouriteStatus();
+      checkContactStatus();
     }
   }, [user, cvId]);
+
+  const checkContactStatus = async () => {
+    if (!user || (user.role !== 'recruiter' && user.role !== 'admin') || !cv) return;
+    
+    try {
+      const response = await fetch('/api/applications', {
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const candidateId = cv.jobSeeker?._id ? String(cv.jobSeeker._id) : null;
+        if (candidateId) {
+          const hasContact = (data.applications || []).some((app: any) => {
+            // Handle both populated object and ObjectId formats
+            let appCandidateId: string | null = null;
+            if (app.candidateId) {
+              if (typeof app.candidateId === 'object' && app.candidateId._id) {
+                appCandidateId = String(app.candidateId._id);
+              } else {
+                appCandidateId = String(app.candidateId);
+              }
+            }
+            return appCandidateId === candidateId;
+          });
+          setHasContacted(hasContact);
+        }
+      }
+    } catch (err: any) {
+      // Silently fail - not critical
+    }
+  };
+
+  useEffect(() => {
+    if (cv && user && (user.role === 'recruiter' || user.role === 'admin')) {
+      checkContactStatus();
+    }
+  }, [cv, user]);
+
+  const handleContactCandidate = async (jobId?: string) => {
+    if (!cv || !user || (user.role !== 'recruiter' && user.role !== 'admin') || contacting || hasContacted) return;
+    
+    const candidateId = cv.jobSeeker?._id ? String(cv.jobSeeker._id) : null;
+    if (!candidateId) {
+      alert('Unable to identify candidate. Please try again.');
+      return;
+    }
+    
+    setContacting(true);
+    
+    try {
+      const response = await fetch('/api/applications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ candidateId, jobId }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setHasContacted(true);
+        alert('Candidate contacted successfully!');
+        setShowJobModal(false);
+        setAvailableJobs([]);
+      } else if (data.jobs && Array.isArray(data.jobs)) {
+        // Multiple jobs available - show selection modal
+        setAvailableJobs(data.jobs);
+        setShowJobModal(true);
+        setContacting(false);
+      } else {
+        alert(data.error || 'Failed to contact candidate. Please try again.');
+      }
+    } catch (err: any) {
+      alert('Failed to contact candidate. Please try again.');
+    } finally {
+      if (!showJobModal) {
+        setContacting(false);
+      }
+    }
+  };
+
+  const handleJobSelect = (jobId: string) => {
+    handleContactCandidate(jobId);
+  };
 
   const checkFavouriteStatus = async () => {
     if (!user || (user.role !== 'recruiter' && user.role !== 'admin')) return;
@@ -168,21 +261,37 @@ export default function CVDetailPage() {
             <h1 className="text-3xl font-bold text-gray-900">{cv.fullName}</h1>
             <div className="flex gap-3">
               {user && (user.role === 'recruiter' || user.role === 'admin') && (
-                <button
-                  onClick={handleToggleFavourite}
-                  disabled={togglingFavourite || checkingFavourite}
-                  className={`px-4 py-2 rounded font-semibold transition-colors ${
-                    isFavourite
-                      ? 'bg-yellow-500 text-white hover:bg-yellow-600'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
-                >
-                  {togglingFavourite
-                    ? 'Updating...'
-                    : isFavourite
-                    ? '★ My Favourite'
-                    : '☆ Add to Favourites'}
-                </button>
+                <>
+                  {hasContacted ? (
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-800 rounded font-semibold">
+                      <span>✓</span>
+                      <span>Contacted</span>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => handleContactCandidate()}
+                      disabled={contacting}
+                      className="px-4 py-2 bg-blue-600 text-white rounded font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {contacting ? 'Contacting...' : 'Contact Candidate'}
+                    </button>
+                  )}
+                  <button
+                    onClick={handleToggleFavourite}
+                    disabled={togglingFavourite || checkingFavourite}
+                    className={`px-4 py-2 rounded font-semibold transition-colors ${
+                      isFavourite
+                        ? 'bg-yellow-500 text-white hover:bg-yellow-600'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    {togglingFavourite
+                      ? 'Updating...'
+                      : isFavourite
+                      ? '★ My Favourite'
+                      : '☆ Add to Favourites'}
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -455,6 +564,17 @@ export default function CVDetailPage() {
           )}
         </div>
       </main>
+      <JobSelectionModal
+        isOpen={showJobModal}
+        jobs={availableJobs}
+        onSelect={handleJobSelect}
+        onClose={() => {
+          setShowJobModal(false);
+          setAvailableJobs([]);
+          setContacting(false);
+        }}
+        candidateName={cv?.fullName}
+      />
     </div>
   );
 }

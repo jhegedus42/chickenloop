@@ -58,6 +58,9 @@ export default function RecruiterDashboard() {
   const [submitting, setSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
   const [favouriteCandidates, setFavouriteCandidates] = useState<Candidate[]>([]);
+  const [applications, setApplications] = useState<any[]>([]);
+  const [loadingApplications, setLoadingApplications] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -72,6 +75,7 @@ export default function RecruiterDashboard() {
       checkCompany();
       loadJobs();
       loadFavouriteCandidates();
+      loadApplications();
     }
   }, [user]);
 
@@ -131,6 +135,50 @@ export default function RecruiterDashboard() {
     } catch (err: any) {
       // Silently fail - not critical for dashboard load
       console.error('Failed to load favourite candidates:', err);
+    }
+  };
+
+  const loadApplications = async () => {
+    setLoadingApplications(true);
+    try {
+      const response = await fetch('/api/applications', {
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setApplications(data.applications || []);
+      }
+    } catch (err: any) {
+      console.error('Failed to load applications:', err);
+    } finally {
+      setLoadingApplications(false);
+    }
+  };
+
+  const handleUpdateStatus = async (applicationId: string, newStatus: string) => {
+    setUpdatingStatus(applicationId);
+    try {
+      const response = await fetch(`/api/applications/${applicationId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (response.ok) {
+        // Reload applications to get updated data
+        await loadApplications();
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to update application status');
+      }
+    } catch (err: any) {
+      alert('Failed to update application status. Please try again.');
+    } finally {
+      setUpdatingStatus(null);
     }
   };
 
@@ -359,6 +407,126 @@ export default function RecruiterDashboard() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* ATS - Applications Section */}
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-gray-900 mb-6">Applicant Tracking System</h2>
+          {loadingApplications ? (
+            <div className="bg-white rounded-lg shadow-md p-8 text-center">
+              <p className="text-gray-600">Loading applications...</p>
+            </div>
+          ) : applications.length === 0 ? (
+            <div className="bg-white rounded-lg shadow-md p-8 text-center">
+              <p className="text-gray-600">No applications received yet.</p>
+              <p className="text-gray-500 text-sm mt-2">
+                Applications will appear here when candidates apply to your jobs.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {(() => {
+                // Group applications by job
+                const groupedByJob: { [key: string]: any[] } = {};
+                applications.forEach((app: any) => {
+                  const jobId = app.jobId?._id || app.jobId;
+                  if (!groupedByJob[jobId]) {
+                    groupedByJob[jobId] = [];
+                  }
+                  groupedByJob[jobId].push(app);
+                });
+
+                return Object.entries(groupedByJob).map(([jobId, jobApplications]) => {
+                  const job = jobApplications[0].jobId;
+                  const jobTitle = job?.title || 'Unknown Job';
+                  const jobLocation = job?.location || '';
+
+                  return (
+                    <div key={jobId} className="bg-white rounded-lg shadow-md overflow-hidden">
+                      <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                        <h3 className="text-xl font-semibold text-gray-900">{jobTitle}</h3>
+                        {jobLocation && (
+                          <p className="text-sm text-gray-600 mt-1">📍 {jobLocation}</p>
+                        )}
+                        <p className="text-sm text-gray-500 mt-1">
+                          {jobApplications.length} {jobApplications.length === 1 ? 'application' : 'applications'}
+                        </p>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Candidate
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Applied Date
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Actions
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {jobApplications.map((app: any) => {
+                              const candidate = app.candidateId;
+                              const candidateName = candidate?.name || 'Unknown';
+                              const candidateEmail = candidate?.email || '';
+                              const appliedDate = new Date(app.appliedAt).toLocaleDateString();
+                              const statusColors: { [key: string]: string } = {
+                                new: 'bg-blue-100 text-blue-800',
+                                contacted: 'bg-yellow-100 text-yellow-800',
+                                interviewed: 'bg-purple-100 text-purple-800',
+                                offered: 'bg-green-100 text-green-800',
+                                rejected: 'bg-red-100 text-red-800',
+                              };
+
+                              return (
+                                <tr key={app._id}>
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="text-sm font-medium text-gray-900">{candidateName}</div>
+                                    <div className="text-sm text-gray-500">{candidateEmail}</div>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {appliedDate}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${statusColors[app.status] || 'bg-gray-100 text-gray-800'}`}>
+                                      {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <select
+                                      value={app.status}
+                                      onChange={(e) => handleUpdateStatus(app._id, e.target.value)}
+                                      disabled={updatingStatus === app._id}
+                                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      <option value="new">New</option>
+                                      <option value="contacted">Contacted</option>
+                                      <option value="interviewed">Interviewed</option>
+                                      <option value="offered">Offered</option>
+                                      <option value="rejected">Rejected</option>
+                                    </select>
+                                    {updatingStatus === app._id && (
+                                      <span className="ml-2 text-xs text-gray-500">Updating...</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
             </div>
           )}
         </div>
