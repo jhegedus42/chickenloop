@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
+import { sendEmail, isEmailConfigured } from '@/lib/email';
 
-// POST - Send contact/feedback email
+// POST - Send contact/feedback email using Resend
 export async function POST(request: NextRequest) {
   try {
     const { name, email, message } = await request.json();
@@ -13,16 +13,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if SMTP is configured
-    const smtpHost = process.env.SMTP_HOST;
-    const smtpPort = process.env.SMTP_PORT;
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
-    const smtpFrom = process.env.SMTP_FROM || smtpUser || 'noreply@chickenloop.com';
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { error: 'Invalid email address format' },
+        { status: 400 }
+      );
+    }
 
-    if (!smtpHost || !smtpPort || !smtpUser || !smtpPass) {
-      // Log the submission for manual processing if SMTP is not configured
-      console.log('Contact Form Submission (SMTP not configured):', {
+    // Check if email service is configured
+    if (!isEmailConfigured()) {
+      // Log the submission for manual processing if email service is not configured
+      console.log('Contact Form Submission (Email service not configured):', {
         to: 'hello@chickenloop.com',
         from: email,
         name,
@@ -39,44 +42,57 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create transporter
-    const transporter = nodemailer.createTransport({
-      host: smtpHost,
-      port: parseInt(smtpPort, 10),
-      secure: parseInt(smtpPort, 10) === 465, // true for 465, false for other ports
-      auth: {
-        user: smtpUser,
-        pass: smtpPass,
-      },
-    });
+    // Get the contact email from environment or use default
+    const contactEmail = process.env.CONTACT_EMAIL || 'hello@chickenloop.com';
 
-    // Send email
-    await transporter.sendMail({
-      from: smtpFrom,
-      to: 'hello@chickenloop.com',
+    // Send email using Resend
+    const result = await sendEmail({
+      to: contactEmail,
       replyTo: email,
       subject: `Feedback from ${name}`,
-      text: `From: ${name} (${email})\n\n${message}`,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333;">New Feedback Submission</h2>
-          <p><strong>From:</strong> ${name} (${email})</p>
-          <p><strong>Date:</strong> ${new Date().toLocaleString()}</p>
-          <hr style="border: 1px solid #eee; margin: 20px 0;" />
-          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
-            <p style="white-space: pre-wrap; margin: 0;">${message.replace(/\n/g, '<br>')}</p>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #2563eb; margin-bottom: 20px;">New Feedback Submission</h2>
+          <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <p style="margin: 0 0 10px 0;"><strong>From:</strong> ${name}</p>
+            <p style="margin: 0 0 10px 0;"><strong>Email:</strong> <a href="mailto:${email}" style="color: #2563eb; text-decoration: none;">${email}</a></p>
+            <p style="margin: 0;"><strong>Date:</strong> ${new Date().toLocaleString()}</p>
+          </div>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
+          <div style="background-color: #ffffff; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+            <h3 style="color: #374151; margin-top: 0;">Message:</h3>
+            <p style="white-space: pre-wrap; margin: 0; color: #4b5563; line-height: 1.6;">${message.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')}</p>
           </div>
         </div>
       `,
+      text: `Feedback from ${name} (${email})\n\nDate: ${new Date().toLocaleString()}\n\nMessage:\n${message}`,
+      tags: [
+        { name: 'type', value: 'contact' },
+        { name: 'source', value: 'contact-form' },
+      ],
     });
 
+    if (!result.success) {
+      console.error('Failed to send contact email:', result.error);
+      return NextResponse.json(
+        { 
+          error: result.error || 'Failed to send message. Please try again.',
+          fallback: false 
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
-      { message: 'Thank you for your feedback! We will get back to you soon.' },
+      { 
+        message: 'Thank you for your feedback! We will get back to you soon.',
+        messageId: result.messageId 
+      },
       { status: 200 }
     );
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Error sending email:', error);
+    console.error('Error processing contact form:', error);
     return NextResponse.json(
       { error: errorMessage || 'Failed to send message. Please try again.' },
       { status: 500 }
