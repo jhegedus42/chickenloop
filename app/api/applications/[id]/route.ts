@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Application from '@/models/Application';
+import Job from '@/models/Job';
+import User from '@/models/User';
 import { requireRole } from '@/lib/auth';
+import { sendEmail } from '@/lib/email';
+import { getStatusChangedEmail } from '@/lib/emailTemplates';
 
 // PATCH - Update application status (recruiters only)
 export async function PATCH(
@@ -42,6 +46,9 @@ export async function PATCH(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    // Store old status for email notification
+    const oldStatus = application.status;
+
     // Update status and lastActivityAt
     application.status = status;
     application.lastActivityAt = new Date();
@@ -50,6 +57,44 @@ export async function PATCH(
     // Populate for response
     await application.populate('jobId', 'title company location');
     await application.populate('candidateId', 'name email');
+
+    // Send email notification to candidate if status changed (non-blocking)
+    if (oldStatus !== status) {
+      try {
+        const candidate = await User.findById(application.candidateId).select('name email');
+        const recruiter = await User.findById(application.recruiterId).select('name email');
+        
+        if (candidate && recruiter && candidate.email) {
+          const job = application.jobId ? await Job.findById(application.jobId).select('title company location') : null;
+
+          const emailTemplate = getStatusChangedEmail({
+            candidateName: candidate.name,
+            candidateEmail: candidate.email,
+            recruiterName: recruiter.name,
+            recruiterEmail: recruiter.email,
+            jobTitle: job?.title,
+            jobCompany: job?.company,
+            status: status,
+          });
+
+          await sendEmail({
+            to: candidate.email,
+            subject: emailTemplate.subject,
+            html: emailTemplate.html,
+            text: emailTemplate.text,
+            replyTo: recruiter.email,
+            tags: [
+              { name: 'type', value: 'application' },
+              { name: 'event', value: 'status_changed' },
+              { name: 'status', value: status },
+            ],
+          });
+        }
+      } catch (emailError) {
+        // Log but don't fail the request if email fails
+        console.error('Failed to send status change notification email:', emailError);
+      }
+    }
 
     return NextResponse.json(
       {

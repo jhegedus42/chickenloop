@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Application from '@/models/Application';
 import Job from '@/models/Job';
+import User from '@/models/User';
 import { requireRole, requireAuth } from '@/lib/auth';
+import { sendEmail } from '@/lib/email';
+import { getCandidateAppliedEmail, getRecruiterContactedEmail } from '@/lib/emailTemplates';
 
 // GET - Get applications
 // For job seekers: Check if user has applied to a specific job (requires jobId query param)
@@ -131,6 +134,39 @@ export async function POST(request: NextRequest) {
         lastActivityAt: now,
       });
 
+      // Send email notification to recruiter (non-blocking)
+      try {
+        const candidate = await User.findById(user.userId).select('name email');
+        const recruiter = await User.findById(recruiterId).select('name email');
+        
+        if (candidate && recruiter && recruiter.email) {
+          const emailTemplate = getCandidateAppliedEmail({
+            candidateName: candidate.name,
+            candidateEmail: candidate.email,
+            recruiterName: recruiter.name,
+            recruiterEmail: recruiter.email,
+            jobTitle: job.title,
+            jobCompany: job.company,
+            jobLocation: job.location,
+            applicationDate: now,
+          });
+
+          await sendEmail({
+            to: recruiter.email,
+            subject: emailTemplate.subject,
+            html: emailTemplate.html,
+            text: emailTemplate.text,
+            tags: [
+              { name: 'type', value: 'application' },
+              { name: 'event', value: 'candidate_applied' },
+            ],
+          });
+        }
+      } catch (emailError) {
+        // Log but don't fail the request if email fails
+        console.error('Failed to send application notification email:', emailError);
+      }
+
       return NextResponse.json(
         {
           message: 'Application submitted successfully',
@@ -238,6 +274,52 @@ export async function POST(request: NextRequest) {
       }
       
       const application = await Application.create(applicationData);
+
+      // Send email notification to candidate (non-blocking)
+      try {
+        const candidate = await User.findById(candidateId).select('name email');
+        const recruiter = await User.findById(user.userId).select('name email');
+        
+        if (candidate && recruiter && candidate.email) {
+          let jobTitle: string | undefined;
+          let jobCompany: string | undefined;
+          let jobLocation: string | undefined;
+
+          if (finalJobId) {
+            const job = await Job.findById(finalJobId).select('title company location');
+            if (job) {
+              jobTitle = job.title;
+              jobCompany = job.company;
+              jobLocation = job.location;
+            }
+          }
+
+          const emailTemplate = getRecruiterContactedEmail({
+            candidateName: candidate.name,
+            candidateEmail: candidate.email,
+            recruiterName: recruiter.name,
+            recruiterEmail: recruiter.email,
+            jobTitle,
+            jobCompany,
+            jobLocation,
+          });
+
+          await sendEmail({
+            to: candidate.email,
+            subject: emailTemplate.subject,
+            html: emailTemplate.html,
+            text: emailTemplate.text,
+            replyTo: recruiter.email,
+            tags: [
+              { name: 'type', value: 'application' },
+              { name: 'event', value: 'recruiter_contacted' },
+            ],
+          });
+        }
+      } catch (emailError) {
+        // Log but don't fail the request if email fails
+        console.error('Failed to send recruiter contact notification email:', emailError);
+      }
 
       return NextResponse.json(
         {
