@@ -69,7 +69,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<{ success: b
       subject,
       html: html || undefined,
       text: text || undefined,
-      reply_to: replyTo,
+      replyTo: replyTo,
       cc: cc ? (Array.isArray(cc) ? cc : [cc]) : undefined,
       bcc: bcc ? (Array.isArray(bcc) ? bcc : [bcc]) : undefined,
       tags: tags,

@@ -220,3 +220,127 @@ ${recruiterName ? `Recruiter: ${recruiterName}` : 'You can view all your applica
   return { subject, html, text };
 }
 
+/**
+ * Email: Job search alert
+ * Sent to: Job seeker with matching jobs
+ */
+export interface JobAlertEmailData {
+  userName: string;
+  userEmail: string;
+  searchName?: string;
+  jobs: Array<{
+    _id: string;
+    title: string;
+    company: string;
+    location: string;
+    country?: string;
+    description: string;
+    type: string;
+    featured?: boolean;
+    createdAt: Date;
+    url?: string;
+  }>;
+  frequency: 'daily' | 'weekly';
+}
+
+export function getJobAlertEmail(data: JobAlertEmailData): { subject: string; html: string; text: string } {
+  const { userName, searchName, jobs, frequency } = data;
+  
+  const jobCount = jobs.length;
+  const frequencyText = frequency === 'daily' ? 'daily' : 'weekly';
+  
+  const subject = searchName
+    ? `New Jobs Matching "${searchName}" - ${jobCount} ${jobCount === 1 ? 'job' : 'jobs'} found`
+    : `New Jobs Matching Your Search - ${jobCount} ${jobCount === 1 ? 'job' : 'jobs'} found`;
+
+  const jobsHtml = jobs.map((job) => {
+    const jobUrl = job.url || `https://chickenloop.com/jobs/${job._id}`;
+    const dateStr = new Date(job.createdAt).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+    
+    return `
+      <div style="background-color: ${job.featured ? '#fef3c7' : '#ffffff'}; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 15px; ${job.featured ? 'border-left: 4px solid #f59e0b;' : ''}">
+        ${job.featured ? '<div style="background-color: #f59e0b; color: white; padding: 4px 8px; border-radius: 4px; display: inline-block; font-size: 12px; font-weight: bold; margin-bottom: 10px;">⭐ Featured</div>' : ''}
+        <h3 style="margin: 0 0 10px 0; color: #1f2937;">
+          <a href="${jobUrl}" style="color: #2563eb; text-decoration: none; font-size: 18px;">${job.title}</a>
+        </h3>
+        <p style="margin: 5px 0; color: #4b5563; font-weight: 600;">${job.company}</p>
+        <p style="margin: 5px 0; color: #6b7280;">
+          📍 ${job.location}${job.country ? `, ${job.country}` : ''}
+        </p>
+        <p style="margin: 5px 0; color: #6b7280; font-size: 14px;">
+          💼 ${job.type.charAt(0).toUpperCase() + job.type.slice(1)} • Posted ${dateStr}
+        </p>
+        <p style="margin: 10px 0 0 0; color: #374151; line-height: 1.5;">
+          ${job.description.substring(0, 200)}${job.description.length > 200 ? '...' : ''}
+        </p>
+        <a href="${jobUrl}" style="display: inline-block; margin-top: 10px; padding: 8px 16px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">View Job</a>
+      </div>
+    `;
+  }).join('');
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #2563eb; margin-bottom: 20px;">New Jobs Matching Your Search</h2>
+      
+      <p>Hello ${userName},</p>
+      
+      <p>We found <strong>${jobCount} new ${jobCount === 1 ? 'job' : 'jobs'}</strong> that match your saved search${searchName ? ` "${searchName}"` : ''}.</p>
+
+      ${jobCount > 0 ? `
+        <div style="margin: 20px 0;">
+          ${jobsHtml}
+        </div>
+      ` : `
+        <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <p style="margin: 0; color: #6b7280;">No new jobs found this ${frequencyText}. We'll keep checking and notify you when new matches are available!</p>
+        </div>
+      `}
+
+      <div style="background-color: #eff6ff; padding: 15px; border-radius: 8px; border-left: 4px solid #2563eb; margin: 20px 0;">
+        <p style="margin: 0; color: #1e40af; font-size: 14px;">
+          <strong>Tip:</strong> You can manage your saved searches and adjust your preferences in your Chickenloop dashboard.
+        </p>
+      </div>
+
+      <p style="margin-top: 30px; color: #6b7280; font-size: 12px;">
+        This is a ${frequencyText} job alert. You're receiving this because you have an active saved search on Chickenloop.
+      </p>
+    </div>
+  `;
+
+  const text = `New Jobs Matching Your Search
+
+Hello ${userName},
+
+We found ${jobCount} new ${jobCount === 1 ? 'job' : 'jobs'} that match your saved search${searchName ? ` "${searchName}"` : ''}.
+
+${jobs.length > 0 ? jobs.map((job) => {
+    const jobUrl = job.url || `https://chickenloop.com/jobs/${job._id}`;
+    const dateStr = new Date(job.createdAt).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+    return `
+${job.featured ? '⭐ FEATURED\n' : ''}${job.title}
+${job.company}
+📍 ${job.location}${job.country ? `, ${job.country}` : ''}
+💼 ${job.type.charAt(0).toUpperCase() + job.type.slice(1)} • Posted ${dateStr}
+
+${job.description.substring(0, 200)}${job.description.length > 200 ? '...' : ''}
+
+View Job: ${jobUrl}
+`;
+  }).join('\n---\n') : `No new jobs found this ${frequencyText}. We'll keep checking and notify you when new matches are available!`}
+
+Tip: You can manage your saved searches and adjust your preferences in your Chickenloop dashboard.
+
+This is a ${frequencyText} job alert. You're receiving this because you have an active saved search on Chickenloop.`;
+
+  return { subject, html, text };
+}
+
