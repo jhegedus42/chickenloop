@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     // Find all active saved searches that need to be processed
-    const savedSearches = await SavedSearch.find({ active: true }).lean();
+    const savedSearches = await SavedSearch.find({ active: true }).lean() as any[];
 
     console.log(`[Cron Job Alerts] Found ${savedSearches.length} active saved searches`);
 

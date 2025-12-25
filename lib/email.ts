@@ -11,9 +11,15 @@ function getResendClient(): Resend | null {
     return resend;
   }
 
-  const apiKey = process.env.RESEND_API_KEY;
+  const apiKey = process.env.RESEND_API_KEY?.trim();
   if (!apiKey) {
     console.warn('RESEND_API_KEY is not set. Email functionality will be disabled.');
+    return null;
+  }
+
+  // Validate API key format (should start with 're_')
+  if (!apiKey.startsWith('re_')) {
+    console.error('RESEND_API_KEY appears to be invalid (should start with "re_")');
     return null;
   }
 

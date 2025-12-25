@@ -15,10 +15,11 @@ export interface JobMatch {
  * Match jobs against a saved search criteria
  */
 export async function findMatchingJobs(
-  savedSearch: ISavedSearch,
+  savedSearch: ISavedSearch | any,
   sinceDate?: Date
 ): Promise<JobMatch[]> {
   // Build query for published jobs
+  // Note: Database connection should be established by the caller
   const query: any = {
     published: { $ne: false }, // Exclude only explicitly unpublished jobs
   };
@@ -29,15 +30,19 @@ export async function findMatchingJobs(
   }
 
   // Fetch all jobs that might match
+  // Use explicit typing to avoid TypeScript issues with lean()
   const jobs = await Job.find(query)
     .populate('recruiter', 'name email')
     .sort({ createdAt: -1 })
-    .lean();
+    .lean() as any[];
+  
+  // Ensure we have an array
+  const jobsArray = Array.isArray(jobs) ? jobs : [];
 
   // Apply filters (matching frontend logic)
   const matches: JobMatch[] = [];
 
-  for (const job of jobs) {
+  for (const job of jobsArray) {
     const matchReasons: string[] = [];
     let jobMatches = true;
 
