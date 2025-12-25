@@ -69,17 +69,41 @@ export async function sendEmail(options: SendEmailOptions): Promise<{ success: b
       };
     }
 
-    const result = await client.emails.send({
+    // Build email payload - Resend requires at least one of html or text
+    const emailPayload: any = {
       from: from || getFromEmail(),
       to: Array.isArray(to) ? to : [to],
       subject,
-      html: html || undefined,
-      text: text || undefined,
-      replyTo: replyTo,
-      cc: cc ? (Array.isArray(cc) ? cc : [cc]) : undefined,
-      bcc: bcc ? (Array.isArray(bcc) ? bcc : [bcc]) : undefined,
-      tags: tags,
-    });
+    };
+
+    // Only include html if provided (Resend requires string, not undefined)
+    if (html) {
+      emailPayload.html = html;
+    }
+
+    // Only include text if provided
+    if (text) {
+      emailPayload.text = text;
+    }
+
+    // Add optional fields
+    if (replyTo) {
+      emailPayload.replyTo = replyTo;
+    }
+
+    if (cc) {
+      emailPayload.cc = Array.isArray(cc) ? cc : [cc];
+    }
+
+    if (bcc) {
+      emailPayload.bcc = Array.isArray(bcc) ? bcc : [bcc];
+    }
+
+    if (tags) {
+      emailPayload.tags = tags;
+    }
+
+    const result = await client.emails.send(emailPayload);
 
     if (result.error) {
       console.error('Resend API error:', result.error);
