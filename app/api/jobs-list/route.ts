@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Job from '@/models/Job';
 import mongoose from 'mongoose';
+import { CachePresets } from '@/lib/cache';
 
 // GET - Get all jobs (accessible to all users, including anonymous)
 // This endpoint is kept for backward compatibility - it uses the same logic as /api/jobs
@@ -42,7 +43,10 @@ export async function GET(request: NextRequest) {
       queryFilter.featured = true;
     }
 
-    const queryCursor = collection.find(queryFilter).maxTimeMS(10000);
+    // Use index hint for better performance
+    const queryCursor = collection.find(queryFilter)
+      .hint({ published: 1, createdAt: -1 }) // Use the compound index
+      .maxTimeMS(10000);
     let jobsWithoutPopulate: any[] = await queryCursor.toArray();
 
     // Filter for published jobs
@@ -94,7 +98,13 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ jobs }, { status: 200 });
+    // Add cache headers - jobs can be cached for 2 minutes with stale-while-revalidate
+    const cacheHeaders = CachePresets.short();
+
+    return NextResponse.json({ jobs }, { 
+      status: 200,
+      headers: cacheHeaders,
+    });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error in /api/jobs-list:', error);

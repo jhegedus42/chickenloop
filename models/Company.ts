@@ -156,6 +156,11 @@ const CompanySchema: Schema = new Schema(
   }
 );
 
+// Create indexes for efficient querying
+CompanySchema.index({ owner: 1 }); // For owner-based queries
+CompanySchema.index({ featured: 1 }); // For featured company filtering
+CompanySchema.index({ createdAt: -1 }); // For sorting by creation date
+
 const Company: Model<ICompany> = mongoose.models.Company || mongoose.model<ICompany>('Company', CompanySchema);
 
 export default Company;
