@@ -155,6 +155,14 @@ Start production server:
 npm start
 ```
 
+## Contributing
+
+This repository is a fork of [chickenloop3845-commits/chickenloop](https://github.com/chickenloop3845-commits/chickenloop). 
+
+To contribute changes back to the upstream repository:
+- See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines
+- Use the helper script: `./create-upstream-pr.sh`
+
 ## License
 
 This project is open source and available under the MIT License.
