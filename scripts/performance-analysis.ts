@@ -23,7 +23,8 @@ function loadEnv() {
             });
         }
     } catch (e) { 
-        console.warn('⚠️ Could not load .env.local:', (e as Error).message);
+        const errorMsg = e instanceof Error ? e.message : 'Unknown error';
+        console.warn('⚠️ Could not load .env.local:', errorMsg);
     }
 }
 
