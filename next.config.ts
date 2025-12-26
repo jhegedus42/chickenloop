@@ -19,8 +19,8 @@ const nextConfig: NextConfig = {
   experimental: {
     // Optimize package imports - add commonly used packages
     optimizePackageImports: ['react', 'react-dom', 'mongoose', 'bcryptjs', 'jsonwebtoken'],
-    // Enable optimized CSS loading
-    optimizeCss: true,
+    // Note: optimizeCss requires 'critters' package - disabled for now to avoid build issues
+    // optimizeCss: true,
   },
   // Enable compression for better performance
   compress: true,
