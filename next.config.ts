@@ -44,8 +44,6 @@ const nextConfig: NextConfig = {
     formats: ['image/avif', 'image/webp'], // Use modern formats for better compression
     minimumCacheTTL: 60, // Cache images for at least 60 seconds
   },
-  // Enable SWC minification for faster builds
-  swcMinify: true,
 };
 
 export default nextConfig;

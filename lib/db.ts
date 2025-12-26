@@ -93,7 +93,7 @@ async function connectDB() {
       // Use direct connection for local MongoDB
       directConnection: isLocal ? true : false,
       // Compression for better network performance
-      compressors: ['zlib'],
+      compressors: ['zlib' as const],
       // Note: maxTimeMS is a query option, not a connection option
       // It should be set on individual queries, not here
     };
