@@ -4,12 +4,21 @@ import Job from '@/models/Job';
 import { requireRole } from '@/lib/auth';
 
 // GET - Get all jobs posted by the current recruiter
+// Optional query param: ?published=true to get only published jobs
 export async function GET(request: NextRequest) {
   try {
-    const user = requireRole(request, ['recruiter']);
+    const user = requireRole(request, ['recruiter', 'admin']);
     await connectDB();
 
-    const jobs = await Job.find({ recruiter: user.userId })
+    const { searchParams } = new URL(request.url);
+    const publishedOnly = searchParams.get('published') === 'true';
+
+    const query: any = { recruiter: user.userId };
+    if (publishedOnly) {
+      query.published = true;
+    }
+
+    const jobs = await Job.find(query)
       .populate('recruiter', 'name email')
       .sort({ createdAt: -1 });
 

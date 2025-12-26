@@ -55,6 +55,11 @@ Create a `.env.local` file in the root directory:
 MONGODB_URI=mongodb://localhost:27017/chickenloop
 JWT_SECRET=your-secret-key-change-in-production
 BLOB_READ_WRITE_TOKEN=your-vercel-blob-token  # Optional for local dev - get from Vercel dashboard
+
+# Email Configuration (Resend)
+RESEND_API_KEY=re_your_api_key_here  # Get from https://resend.com/api-keys
+RESEND_FROM_EMAIL=noreply@yourdomain.com  # Optional, defaults to onboarding@resend.dev
+CONTACT_EMAIL=hello@chickenloop.com  # Optional, contact form recipient email
 ```
 
 **Note:** For local development, image uploads require a Vercel Blob Storage token. You can get one from your Vercel dashboard under Settings → Storage → Blob. For production deployments on Vercel, this token is automatically available.

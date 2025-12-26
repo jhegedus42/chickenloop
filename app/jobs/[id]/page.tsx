@@ -111,6 +111,10 @@ export default function JobDetailPage() {
   const [isFavourite, setIsFavourite] = useState(false);
   const [togglingFavourite, setTogglingFavourite] = useState(false);
   const [checkingFavourite, setCheckingFavourite] = useState(false);
+  const [hasApplied, setHasApplied] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [applicationError, setApplicationError] = useState('');
+  const [checkingApplication, setCheckingApplication] = useState(false);
   const [currentUrl, setCurrentUrl] = useState('');
   const hasLoadedRef = useRef<string | null>(null);
 
@@ -134,6 +138,7 @@ export default function JobDetailPage() {
     // Check if job is in favourites when user is logged in as job seeker
     if (user && user.role === 'job-seeker' && jobId) {
       checkFavouriteStatus();
+      checkApplicationStatus();
     }
   }, [user, jobId]);
 
@@ -177,6 +182,60 @@ export default function JobDetailPage() {
       alert(err.message || 'Failed to update favourites. Please try again.');
     } finally {
       setTogglingFavourite(false);
+    }
+  };
+
+  const checkApplicationStatus = async () => {
+    if (!user || user.role !== 'job-seeker' || !jobId) return;
+    
+    setCheckingApplication(true);
+    try {
+      const response = await fetch(`/api/applications?jobId=${jobId}`, {
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setHasApplied(data.hasApplied || false);
+      }
+    } catch (err: any) {
+      // Silently fail - not critical
+    } finally {
+      setCheckingApplication(false);
+    }
+  };
+
+  const handleApply = async () => {
+    if (!job || !user || user.role !== 'job-seeker' || applying || hasApplied) return;
+    
+    setApplying(true);
+    setApplicationError('');
+    
+    try {
+      const response = await fetch('/api/applications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ jobId: jobId }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setHasApplied(true);
+        alert('Application submitted successfully!');
+      } else {
+        setApplicationError(data.error || 'Failed to submit application. Please try again.');
+        alert(data.error || 'Failed to submit application. Please try again.');
+      }
+    } catch (err: any) {
+      const errorMessage = err.message || 'Failed to submit application. Please try again.';
+      setApplicationError(errorMessage);
+      alert(errorMessage);
+    } finally {
+      setApplying(false);
     }
   };
 
@@ -534,62 +593,106 @@ export default function JobDetailPage() {
             )}
 
             {/* How to Apply Section */}
-            {(job.applyByEmail || job.applyByWebsite || job.applyByWhatsApp) && (
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-3">How to Apply</h2>
-                <div className="space-y-3">
-                  {job.applyByEmail && job.applicationEmail && (
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg">📧</span>
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <span className="font-medium">By email:</span>
-                        <a
-                          href={`mailto:${job.applicationEmail}`}
-                          className="text-blue-600 hover:text-blue-800 hover:underline"
-                        >
-                          {job.applicationEmail}
-                        </a>
-                      </div>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-3">How to Apply</h2>
+              
+              {/* ATS Apply Button - Show for job seekers */}
+              {user && user.role === 'job-seeker' && (
+                <div className="mb-4">
+                  {hasApplied ? (
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-800 rounded-lg font-medium">
+                      <span>✓</span>
+                      <span>Application Submitted</span>
                     </div>
+                  ) : (
+                    <button
+                      onClick={handleApply}
+                      disabled={applying || checkingApplication}
+                      className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {applying ? 'Submitting Application...' : checkingApplication ? 'Checking...' : 'Quick Apply'}
+                    </button>
                   )}
-                  {job.applyByWebsite && job.applicationWebsite && (
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg">🌐</span>
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <span className="font-medium">Via our Website:</span>
-                        <a
-                          href={job.applicationWebsite}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800 hover:underline"
-                        >
-                          {job.applicationWebsite}
-                        </a>
-                      </div>
-                    </div>
-                  )}
-                  {job.applyByWhatsApp && job.applicationWhatsApp && (
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg">💬</span>
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <span className="font-medium">By WhatsApp:</span>
-                        <a
-                          href={`https://wa.me/${job.applicationWhatsApp.replace(/[^0-9]/g, '')}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800 hover:underline"
-                        >
-                          {job.applicationWhatsApp}
-                        </a>
-                      </div>
-                    </div>
+                  {applicationError && (
+                    <p className="mt-2 text-sm text-red-600">{applicationError}</p>
                   )}
                 </div>
-                <p className="mt-4 text-sm text-gray-500 italic">
-                  Please mention that you found this job on chickenloop.com
+              )}
+
+              {/* External Application Methods */}
+              {(job.applyByEmail || job.applyByWebsite || job.applyByWhatsApp) && (
+                <>
+                  {user && user.role === 'job-seeker' && (
+                    <p className="text-sm text-gray-600 mb-3">Or apply directly:</p>
+                  )}
+                  <div className="space-y-3">
+                    {job.applyByEmail && job.applicationEmail && (
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg">📧</span>
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <span className="font-medium">By email:</span>
+                          <a
+                            href={`mailto:${job.applicationEmail}`}
+                            className="text-blue-600 hover:text-blue-800 hover:underline"
+                          >
+                            {job.applicationEmail}
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                    {job.applyByWebsite && job.applicationWebsite && (
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg">🌐</span>
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <span className="font-medium">Via our Website:</span>
+                          <a
+                            href={job.applicationWebsite}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 hover:underline"
+                          >
+                            {job.applicationWebsite}
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                    {job.applyByWhatsApp && job.applicationWhatsApp && (
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg">💬</span>
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <span className="font-medium">By WhatsApp:</span>
+                          <a
+                            href={`https://wa.me/${job.applicationWhatsApp.replace(/[^0-9]/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 hover:underline"
+                          >
+                            {job.applicationWhatsApp}
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* Show message for non-logged-in users or non-job-seekers */}
+              {(!user || user.role !== 'job-seeker') && !job.applyByEmail && !job.applyByWebsite && !job.applyByWhatsApp && (
+                <p className="text-gray-600">
+                  {!user ? (
+                    <>
+                      Please <Link href="/login" className="text-blue-600 hover:underline">log in</Link> as a job seeker to apply.
+                    </>
+                  ) : (
+                    'Please contact the recruiter directly to apply for this position.'
+                  )}
                 </p>
-              </div>
-            )}
+              )}
+
+              <p className="mt-4 text-sm text-gray-500 italic">
+                Please mention that you found this job on chickenloop.com
+              </p>
+            </div>
 
             {/* Posted Info, Favourites, and Report Spam Button - Layout */}
             <div className="pt-6 border-t border-gray-200">

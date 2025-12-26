@@ -6,6 +6,7 @@ import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import JobSelectionModal from '../components/JobSelectionModal';
 
 interface CV {
   _id: string;
@@ -100,6 +101,22 @@ export default function CVsPage() {
   const [selectedSport, setSelectedSport] = useState<string>('');
   const [selectedCertification, setSelectedCertification] = useState<string>('');
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [filterOptions, setFilterOptions] = useState<{
+    languages: string[];
+    workAreas: string[];
+    sports: string[];
+    certifications: string[];
+  }>({
+    languages: [],
+    workAreas: [],
+    sports: [],
+    certifications: [],
+  });
+  const [contactedCandidates, setContactedCandidates] = useState<Set<string>>(new Set());
+  const [contactingCandidate, setContactingCandidate] = useState<string | null>(null);
+  const [showJobModal, setShowJobModal] = useState(false);
+  const [pendingCandidateId, setPendingCandidateId] = useState<string | null>(null);
+  const [availableJobs, setAvailableJobs] = useState<any[]>([]);
   const cvsPerPage = 20;
 
   useEffect(() => {
@@ -113,8 +130,94 @@ export default function CVsPage() {
   useEffect(() => {
     if (user && (user.role === 'recruiter' || user.role === 'admin')) {
       loadCVs();
+      loadContactedCandidates();
     }
   }, [user]);
+
+  const loadContactedCandidates = async () => {
+    try {
+      const response = await fetch('/api/applications', {
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const contacted = new Set<string>();
+        (data.applications || []).forEach((app: any) => {
+          // Handle both populated object and ObjectId formats
+          let candidateId: string | null = null;
+          if (app.candidateId) {
+            if (typeof app.candidateId === 'object' && app.candidateId._id) {
+              candidateId = String(app.candidateId._id);
+            } else {
+              candidateId = String(app.candidateId);
+            }
+          }
+          if (candidateId) {
+            contacted.add(candidateId);
+          }
+        });
+        setContactedCandidates(contacted);
+      }
+    } catch (err: any) {
+      // Silently fail - not critical
+      console.error('Failed to load contacted candidates:', err);
+    }
+  };
+
+  const handleContactCandidate = async (e: React.MouseEvent, candidateId: string, jobId?: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (contactingCandidate || contactedCandidates.has(candidateId)) return;
+    
+    setContactingCandidate(candidateId);
+    
+    try {
+      const response = await fetch('/api/applications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ candidateId, jobId }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setContactedCandidates((prev) => new Set(prev).add(candidateId));
+        alert('Candidate contacted successfully!');
+        setShowJobModal(false);
+        setPendingCandidateId(null);
+        setAvailableJobs([]);
+      } else if (data.jobs && Array.isArray(data.jobs)) {
+        // Multiple jobs available - show selection modal
+        setAvailableJobs(data.jobs);
+        setPendingCandidateId(candidateId);
+        setShowJobModal(true);
+        setContactingCandidate(null);
+      } else {
+        alert(data.error || 'Failed to contact candidate. Please try again.');
+      }
+    } catch (err: any) {
+      alert('Failed to contact candidate. Please try again.');
+    } finally {
+      if (!showJobModal) {
+        setContactingCandidate(null);
+      }
+    }
+  };
+
+  const handleJobSelect = (jobId: string) => {
+    if (pendingCandidateId) {
+      handleContactCandidate(
+        { preventDefault: () => {}, stopPropagation: () => {} } as React.MouseEvent,
+        pendingCandidateId,
+        jobId
+      );
+    }
+  };
 
   useEffect(() => {
     // Filter CVs when any filter changes
@@ -179,6 +282,10 @@ export default function CVsPage() {
       const data = await response.json();
       setAllCvs(data.cvs || []);
       setCvs(data.cvs || []);
+      // Set filter options from backend (pre-computed, more efficient)
+      if (data.filters) {
+        setFilterOptions(data.filters);
+      }
     } catch (err: any) {
       console.error('Error loading CVs:', err);
       setError(err.message || 'Failed to load CVs');
@@ -187,65 +294,11 @@ export default function CVsPage() {
     }
   };
 
-  // Get unique languages from all CVs
-  const getUniqueLanguages = (): string[] => {
-    const languageSet = new Set<string>();
-    
-    allCvs.forEach((cv) => {
-      if (cv.languages && cv.languages.length > 0) {
-        cv.languages.forEach((language) => {
-          languageSet.add(language);
-        });
-      }
-    });
-
-    return Array.from(languageSet).sort();
-  };
-
-  // Get unique work areas from all CVs
-  const getUniqueWorkAreas = (): string[] => {
-    const workAreaSet = new Set<string>();
-    
-    allCvs.forEach((cv) => {
-      if (cv.lookingForWorkInAreas && cv.lookingForWorkInAreas.length > 0) {
-        cv.lookingForWorkInAreas.forEach((area) => {
-          workAreaSet.add(area);
-        });
-      }
-    });
-
-    return Array.from(workAreaSet).sort();
-  };
-
-  // Get unique sports/experiences from all CVs
-  const getUniqueSports = (): string[] => {
-    const sportSet = new Set<string>();
-    
-    allCvs.forEach((cv) => {
-      if (cv.experienceAndSkill && cv.experienceAndSkill.length > 0) {
-        cv.experienceAndSkill.forEach((sport) => {
-          sportSet.add(sport);
-        });
-      }
-    });
-
-    return Array.from(sportSet).sort();
-  };
-
-  // Get unique professional certifications from all CVs
-  const getUniqueCertifications = (): string[] => {
-    const certSet = new Set<string>();
-    
-    allCvs.forEach((cv) => {
-      if (cv.professionalCertifications && cv.professionalCertifications.length > 0) {
-        cv.professionalCertifications.forEach((cert) => {
-          certSet.add(cert);
-        });
-      }
-    });
-
-    return Array.from(certSet).sort();
-  };
+  // Use filter options from backend (pre-computed, no need to iterate)
+  const getUniqueLanguages = (): string[] => filterOptions.languages;
+  const getUniqueWorkAreas = (): string[] => filterOptions.workAreas;
+  const getUniqueSports = (): string[] => filterOptions.sports;
+  const getUniqueCertifications = (): string[] => filterOptions.certifications;
 
   if (authLoading || loading) {
     return (
@@ -509,6 +562,33 @@ export default function CVsPage() {
                         )}
                       </div>
                     </div>
+
+                    {/* Contact Candidate Button */}
+                    {user && (user.role === 'recruiter' || user.role === 'admin') && cv.jobSeeker && (
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        {(() => {
+                          const candidateId = cv.jobSeeker?._id ? String(cv.jobSeeker._id) : null;
+                          if (!candidateId) return null;
+                          
+                          return contactedCandidates.has(candidateId) ? (
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-100 text-green-800 rounded-md text-sm font-medium">
+                              <span>✓</span>
+                              <span>Contacted</span>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={(e) => handleContactCandidate(e, candidateId)}
+                              disabled={contactingCandidate === candidateId}
+                              className="w-full px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {contactingCandidate === candidateId
+                                ? 'Contacting...'
+                                : 'Contact Candidate'}
+                            </button>
+                          );
+                        })()}
+                      </div>
+                    )}
                   </div>
                 </Link>
               );
@@ -591,6 +671,22 @@ export default function CVsPage() {
   </>
   )}
       </main>
+      <JobSelectionModal
+        isOpen={showJobModal}
+        jobs={availableJobs}
+        onSelect={handleJobSelect}
+        onClose={() => {
+          setShowJobModal(false);
+          setPendingCandidateId(null);
+          setAvailableJobs([]);
+          setContactingCandidate(null);
+        }}
+        candidateName={
+          pendingCandidateId
+            ? cvs.find((cv) => cv.jobSeeker?._id === pendingCandidateId)?.fullName
+            : undefined
+        }
+      />
     </div>
   );
 }
