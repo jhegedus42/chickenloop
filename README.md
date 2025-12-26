@@ -40,7 +40,7 @@ A full-stack job board platform specifically designed for the watersports indust
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/jhegedus42/chickenloop.git
+git clone https://github.com/chickenloop3845-commits/chickenloop.git
 cd chickenloop
 ```
 
