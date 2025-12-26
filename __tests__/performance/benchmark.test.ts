@@ -189,18 +189,20 @@ describe('Performance Benchmarks', () => {
     it('should use lean() for read-only queries', async () => {
       if (shouldSkip) return;
 
-      // Without lean
+      // Without lean - store only count to avoid memory overhead affecting timing
       const start1 = Date.now();
-      const jobs1 = await Job.find({}).limit(50);
+      const result1 = await Job.find({}).limit(50);
       const withoutLean = Date.now() - start1;
+      const count1 = result1.length;
 
       // With lean
       const start2 = Date.now();
-      const jobs2 = await Job.find({}).limit(50).lean();
+      const result2 = await Job.find({}).limit(50).lean();
       const withLean = Date.now() - start2;
+      const count2 = result2.length;
 
-      console.log(`  ⚡ Without lean(): ${withoutLean}ms`);
-      console.log(`  ⚡ With lean(): ${withLean}ms`);
+      console.log(`  ⚡ Without lean(): ${withoutLean}ms (${count1} docs)`);
+      console.log(`  ⚡ With lean(): ${withLean}ms (${count2} docs)`);
       console.log(`  ⚡ Performance gain: ${((withoutLean - withLean) / withoutLean * 100).toFixed(1)}%`);
 
       // Lean should be faster or at least not significantly slower
