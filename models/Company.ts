@@ -157,7 +157,7 @@ const CompanySchema: Schema = new Schema(
 );
 
 // Create indexes for efficient querying
-CompanySchema.index({ owner: 1 }); // For owner-based queries
+// Note: owner field already has unique: true which creates an index automatically
 CompanySchema.index({ featured: 1 }); // For featured company filtering
 CompanySchema.index({ createdAt: -1 }); // For sorting by creation date
 
