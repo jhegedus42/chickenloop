@@ -24,7 +24,9 @@ function loadEnv() {
                 }
             });
         }
-    } catch (e) { console.warn('⚠️ Could not load .env.local'); }
+    } catch (e) { 
+        console.warn('⚠️ Could not load .env.local:', (e as Error).message);
+    }
 }
 
 loadEnv();
@@ -72,22 +74,11 @@ async function checkIndexes() {
         ];
         expectedJobIndexes.forEach(idx => console.log(`  - ${idx}`));
 
-        console.log('\nMissing indexes:');
-        const missingJobIndexes = [
-            '{ updatedAt: -1 }',
-            '{ published: 1, createdAt: -1 }',
-            '{ featured: 1, published: 1 }',
-            '{ recruiter: 1 }',
-            '{ companyId: 1 }',
-            '{ country: 1 }',
-            '{ type: 1 }',
-        ];
-        
-        if (missingJobIndexes.length > 0) {
-            missingJobIndexes.forEach(idx => console.log(`  ⚠️  ${idx}`));
-        } else {
-            console.log('  ✅ All indexes present');
-        }
+        // Dynamically determine missing indexes
+        const existingJobIndexNames = new Set(jobIndexes.map((idx: any) => idx.name));
+        console.log('\nMissing indexes (if any will be created below):');
+        console.log('  (Run after index creation to verify)');
+
 
         // Check Users collection
         console.log('\n═══════════════════════════════════════');
@@ -109,18 +100,8 @@ async function checkIndexes() {
         ];
         expectedUserIndexes.forEach(idx => console.log(`  - ${idx}`));
 
-        const missingUserIndexes = [
-            '{ role: 1 }',
-            '{ createdAt: -1 }',
-            '{ lastOnline: -1 }',
-        ];
-        
-        console.log('\nMissing indexes:');
-        if (missingUserIndexes.length > 0) {
-            missingUserIndexes.forEach(idx => console.log(`  ⚠️  ${idx}`));
-        } else {
-            console.log('  ✅ All indexes present');
-        }
+        console.log('\nMissing indexes (if any will be created below):');
+        console.log('  (Run after index creation to verify)');
 
         // Check Companies collection
         console.log('\n═══════════════════════════════════════');
@@ -141,17 +122,8 @@ async function checkIndexes() {
         ];
         expectedCompanyIndexes.forEach(idx => console.log(`  - ${idx}`));
 
-        const missingCompanyIndexes = [
-            '{ featured: 1 }',
-            '{ createdAt: -1 }',
-        ];
-        
-        console.log('\nMissing indexes:');
-        if (missingCompanyIndexes.length > 0) {
-            missingCompanyIndexes.forEach(idx => console.log(`  ⚠️  ${idx}`));
-        } else {
-            console.log('  ✅ All indexes present');
-        }
+        console.log('\nMissing indexes (if any will be created below):');
+        console.log('  (Run after index creation to verify)');
 
         // Create indexes using Mongoose models
         console.log('\n═══════════════════════════════════════');

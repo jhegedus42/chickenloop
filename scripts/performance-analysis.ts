@@ -22,7 +22,9 @@ function loadEnv() {
                 }
             });
         }
-    } catch (e) { console.warn('⚠️ Could not load .env.local'); }
+    } catch (e) { 
+        console.warn('⚠️ Could not load .env.local:', (e as Error).message);
+    }
 }
 
 loadEnv();
