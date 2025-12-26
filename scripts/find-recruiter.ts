@@ -37,12 +37,12 @@ async function findOrCreateRecruiter() {
         console.log('✅ Connected to MongoDB');
 
         if (!mongoose.connection.db) {
-            throw new Error('Database connection failed');
+            throw new Error('❌ Database connection failed');
         }
         const User = mongoose.connection.db.collection('users');
 
         // Find existing recruiter
-        const recruiter = await User.findOne({ role: 'recruiter' });
+        const recruiter = await User.findOne({ role: 'recruiter' }) as any;
 
         if (recruiter) {
             console.log('\nFOUND_RECRUITER_EMAIL=' + recruiter.email);
@@ -78,7 +78,7 @@ async function findOrCreateRecruiter() {
         // Also check for company
         if (recruiter || process.env.CREATED_RECRUITER_EMAIL) {
             const email = recruiter ? recruiter.email : 'auto-recruiter@test.com';
-            const user = await User.findOne({ email });
+            const user = await User.findOne({ email }) as any;
             if (user) {
                 const Company = mongoose.connection.db.collection('companies');
                 const company = await Company.findOne({ owner: user._id });
