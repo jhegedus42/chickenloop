@@ -40,8 +40,8 @@ A full-stack job board platform specifically designed for the watersports indust
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd cl1
+git clone https://github.com/jhegedus42/chickenloop.git
+cd chickenloop
 ```
 
 2. Install dependencies:
