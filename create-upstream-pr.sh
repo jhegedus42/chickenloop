@@ -120,3 +120,5 @@ echo "  3. Write a detailed description"
 echo "  4. Click 'Create pull request'"
 echo ""
 echo "================================================"
+
+exit 0

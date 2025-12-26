@@ -11,9 +11,14 @@ This document provides a quick reference for creating a Pull Request from this f
 
 ## What's Ready to Submit
 
-The `main` branch contains:
-- Commit: "Update README to reference upstream parent repository" (8c67439)
-- This commit adds a reference to the upstream parent repository in the README
+Check what changes are in your `main` branch:
+
+```bash
+# View commits that will be included in the PR
+git log upstream/main..main --oneline
+```
+
+This will show you all commits in your main branch that aren't in upstream/main yet.
 
 ## Quick Start: Create the PR
 
@@ -52,15 +57,14 @@ The script will:
    ```
 
 3. **Fill in the PR details**:
-   - **Title**: "Update README to reference upstream parent repository"
+   - **Title**: Use a clear, descriptive title for your changes
    - **Description**: 
      ```
-     This PR updates the README.md to include a reference to the upstream
-     parent repository (chickenloop3845-commits/chickenloop).
+     Provide a detailed description of your changes:
      
-     Changes:
-     - Added upstream repository reference in the README
-     - Clarifies the fork relationship for contributors
+     - What problem does this solve?
+     - What changes did you make?
+     - Any additional context or considerations?
      ```
 
 4. **Submit the PR**:
@@ -78,8 +82,7 @@ git branch --show-current
 # View the commits that will be included in the PR
 git log upstream/main..main --oneline
 
-# You should see:
-# 8c67439 Update README to reference upstream parent repository
+# This will show you all your commits that aren't in upstream yet
 ```
 
 ## After Creating the PR
