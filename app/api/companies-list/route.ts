@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Company from '@/models/Company';
+import { CachePresets } from '@/lib/cache';
 
 // GET - Get all companies (public endpoint)
 export async function GET(request: NextRequest) {
@@ -62,7 +63,13 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ companies: cleanedCompanies }, { status: 200 });
+    // Add cache headers - companies can be cached for 5 minutes
+    const cacheHeaders = CachePresets.short();
+
+    return NextResponse.json({ companies: cleanedCompanies }, { 
+      status: 200,
+      headers: cacheHeaders,
+    });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
