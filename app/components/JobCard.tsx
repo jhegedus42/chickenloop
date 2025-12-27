@@ -25,6 +25,7 @@ export default function JobCard({ job }: JobCardProps) {
             src={thumbnail}
             alt={job.title}
             className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+            loading="lazy"
             onError={(e) => {
               // Only hide if it's a local /uploads/ path (won't work on Vercel)
               const img = e.target as HTMLImageElement;

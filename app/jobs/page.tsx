@@ -185,11 +185,11 @@ function JobsPageContent() {
       // Featured jobs come first
       const aFeatured = Boolean(a.featured);
       const bFeatured = Boolean(b.featured);
-      
+
       // If one is featured and the other isn't, featured comes first
       if (aFeatured && !bFeatured) return -1;
       if (!aFeatured && bFeatured) return 1;
-      
+
       // Within each group (both featured or both non-featured), sort by posting date (createdAt) descending
       const dateA = new Date(a.createdAt || 0).getTime();
       const dateB = new Date(b.createdAt || 0).getTime();
@@ -205,23 +205,23 @@ function JobsPageContent() {
     try {
       const data = await jobsApi.getAll();
       const jobsList = data.jobs || [];
-      
+
       // Sort jobs: featured first, then by posting date descending
       const sortedJobs = [...jobsList].sort((a, b) => {
         // Featured jobs come first
         const aFeatured = Boolean(a.featured);
         const bFeatured = Boolean(b.featured);
-        
+
         // If one is featured and the other isn't, featured comes first
         if (aFeatured && !bFeatured) return -1;
         if (!aFeatured && bFeatured) return 1;
-        
+
         // Within each group (both featured or both non-featured), sort by posting date (createdAt) descending
         const dateA = new Date(a.createdAt || 0).getTime();
         const dateB = new Date(b.createdAt || 0).getTime();
         return dateB - dateA; // Descending (newest first)
       });
-      
+
       setAllJobs(sortedJobs);
       setJobs(sortedJobs);
     } catch (err: any) {
@@ -462,11 +462,10 @@ function JobsPageContent() {
                         <Link
                           key={job._id}
                           href={`/jobs/${job._id}`}
-                          className={`rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer block ${
-                            job.featured 
-                              ? 'bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-300' 
+                          className={`rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer block ${job.featured
+                              ? 'bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-300'
                               : 'bg-white'
-                          }`}
+                            }`}
                         >
                           {/* Job Picture */}
                           <div className="w-full h-48 bg-gray-200 relative overflow-hidden">
@@ -480,6 +479,7 @@ function JobsPageContent() {
                                 src={firstPicture}
                                 alt={job.title}
                                 className="w-full h-full object-cover"
+                                loading="lazy"
                                 onError={(e) => {
                                   // Only hide if it's a local /uploads/ path (won't work on Vercel)
                                   const img = e.target as HTMLImageElement;

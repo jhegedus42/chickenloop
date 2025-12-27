@@ -25,8 +25,8 @@ export default function CompanyCard({ company }: CompanyCardProps) {
     const countryName = getCountryNameFromCode(company.address.country);
     locationParts.push(countryName || company.address.country);
   }
-  const locationText = locationParts.length > 0 
-    ? locationParts.join(', ') 
+  const locationText = locationParts.length > 0
+    ? locationParts.join(', ')
     : 'Location not specified';
 
   return (
@@ -41,6 +41,7 @@ export default function CompanyCard({ company }: CompanyCardProps) {
             src={company.pictures[0]}
             alt={company.name}
             className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+            loading="lazy"
             onError={(e) => {
               // Only hide if it's a local /uploads/ path (won't work on Vercel)
               const img = e.target as HTMLImageElement;

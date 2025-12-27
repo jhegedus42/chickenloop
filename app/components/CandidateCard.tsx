@@ -31,6 +31,7 @@ export default function CandidateCard({ candidate }: CandidateCardProps) {
             src={candidate.pictures[0]}
             alt={candidate.fullName}
             className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+            loading="lazy"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-300 to-gray-400">

@@ -134,11 +134,11 @@ function CompaniesPageContent() {
       // Featured companies come first
       const aFeatured = Boolean(a.featured);
       const bFeatured = Boolean(b.featured);
-      
+
       // If one is featured and the other isn't, featured comes first
       if (aFeatured && !bFeatured) return -1;
       if (!aFeatured && bFeatured) return 1;
-      
+
       // Within each group (both featured or both non-featured), sort by creation date (createdAt) descending
       const dateA = new Date(a.createdAt || 0).getTime();
       const dateB = new Date(b.createdAt || 0).getTime();
@@ -158,23 +158,23 @@ function CompaniesPageContent() {
       }
       const data = await response.json();
       const companiesList = data.companies || [];
-      
+
       // Sort companies: featured first, then by creation date descending
       const sortedCompanies = [...companiesList].sort((a, b) => {
         // Featured companies come first
         const aFeatured = Boolean(a.featured);
         const bFeatured = Boolean(b.featured);
-        
+
         // If one is featured and the other isn't, featured comes first
         if (aFeatured && !bFeatured) return -1;
         if (!aFeatured && bFeatured) return 1;
-        
+
         // Within each group (both featured or both non-featured), sort by creation date (createdAt) descending
         const dateA = new Date(a.createdAt || 0).getTime();
         const dateB = new Date(b.createdAt || 0).getTime();
         return dateB - dateA; // Descending (newest first)
       });
-      
+
       setAllCompanies(sortedCompanies);
       setCompanies(sortedCompanies);
     } catch (err: any) {
@@ -319,19 +319,18 @@ function CompaniesPageContent() {
                         const countryName = getCountryNameFromCode(company.address.country);
                         locationParts.push(countryName || company.address.country);
                       }
-                      const locationText = locationParts.length > 0 
-                        ? locationParts.join(', ') 
+                      const locationText = locationParts.length > 0
+                        ? locationParts.join(', ')
                         : 'Location not specified';
 
                       return (
                         <Link
                           key={company.id}
                           href={`/companies/${company.id}`}
-                          className={`rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer block ${
-                            company.featured 
-                              ? 'bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-300' 
+                          className={`rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer block ${company.featured
+                              ? 'bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-300'
                               : 'bg-white'
-                          }`}
+                            }`}
                         >
                           {/* Company Picture */}
                           <div className="w-full h-48 bg-gray-200 relative overflow-hidden">
@@ -345,6 +344,7 @@ function CompaniesPageContent() {
                                 src={firstPicture}
                                 alt={company.name}
                                 className="w-full h-full object-cover"
+                                loading="lazy"
                                 onError={(e) => {
                                   // Only hide if it's a local /uploads/ path (won't work on Vercel)
                                   const img = e.target as HTMLImageElement;
