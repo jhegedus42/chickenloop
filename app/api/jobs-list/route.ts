@@ -9,7 +9,7 @@ import { CachePresets } from '@/lib/cache';
 export async function GET(request: NextRequest) {
   try {
     console.log('[API /jobs-list] Starting request (forwarding to /api/jobs logic)');
-    
+
     // Add timeout for database connection
     const startTime = Date.now();
     const dbPromise = connectDB();
@@ -44,7 +44,28 @@ export async function GET(request: NextRequest) {
     }
 
     // Use index hint for better performance
+    // Project only the fields needed for list display (exclude heavy fields like pictures, description)
+    const projection = {
+      _id: 1,
+      title: 1,
+      company: 1,
+      location: 1,
+      country: 1,
+      salary: 1,
+      type: 1,
+      recruiter: 1,
+      companyId: 1,
+      sports: 1,
+      occupationalAreas: 1,
+      published: 1,
+      featured: 1,
+      createdAt: 1,
+      updatedAt: 1,
+      // Exclude: pictures, description, languages, qualifications (loaded on detail page)
+    };
+
     const queryCursor = collection.find(queryFilter)
+      .project(projection)
       .hint({ published: 1, createdAt: -1 }) // Use the compound index
       .maxTimeMS(10000);
     let jobsWithoutPopulate: any[] = await queryCursor.toArray();
@@ -101,7 +122,7 @@ export async function GET(request: NextRequest) {
     // Add cache headers - jobs can be cached for 2 minutes with stale-while-revalidate
     const cacheHeaders = CachePresets.short();
 
-    return NextResponse.json({ jobs }, { 
+    return NextResponse.json({ jobs }, {
       status: 200,
       headers: cacheHeaders,
     });

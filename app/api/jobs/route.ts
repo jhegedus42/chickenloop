@@ -65,11 +65,31 @@ export async function GET(request: NextRequest) {
       queryFilter.featured = true;
     }
 
-    // Query to get jobs - Load ALL fields (including description, images, etc.)
-    // No limit needed for local MongoDB - it's fast enough
-    console.log('[API /jobs] Executing find query (no limit, ALL fields - no projection)...');
+    // Query to get jobs - Project only fields needed for list display
+    // Exclude heavy fields like description and pictures (loaded on detail page)
+    const listProjection = {
+      _id: 1,
+      title: 1,
+      company: 1,
+      location: 1,
+      country: 1,
+      salary: 1,
+      type: 1,
+      recruiter: 1,
+      companyId: 1,
+      sports: 1,
+      occupationalAreas: 1,
+      published: 1,
+      featured: 1,
+      createdAt: 1,
+      updatedAt: 1,
+      // Exclude: pictures, description, languages, qualifications (loaded on detail page)
+    };
+
+    console.log('[API /jobs] Executing find query with projection (excluding heavy fields)...');
     console.log('[API /jobs] Creating query cursor...');
     const queryCursor = collection.find(queryFilter)
+      .project(listProjection)
       .hint({ published: 1, createdAt: -1 }) // Use the compound index for better performance
       .maxTimeMS(10000); // 10 second timeout should be plenty for local DB
 
@@ -161,7 +181,7 @@ export async function GET(request: NextRequest) {
     // Add cache headers - jobs can be cached for 5 minutes with stale-while-revalidate
     const cacheHeaders = CachePresets.short();
 
-    return NextResponse.json({ jobs }, { 
+    return NextResponse.json({ jobs }, {
       status: 200,
       headers: cacheHeaders,
     });
@@ -192,13 +212,13 @@ export async function POST(request: NextRequest) {
     const user = requireRole(request, ['recruiter']);
     await connectDB();
 
-    const { 
-      title, 
-      description, 
-      company, 
-      location, 
+    const {
+      title,
+      description,
+      company,
+      location,
       country,
-      salary, 
+      salary,
       type,
       languages,
       qualifications,
