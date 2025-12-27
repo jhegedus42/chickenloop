@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Use index hint for better performance
-    // Project only the fields needed for list display (exclude heavy fields like pictures, description)
+    // Project only the fields needed for list display (include pictures for thumbnails)
     const projection = {
       _id: 1,
       title: 1,
@@ -59,9 +59,10 @@ export async function GET(request: NextRequest) {
       occupationalAreas: 1,
       published: 1,
       featured: 1,
+      pictures: 1, // Need for list thumbnails
       createdAt: 1,
       updatedAt: 1,
-      // Exclude: pictures, description, languages, qualifications (loaded on detail page)
+      // Exclude: description, languages, qualifications (loaded on detail page)
     };
 
     const queryCursor = collection.find(queryFilter)

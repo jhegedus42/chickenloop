@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Query to get jobs - Project only fields needed for list display
-    // Exclude heavy fields like description and pictures (loaded on detail page)
+    // Include pictures for thumbnails, exclude description (loaded on detail page)
     const listProjection = {
       _id: 1,
       title: 1,
@@ -81,9 +81,10 @@ export async function GET(request: NextRequest) {
       occupationalAreas: 1,
       published: 1,
       featured: 1,
+      pictures: 1, // Need for list thumbnails
       createdAt: 1,
       updatedAt: 1,
-      // Exclude: pictures, description, languages, qualifications (loaded on detail page)
+      // Exclude: description, languages, qualifications (loaded on detail page)
     };
 
     console.log('[API /jobs] Executing find query with projection (excluding heavy fields)...');
