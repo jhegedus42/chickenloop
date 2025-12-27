@@ -42,7 +42,7 @@ const nextConfig: NextConfig = {
     ],
     // Image optimization settings
     formats: ['image/avif', 'image/webp'], // Use modern formats for better compression
-    minimumCacheTTL: 60, // Cache images for at least 60 seconds
+    minimumCacheTTL: 3600, // Cache optimized images for 1 hour
   },
 };
 
