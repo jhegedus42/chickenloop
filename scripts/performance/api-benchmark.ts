@@ -11,7 +11,7 @@ interface BenchmarkResult {
     success: boolean;
 }
 
-async function measure(endpoint: string, method: string = 'GET', body?: any): Promise<BenchmarkResult> {
+async function measure(endpoint: string, method: string = 'GET', body?: unknown): Promise<BenchmarkResult> {
     const url = `${BASE_URL}${endpoint}`;
     const start = performance.now();
     let status = 0;
@@ -65,7 +65,7 @@ async function run() {
                 }
             }
         }
-    } catch (e) {
+    } catch {
         console.log("Could not fetch job details for dynamic ID test");
     }
 

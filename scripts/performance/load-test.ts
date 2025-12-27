@@ -5,7 +5,7 @@ const BASE_URL = process.env.API_URL || 'http://localhost:3000';
 const CONCURRENT_USERS = 20; // Moderate load
 const DURATION_SECONDS = 10;
 
-async function simulateUser(id: number) {
+async function simulateUser() {
     let requests = 0;
     let errors = 0;
     const start = performance.now();
@@ -19,7 +19,7 @@ async function simulateUser(id: number) {
             if (!res.ok) errors++;
             await res.text(); // consume body
             requests++;
-        } catch (e) {
+        } catch {
             errors++;
         }
         const reqEnd = performance.now();
@@ -37,7 +37,7 @@ async function run() {
     const start = performance.now();
     const promises = [];
     for (let i = 0; i < CONCURRENT_USERS; i++) {
-        promises.push(simulateUser(i));
+        promises.push(simulateUser());
     }
 
     const results = await Promise.all(promises);
