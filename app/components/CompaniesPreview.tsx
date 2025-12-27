@@ -72,6 +72,7 @@ export default function CompaniesPreview() {
                       src={company.logo}
                       alt={company.name}
                       className="max-w-full max-h-full object-contain"
+                      loading="lazy"
                     />
                   ) : (
                     <div className="text-gray-400 text-sm text-center">
