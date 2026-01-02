@@ -6,128 +6,65 @@ This document provides instructions for AI agents (like Antigravity's Gemini age
 
 ## Prerequisites Check
 
-Before using browser features, verify the Docker browser is running:
+Before using browser features, verify the Docker browser is running correctly:
 
 ```bash
-# Check if container is running
+# 1. Check if container is running
 docker ps --filter name=chrome-vnc
 
-# Verify CDP endpoint is accessible
-curl -s http://localhost:9222/json/version | head -3
+# 2. Verify CDP endpoint is accessible AND returns valid JSON
+# (Crucial: Just connecting isn't enough, must get JSON back)
+curl -s http://localhost:9222/json/version | grep "Browser"
 ```
 
-If not running, start it:
-
-```bash
-colima start  # Start Docker runtime first
-docker start chrome-vnc  # Or docker run command from SETUP.md
-```
+**If `curl` fails or hangs:**
+The sidecar proxy likely died or isn't running. Do NOT just restart the container. Run the "Proxy Fix" command below.
 
 ---
 
 ## How the Setup Works
 
-1. **Chrome runs in Docker** container `chrome-vnc` on port 9222
-2. **Chrome DevTools MCP Server** connects Antigravity to this Chrome instance
-3. **CDP Protocol** allows full browser control (navigation, clicking, screenshots, etc.)
-4. **noVNC** on port 7900 provides visual debugging (optional)
+1. **Host Port 9222** ➔ **Container Port 9223** (socat proxy)
+2. **Container Port 9223** ➔ **Internal Port 9222** (Chrome CDP)
+3. **Host Port 7900** ➔ **Internal Port 7900** (noVNC)
 
----
-
-## Using the Browser via MCP
-
-The `chrome-devtools` MCP server provides these capabilities:
-
-### Navigation
-- Open URLs and navigate pages
-- Handle redirects and wait for page loads
-
-### Interaction
-- Click elements
-- Fill forms
-- Scroll pages
-- Handle dialogs
-
-### Inspection
-- Take screenshots
-- Read console logs
-- Analyze network requests
-- Evaluate JavaScript
-
-### Performance
-- Record performance traces
-- Analyze Core Web Vitals
-
----
-
-## Configuration Reference
-
-The MCP config is at `~/.gemini/antigravity/mcp_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "chrome-devtools": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "chrome-devtools-mcp@latest",
-        "--browser-url=http://127.0.0.1:9222"
-      ],
-      "env": {}
-    }
-  }
-}
-```
-
-### Key Options
-
-| Option | Description |
-|--------|-------------|
-| `--browser-url` | HTTP URL of running Chrome (default: `http://127.0.0.1:9222`) |
-| `--wsEndpoint` | WebSocket URL (alternative to browser-url) |
-| `--headless` | Run without UI (already headless in Docker) |
-| `--viewport` | Set viewport size, e.g., `1280x720` |
+We use `socat` because Chromium binds strictly to 127.0.0.1 on Linux, making it unreachable directly.
 
 ---
 
 ## Troubleshooting for Agents
 
-### Browser Not Responding
+### Setup Script (The "Fix-All")
 
-1. Check container status:
-   ```bash
-   docker ps --filter name=chrome-vnc
-   ```
-
-2. If not running, start it:
-   ```bash
-   docker start chrome-vnc
-   ```
-
-3. If container doesn't exist, recreate:
-   ```bash
-   docker run -d --name chrome-vnc -p 9222:9222 -p 7900:7900 --shm-size=2g -e SE_VNC_NO_PASSWORD=1 seleniarm/standalone-chromium:latest
-   ```
-
-### Docker Not Running
-
-If Docker commands fail with "connection refused":
+If you detect issues (connection refused, empty reply), run this entire block to reset the proxy and browser state:
 
 ```bash
-colima start
+# Start container (if stopped)
+docker start chrome-vnc
+
+# Start Chrome (if not running)
+docker exec chrome-vnc bash -c "pgrep chromium || (DISPLAY=:99 chromium --no-sandbox --disable-gpu --remote-debugging-port=9222 --disable-dev-shm-usage &)"
+
+# Restart Proxy
+docker exec chrome-vnc pkill socat
+docker exec -d chrome-vnc socat TCP-LISTEN:9223,fork,reuseaddr,bind=0.0.0.0 TCP:127.0.0.1:9222
+
+# Verify
+sleep 2 && curl -s http://localhost:9222/json/version
 ```
 
-### Container Crashed
+### Full Rebuild (Last Resort)
 
-Check logs for errors:
-```bash
-docker logs chrome-vnc
-```
+If the container is broken (e.g., missing `socat` or permissions), rebuild it:
 
-Restart container:
 ```bash
-docker restart chrome-vnc
+docker stop chrome-vnc && docker rm chrome-vnc
+docker run -d --name chrome-vnc -p 9222:9223 -p 7900:7900 --shm-size=2g -e SE_VNC_NO_PASSWORD=1 --user root seleniarm/standalone-chromium:latest
+sleep 5
+docker exec chrome-vnc bash -c "apt-get update -qq && apt-get install -y -qq socat"
+docker exec chrome-vnc bash -c "DISPLAY=:99 chromium --no-sandbox --disable-gpu --remote-debugging-port=9222 --disable-dev-shm-usage &"
+sleep 5
+docker exec -d chrome-vnc socat TCP-LISTEN:9223,fork,reuseaddr,bind=0.0.0.0 TCP:127.0.0.1:9222
 ```
 
 ---
@@ -141,12 +78,3 @@ To see what the browser is doing:
 3. Watch the Chromium desktop in real-time
 
 This is useful for debugging complex interactions or verifying visual layout.
-
----
-
-## Important Notes
-
-- The Docker browser runs on **ARM64** (Apple Silicon compatible)
-- Container uses **seleniarm/standalone-chromium** image
-- VNC password is **disabled** for convenience
-- CDP port 9222 is only accessible from localhost (secure)

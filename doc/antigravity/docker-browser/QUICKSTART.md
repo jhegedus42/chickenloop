@@ -6,27 +6,43 @@
 # After reboot or fresh start
 colima start
 docker start chrome-vnc
+# Ensure the proxy inside works (if it stopped)
+docker exec -d chrome-vnc socat TCP-LISTEN:9223,fork,reuseaddr,bind=0.0.0.0 TCP:127.0.0.1:9222
 ```
 
-## First Time Setup
+## First Time Setup (The "Robust" Method)
+
+This setup uses `socat` to forward the Chrome DevTools Protocol (CDP) from the internal `127.0.0.1` to `0.0.0.0`, allowing host access.
 
 ```bash
-# Start Docker runtime
+# 1. Start Docker runtime
 colima start
 
-# Run Chrome container with VNC
+# 2. Run Container (Note: Port 9222 mapped to 9223!)
 docker run -d --name chrome-vnc \
-  -p 9222:9222 \
+  -p 9222:9223 \
   -p 7900:7900 \
   --shm-size=2g \
   -e SE_VNC_NO_PASSWORD=1 \
+  --user root \
   seleniarm/standalone-chromium:latest
+
+# 3. Install Socat (Takes ~30s)
+docker exec chrome-vnc bash -c "apt-get update -qq && apt-get install -y -qq socat"
+
+# 4. Start Chrome + Proxy
+docker exec chrome-vnc bash -c "DISPLAY=:99 chromium --no-sandbox --disable-gpu --remote-debugging-port=9222 --disable-dev-shm-usage &"
+sleep 5
+docker exec -d chrome-vnc socat TCP-LISTEN:9223,fork,reuseaddr,bind=0.0.0.0 TCP:127.0.0.1:9222
 ```
 
 ## Check Status
 
 ```bash
+# Check if container runs
 docker ps --filter name=chrome-vnc
+
+# Check CDP (Must return JSON)
 curl http://localhost:9222/json/version
 ```
 
@@ -34,38 +50,13 @@ curl http://localhost:9222/json/version
 
 Open: **http://localhost:7900** → Click "Connect"
 
-## Container Commands
-
-| Action | Command |
-|--------|---------|
-| Stop | `docker stop chrome-vnc` |
-| Start | `docker start chrome-vnc` |
-| Restart | `docker restart chrome-vnc` |
-| Logs | `docker logs chrome-vnc` |
-| Remove | `docker rm chrome-vnc` |
-
-## Ports
-
-| Port | Service |
-|------|---------|
-| 9222 | Chrome CDP |
-| 7900 | noVNC (web) |
-| 5900 | VNC (client) |
-
-## MCP Config Location
-
-`~/.gemini/antigravity/mcp_config.json`
-
 ## Troubleshooting
 
 ```bash
+# Connection Refused on 9222?
+# The proxy might have died. Restart it:
+docker exec -d chrome-vnc socat TCP-LISTEN:9223,fork,reuseaddr,bind=0.0.0.0 TCP:127.0.0.1:9222
+
 # Docker not running?
 colima start
-
-# Container not starting?
-docker logs chrome-vnc
-
-# Port conflict?
-docker stop chrome-vnc && docker rm chrome-vnc
-# Then recreate with different ports
 ```

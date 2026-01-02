@@ -6,7 +6,7 @@ This guide covers the full setup process for running a Docker-based Chrome brows
 
 ### 1. Docker Runtime
 
-On macOS, you need a Docker runtime. We use **Colima** (lightweight alternative to Docker Desktop):
+On macOS (Apple Silicon), we use **Colima** and the **Seleniarm** images.
 
 ```bash
 # Install via Homebrew
@@ -16,10 +16,6 @@ brew install colima docker docker-compose
 colima start
 ```
 
-Alternative options:
-- **Docker Desktop**: `brew install --cask docker`
-- **OrbStack**: `brew install --cask orbstack`
-
 ### 2. Verify Docker is Running
 
 ```bash
@@ -28,43 +24,60 @@ docker info
 
 ---
 
-## Step 1: Start Chrome Container
+## Step 1: Start Chrome Container (Robust Method)
 
-### Option A: With VNC (Recommended for Debugging)
+**The Problem:** Chromium on Linux often forces the remote debugging port (9222) to bind to `127.0.0.1` inside the container for security, ignoring requests to bind to `0.0.0.0`. This makes it unreachable from the host.
+
+**The Solution:** We run a `socat` proxy inside the container that listens on `0.0.0.0:9223` and forwards traffic to the internal `127.0.0.1:9222`.
+
+### 1. Run the Container
+
+Note we map host port **9222** to container port **9223**.
 
 ```bash
 docker run -d --name chrome-vnc \
-  -p 9222:9222 \
+  -p 9222:9223 \
   -p 7900:7900 \
   --shm-size=2g \
   -e SE_VNC_NO_PASSWORD=1 \
+  --user root \
   seleniarm/standalone-chromium:latest
 ```
 
-**Ports:**
-| Port | Purpose |
-|------|---------|
-| 9222 | Chrome DevTools Protocol (CDP) |
-| 7900 | noVNC web interface |
-| 5900 | VNC client connection (optional) |
+**Ports Explained:**
+| Host Port | Cont. Port | Service | Description |
+|-----------|------------|---------|-------------|
+| 9222 | 9223 | socat proxy | Forwards to internal Chrome CDP |
+| 7900 | 7900 | noVNC | Visual browser interface |
 
-### Option B: Headless Only (Lightweight)
+### 2. Install Proxy Tools
+
+The image is minimal, so we install `socat`.
 
 ```bash
-docker run -d --name chrome-headless \
-  -p 9222:9222 \
-  zenika/alpine-chrome:latest \
-  --no-sandbox \
-  --disable-gpu \
-  --disable-dev-shm-usage \
-  --remote-debugging-address=0.0.0.0 \
-  --remote-debugging-port=9222 \
-  --headless
+docker exec chrome-vnc bash -c "apt-get update -qq && apt-get install -y -qq socat"
+```
+
+### 3. Start Chrome & Proxy
+
+We manually start Chromium pointing to the X11 display, then start the proxy.
+
+```bash
+# Start Chromium
+docker exec chrome-vnc bash -c "DISPLAY=:99 chromium --no-sandbox --disable-gpu --remote-debugging-port=9222 --disable-dev-shm-usage &"
+
+# Wait a moment for Chrome to optimize
+sleep 5
+
+# Start socat proxy (9223 -> 9222)
+docker exec -d chrome-vnc socat TCP-LISTEN:9223,fork,reuseaddr,bind=0.0.0.0 TCP:127.0.0.1:9222
 ```
 
 ---
 
 ## Step 2: Verify Chrome is Accessible
+
+**Critical Step**: Ensure you receive a JSON response.
 
 ```bash
 curl http://localhost:9222/json/version
@@ -73,16 +86,18 @@ curl http://localhost:9222/json/version
 Expected output:
 ```json
 {
-  "Browser": "HeadlessChrome/...",
+  "Browser": "Chrome/...",
   "webSocketDebuggerUrl": "ws://localhost:9222/devtools/browser/..."
 }
 ```
+
+If this hangs or fails with "Empty reply", the `socat` proxy is likely not running. See Troubleshooting.
 
 ---
 
 ## Step 3: Configure Antigravity MCP
 
-Edit `~/.gemini/antigravity/mcp_config.json`:
+Edit `~/.gemini/antigravity/mcp_config.json`. Since we mapped host `9222`, the config remains standard:
 
 ```json
 {
@@ -100,115 +115,66 @@ Edit `~/.gemini/antigravity/mcp_config.json`:
 }
 ```
 
-**Restart Antigravity** for changes to take effect.
+**Restart Antigravity** after saving.
 
 ---
 
-## Step 4: Access VNC Interface (Optional)
+## Step 4: Access VNC Interface
 
 Open in any browser: **http://localhost:7900**
 
 1. Click "Connect"
 2. You'll see the Chromium desktop
-3. Use this to visually monitor what the browser is doing
+3. Use this to visually monitor what the browser is doing.
 
 ---
 
 ## Container Management
 
-### Start/Stop
+### Stop/Start
+
+If you stop the container, the `socat` process will die. When restarting, you often need to restart the proxy.
 
 ```bash
-docker stop chrome-vnc
 docker start chrome-vnc
+# Re-run proxy
+docker exec -d chrome-vnc socat TCP-LISTEN:9223,fork,reuseaddr,bind=0.0.0.0 TCP:127.0.0.1:9222
 ```
 
-### View Logs
+### Full Reset
 
-```bash
-docker logs chrome-vnc
-docker logs -f chrome-vnc  # Follow logs
-```
-
-### Remove and Recreate
+If in doubt, destroy and recreate:
 
 ```bash
 docker stop chrome-vnc && docker rm chrome-vnc
-# Then run the docker run command again
-```
-
-### Check Status
-
-```bash
-docker ps --filter name=chrome-vnc
-```
-
----
-
-## After System Reboot
-
-After rebooting your Mac:
-
-```bash
-# 1. Start Docker runtime
-colima start
-
-# 2. Start Chrome container
-docker start chrome-vnc
-```
-
-Or if you removed the container:
-```bash
-colima start
-docker run -d --name chrome-vnc ...  # full command
+# Then repeat Step 1 (Run, Install, Start)
 ```
 
 ---
 
 ## Troubleshooting
 
-### Docker Connection Refused
+### "Empty reply from server" or Connection Refused
+The `socat` proxy is likely down.
 
-```
-docker: dial unix /var/run/docker.sock: connect: no such file or directory
-```
-
-**Fix:** Start Colima: `colima start`
-
-### Port Already in Use
-
-```
-Error: port is already allocated
-```
-
-**Fix:** Stop existing container or use different port:
+**Check:**
 ```bash
-docker stop chrome-vnc
-# or
-docker run ... -p 9223:9222 ...
+docker exec chrome-vnc ps aux | grep socat
 ```
 
-### ARM64 Image Not Found
+**Fix:**
+```bash
+docker exec -d chrome-vnc socat TCP-LISTEN:9223,fork,reuseaddr,bind=0.0.0.0 TCP:127.0.0.1:9222
+```
 
-If you see "no matching manifest for linux/arm64":
+### Docker "connection refused"
+Colima isn't running.
+```bash
+colima start
+```
 
-- Use `seleniarm/standalone-chromium` instead of `selenium/standalone-chrome`
-- Or use `zenika/alpine-chrome` for headless only
-
-### CDP Connection Timeout
-
-If Chrome DevTools MCP can't connect:
-
-1. Verify container is running: `docker ps`
-2. Check port: `curl http://localhost:9222/json/version`
-3. Wait for container startup (takes ~15 seconds)
-
----
-
-## Security Notes
-
-> ⚠️ **Warning**: The remote debugging port allows full browser control. Only expose on localhost.
-
-- Never expose port 9222 to the network
-- The VNC password is disabled for convenience (`SE_VNC_NO_PASSWORD=1`)
-- For production, add a VNC password and use SSH tunneling
+### VNC works but MCP fails
+Port mapping is wrong or Chrome isn't listening on 9222 internally.
+1. Check internal Chrome: `docker exec chrome-vnc curl localhost:9222/json/version`
+2. Check internal Proxy: `docker exec chrome-vnc curl localhost:9223/json/version`
+3. Check host: `curl localhost:9222/json/version`
