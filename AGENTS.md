@@ -196,3 +196,17 @@ For comprehensive type checking and validation:
 | Slow page load | Check for base64 images, add lazy loading |
 | Build fails on Vercel | Check env vars are set, run build locally first |
 | Images not loading | Use Next.js Image component, check `remotePatterns` in `next.config.ts` |
+
+---
+
+## 16. Problem Solving Strategy
+**Reasoning & Execution Protocol:**
+1. **Stop & Think**: Before committing to a solution, pause and analyze what is needed and what has been tried.
+2. **Deductive Reasoning**: Use symbolic and deductive reasoning to explore the problem space.
+3. **Breadth-First Search**: Explore multiple possible solutions (make a graph of ideas/conclusions) before selecting one.
+4. **Prediction**: Predict the outcome of action X and explain *why* it should work.
+5. **Human-Like Thinking**:
+   - Focus on getting things *working* (pragmatic execution).
+   - Understand the core intent ("what do they really want?").
+   - Keep this intent as the guiding principle throughout the task.
+6. **Execution**: After thorough reasoning, select the best path and execute it.
